@@ -1,0 +1,179 @@
+@startuml
+title SSES - Agent Runtime State Machine (Scroll vs Seek)
+
+hide empty description
+
+note "Scroll = passive, feed-driven\nSeek = active, goal-directed\nBoth are cheap; neither reasons.\nDeep Focus remains rare + expensive." as N0
+
+[*] --> Boot
+
+state Boot {
+  [*] --> Initialize
+  Initialize : load identity/beliefs/memory\nseed RNG\ninit budgets + schedules
+  Initialize --> Idle
+}
+
+state Idle {
+  [*] --> Waiting
+  Waiting : idle / lurk\nlow compute
+}
+
+Idle --> Perceive : tick / event / notification
+
+state Perceive {
+  [*] --> GatherPercepts
+  GatherPercepts : collect online signals\ncollect physical signals\ncheck internal drives
+  GatherPercepts --> DecideIntake
+}
+
+state DecideIntake {
+  [*] --> IntakeChoice
+  IntakeChoice : compute motivation\n(novelty, anxiety,\nidentity threat,\nboredom, intent)
+  IntakeChoice --> Scroll : if platform_pull > agency
+  IntakeChoice --> Seek : if agency > platform_pull
+  IntakeChoice --> Waiting : if attention_minutes <= 0
+}
+
+'-------------------------
+' Scroll path
+'-------------------------
+state Scroll {
+  [*] --> FeedAdvance
+  FeedAdvance : advance ranked feed\ncheap exposure\nlow control
+  FeedAdvance --> MakeImpressions
+}
+
+'-------------------------
+' Seek path
+'-------------------------
+state Seek {
+  [*] --> FormQuery
+  FormQuery : select topic / person / group\nidentity- or tension-driven
+  FormQuery --> FetchResults
+  FetchResults : retrieve matching content\nless volume, higher relevance
+  FetchResults --> MakeImpressions
+}
+
+'-------------------------
+' Shared impression path
+'-------------------------
+state MakeImpressions {
+  [*] --> GenerateImpressions
+  GenerateImpressions : create Impression objects\n(valence, arousal,\nstance signal,\ncredibility,\nidentity threat,\nsocial proof)
+  GenerateImpressions --> UpdateInternal
+}
+
+state UpdateInternal {
+  [*] --> ApplyImpressions
+  ApplyImpressions : update emotions\nbounded belief deltas\nsalience updates\nlog impressions
+  ApplyImpressions --> AllocateAttention
+}
+
+state AllocateAttention {
+  [*] --> EvaluateTriggers
+  EvaluateTriggers : check thresholds\n(identity threat,\nstrong tie,\nphysical amp,\nrepetition)
+  EvaluateTriggers --> DeepFocus : if deep_focus_budget > 0 && trigger
+  EvaluateTriggers --> SelectIntent : if no trigger
+}
+
+state DeepFocus {
+  [*] --> Analyze
+  Analyze : expensive reasoning\nargument eval / coordination\nmay synthesize action template
+  Analyze --> SelectIntent
+}
+
+state SelectIntent {
+  [*] --> ChooseIntent
+  ChooseIntent : status / affiliation /\ndominance / coherence\nsubject to risk_budget
+  ChooseIntent --> EvaluateAction
+}
+
+state EvaluateAction {
+  [*] --> Gate
+  Gate : if action_budget <= 0 -> NoOp\nif moderation risk too high -> NoOp\nif low expected reward -> NoOp
+  Gate --> Act : if pass
+  Gate --> NoOp : if fail
+}
+
+state Act {
+  [*] --> Execute
+  Execute : post / reply / DM /\nphysical engagement\nspend budgets\nreceive feedback
+  Execute --> Learn
+}
+
+state Learn {
+  [*] --> BanditUpdate
+  BanditUpdate : contextual bandit update\n(action-template prefs)\nlog reward vector
+  BanditUpdate --> ConsolidateMemory
+}
+
+state NoOp {
+  [*] --> Lurk
+  Lurk : no visible action\nstill records exposure
+  Lurk --> ConsolidateMemory
+}
+
+state ConsolidateMemory {
+  [*] --> WriteMemory
+  WriteMemory : store exposure history\nrelationship updates\ndecay impressions
+  WriteMemory --> CheckBeliefCrossing
+}
+
+state CheckBeliefCrossing {
+  [*] --> Detect
+  Detect : stance/confidence thresholds\nidentity compatibility
+  Detect --> Attribute : if crossing_event
+  Detect --> EndTick : if none
+}
+
+state Attribute {
+  [*] --> AssignCredit
+  AssignCredit : sliding window 3–14 days\nrecency + tie strength\nphysical multiplier
+  AssignCredit --> EndTick
+}
+
+state EndTick {
+  [*] --> ReturnIdle
+  ReturnIdle : decrement budgets\nupdate fatigue
+  ReturnIdle --> Idle
+}
+
+'-------------------------
+' Daily boundary
+'-------------------------
+Idle --> DailyBoundary : if day_changed
+
+state DailyBoundary {
+  [*] --> RegenBudgets
+  RegenBudgets : heavy-tailed regen\ncarryover + fatigue
+  RegenBudgets --> IdentityConsolidation
+}
+
+state IdentityConsolidation {
+  [*] --> CompressBeliefs
+  CompressBeliefs : compress beliefs\ncap drift
+  CompressBeliefs --> ReAnchor
+  ReAnchor : stabilize identity
+  ReAnchor --> EvolutionCheck
+}
+
+state EvolutionCheck {
+  [*] --> EvaluateExit
+  EvaluateExit : chronic low reward\nstress / isolation / boredom
+  EvaluateExit --> Exit : if exit
+  EvaluateExit --> Idle : if survive
+}
+
+state Exit {
+  [*] --> Remove
+  Remove : log exit\nremove agent
+  Remove --> Replace
+}
+
+state Replace {
+  [*] --> Newborn
+  Newborn : partial inheritance\nmutation\nno memory cloning
+  Newborn --> Idle
+}
+
+@enduml

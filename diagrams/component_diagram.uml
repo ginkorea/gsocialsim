@@ -1,0 +1,92 @@
+@startuml
+title SSES - Component Diagram
+
+skinparam componentStyle rectangle
+
+component "World Kernel" as WK
+component "Event Scheduler" as ES
+component "Deterministic Replay" as DR
+
+component "Agent Engine" as AE
+component "Agent Runtime Loop" as ARL
+component "Memory System" as MS
+component "Attention System\n(Scroll + Seek + Deep Focus)" as ATTN
+component "Policy + Learning\n(Contextual Bandits)" as LEARN
+
+component "Global Social Reality\n(Latent R_uv)" as GSR
+
+component "Online Network Layers" as ONL
+component "Broadcast Feed Network" as BF
+component "Private Messaging Network" as DM
+
+component "Physical Layer" as PHY
+component "Places + Schedules" as PS
+component "Proximity Interaction Generator" as PIG
+
+component "Stimulus Ingestion\n(Read-only Exogenous)" as SI
+component "Provenance Transformer\n(Publisher/Influencer framing)" as PT
+
+component "Belief & Identity System" as BIS
+component "Belief Update Engine" as BUE
+component "Identity Consolidation" as IC
+component "Belief Crossing + Attribution" as BCA
+
+component "Moderation & Institutions" as MI
+component "Moderation Engine" as MOD
+component "Institutional Actors\n(Publishers/Influencers)" as IA
+
+component "Evolutionary System (GA)" as GA
+component "Exit + Replacement" as ER
+component "Mutation + Inheritance" as MU
+
+component "Analytics + Logging" as AL
+component "Event Logs" as LOGS
+component "Metrics + Reports" as MET
+
+WK --> ES
+WK --> DR
+WK --> AE
+WK --> ONL
+WK --> PHY
+WK --> SI
+WK --> MI
+WK --> GA
+WK --> AL
+
+AE --> ARL
+AE --> MS
+AE --> ATTN
+AE --> LEARN
+AE --> BIS
+
+ONL --> BF
+ONL --> DM
+ONL --> GSR
+
+PHY --> PS
+PHY --> PIG
+PHY --> GSR
+
+SI --> PT
+PT --> BF
+PT --> IA
+
+MI --> MOD
+MI --> IA
+MOD --> BF
+MOD --> DM
+
+BIS --> BUE
+BIS --> IC
+BIS --> BCA
+BUE --> GSR
+BCA --> AL
+
+GA --> ER
+GA --> MU
+ER --> AE
+
+AL --> LOGS
+AL --> MET
+
+@enduml

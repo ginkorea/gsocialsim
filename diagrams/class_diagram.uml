@@ -1,0 +1,544 @@
+@startuml
+title SSES - Core Class Diagram
+
+skinparam classAttributeIconSize 0
+
+'========================
+' Kernel / Time
+'========================
+class WorldKernel {
+  +seed: long
+  +clock: SimClock
+  +step(dt: Duration)
+  +schedule(e: Event)
+  +replay(runId: string)
+}
+
+class SimClock {
+  +t: long
+  +day: int
+  +tick: long
+  +advance(dt: Duration)
+}
+
+abstract class Event {
+  +id: string
+  +timestamp: long
+  +apply(ctx: WorldContext)
+}
+
+class EventScheduler {
+  +enqueue(e: Event)
+  +next(): Event
+}
+
+class DeterministicReplay {
+  +record(e: Event)
+  +load(runId: string)
+}
+
+class WorldContext {
+  +agents: AgentPopulation
+  +gsr: GlobalSocialReality
+  +networks: NetworkManager
+  +physical: PhysicalWorld
+  +stimuli: StimulusStore
+  +analytics: Analytics
+  +rng: RNG
+}
+
+WorldKernel --> SimClock
+WorldKernel --> EventScheduler
+WorldKernel --> DeterministicReplay
+WorldKernel --> WorldContext
+
+'========================
+' Agents
+'========================
+class Agent {
+  +id: AgentId
+  +identity: IdentityState
+  +beliefs: BeliefStore
+  +emotion: EmotionState
+  +budgets: BudgetState
+  +personality: RewardWeights
+  +memory: MemoryStore
+  +attention: AttentionSystem
+  +policy: ActionPolicy
+  +learn: BanditLearner
+  +tick(ctx: WorldContext)
+  +perceive(p: Percept)
+  +maybeAct(ctx: WorldContext): Action?
+  +consolidateDaily(ctx: WorldContext)
+}
+
+class AgentPopulation {
+  +agents: Map<AgentId, Agent>
+  +get(id: AgentId): Agent
+  +replace(exited: AgentId, newborn: Agent)
+}
+
+class IdentityState {
+  +identity_vector: float[8..16]
+  +identity_rigidity: float
+  +ingroup_labels: Set<String>
+  +taboo_boundaries: Set<String>
+}
+
+class BeliefStore {
+  +topics: Map<TopicId, TopicBelief>
+  +get(t: TopicId): TopicBelief
+  +update(t: TopicId, delta: BeliefDelta)
+}
+
+class TopicBelief {
+  +topic: TopicId
+  +stance: float  '[-1,+1]
+  +confidence: float  '[0,1]
+  +salience: float  '[0,1]
+  +knowledge: float  '[0,1]
+}
+
+class EmotionState {
+  +valence: float
+  +arousal: float
+  +anger: float?
+  +anxiety: float?
+}
+
+class BudgetState {
+  +attention_minutes: float
+  +action_budget: float
+  +deep_focus_budget: float
+  +risk_budget: float
+  +regenDaily()
+  +spend(kind: BudgetKind, amount: float): bool
+}
+
+class RewardWeights {
+  +status: float
+  +affiliation: float
+  +dominance: float
+  +coherence: float
+  +novelty: float
+  +safety: float
+  +effortCost: float  'negative
+}
+
+AgentPopulation o-- Agent
+Agent *-- IdentityState
+Agent *-- BeliefStore
+Agent *-- EmotionState
+Agent *-- BudgetState
+Agent *-- RewardWeights
+
+'========================
+' Attention
+'========================
+class AttentionSystem {
+  +scout: ScrollOrSeekner
+  +deep: DeepFocusEngine
+  +evaluate(percepts: List<Percept>): List<Impression>
+  +shouldDeepFocus(imps: List<Impression>): bool
+  +deepFocus(target: ContentItem): DeepResult
+}
+
+class ScrollOrSeekner {
+  +scan(item: ContentItem): Impression
+}
+
+class DeepFocusEngine {
+  +analyze(item: ContentItem, ctx: FocusContext): DeepResult
+}
+
+enum IntakeMode {
+
+  scroll
+
+  seek
+
+  physical
+
+}
+
+
+class Impression {
+  +intake_mode: IntakeMode
+  +contentId: ContentId
+  +topic: TopicId?
+  +valence: float
+  +arousal: float
+  +stance_signal: float
+  +credibility: float
+  +identity_threat: float
+  +social_proof: float
+  +source_strength: float
+  +decay()
+}
+
+class DeepResult {
+  +arguments: Map<TopicId, float>
+  +callToAction: ActionTemplate?
+  +coordination: boolean
+}
+
+Agent --> AttentionSystem
+AttentionSystem --> ScrollOrSeekner
+AttentionSystem --> DeepFocusEngine
+
+'========================
+' Policy + Learning
+'========================
+class ActionPolicy {
+  +selectIntent(a: Agent, ctx: WorldContext): Intent
+  +selectActionTemplate(intent: Intent): ActionTemplate
+  +instantiate(tpl: ActionTemplate, ctx: WorldContext): Action
+}
+
+class BanditLearner {
+  +update(context: BanditContext, chosen: ActionTemplate, reward: RewardVector)
+  +choose(context: BanditContext, candidates: List<ActionTemplate>): ActionTemplate
+}
+
+class RewardVector {
+  +status: float
+  +affiliation: float
+  +dominance: float
+  +coherence: float
+  +novelty: float
+  +safety: float
+  +effortCost: float
+  +weightedSum(w: RewardWeights): float
+}
+
+Agent --> ActionPolicy
+Agent --> BanditLearner
+BanditLearner --> RewardVector
+
+'========================
+' Social Reality + Graph Layers
+'========================
+class GlobalSocialReality {
+  +R: Map<Pair<AgentId,AgentId>, RelationshipVector>
+  +get(u: AgentId, v: AgentId): RelationshipVector
+  +update(u: AgentId, v: AgentId, delta: RelDelta)
+}
+
+class RelationshipVector {
+  +affinity: float
+  +trust: float
+  +intimacy: float
+  +conflict: float
+  +reciprocity: float
+  +status_delta: float
+  +topic_alignment: Map<TopicId,float>
+}
+
+abstract class NetworkLayer {
+  +id: NetworkId
+  +graph: NetworkGraph
+  +mechanics: PlatformMechanics
+  +projectEdge(u: Agent, v: Agent, gsr: GlobalSocialReality): Edge
+  +rankFeed(viewer: Agent, candidates: List<ContentItem>): List<ContentItem>
+  +enforceModeration(item: ContentItem): ModerationDecision
+}
+
+class BroadcastFeedNetwork
+class DirectMessageNetwork
+
+class NetworkGraph {
+  +nodes: Set<AgentId>
+  +edges: Set<Edge>
+  +neighbors(u: AgentId): List<AgentId>
+}
+
+class Edge {
+  +u: AgentId
+  +v: AgentId
+  +weight: float
+  +features: float[*]  'relationship projection vector
+}
+
+class PlatformMechanics {
+  +visibilityRules: VisibilityRules
+  +rankingModel: RankingModel
+  +riskProfile: RiskProfile
+  +rewardMapping: RewardMapping
+}
+
+class NetworkManager {
+  +layers: List<NetworkLayer>
+  +getLayer(id: NetworkId): NetworkLayer
+}
+
+NetworkLayer <|-- BroadcastFeedNetwork
+NetworkLayer <|-- DirectMessageNetwork
+NetworkLayer *-- NetworkGraph
+NetworkLayer *-- PlatformMechanics
+NetworkManager o-- NetworkLayer
+
+Agent --> GlobalSocialReality : updates via interactions
+NetworkLayer --> GlobalSocialReality : projects edges
+
+'========================
+' Physical Layer
+'========================
+class PhysicalWorld {
+  +places: Map<PlaceId, Place>
+  +schedules: Map<AgentId, Schedule>
+  +generateInteractions(day: int): List<PhysicalInteraction>
+}
+
+class Place {
+  +id: PlaceId
+  +size: int
+  +mixingRate: float
+  +norms: NormProfile
+  +topicBias: Map<TopicId,float>
+}
+
+class Schedule {
+  +memberships: List<PlaceId>
+  +dailyPlan(day: int): List<PlaceVisit>
+}
+
+class PlaceVisit {
+  +placeId: PlaceId
+  +start: long
+  +end: long
+}
+
+class PhysicalInteraction {
+  +participants: List<AgentId>
+  +topic: TopicId?
+  +type: InteractionType
+  +intensity: float
+  +applyInfluence(gsr: GlobalSocialReality)
+}
+
+PhysicalWorld o-- Place
+PhysicalWorld o-- Schedule
+Schedule o-- PlaceVisit
+PhysicalWorld --> PhysicalInteraction
+PhysicalInteraction --> GlobalSocialReality
+
+'========================
+' Stimuli + Content
+'========================
+class StimulusStore {
+  +items: List<ExternalStimulus>
+  +getAt(t: long): List<ExternalStimulus>
+}
+
+class ExternalStimulus {
+  +id: StimulusId
+  +timestamp: long
+  +source: String
+  +payload: bytes
+}
+
+class ProvenanceTransformer {
+  +transform(s: ExternalStimulus): List<ContentItem>
+}
+
+class ContentItem {
+  +id: ContentId
+  +timestamp: long
+  +publisher: ActorId
+  +topic: TopicId?
+  +stance: float?
+  +emotionDerivative: float?
+  +provenance: ProvenanceRecord
+}
+
+class ProvenanceRecord {
+  +rootStimulusId: StimulusId
+  +transformChain: List<String>
+}
+
+StimulusStore o-- ExternalStimulus
+ProvenanceTransformer --> ContentItem
+ContentItem *-- ProvenanceRecord
+
+'========================
+' Belief Update + Crossing + Attribution
+'========================
+class BeliefUpdateEngine {
+  +update(a: Agent, imp: Impression, ctx: WorldContext): BeliefDelta
+  +boundedAdjust(b: TopicBelief, delta: BeliefDelta): TopicBelief
+}
+
+class BeliefCrossingDetector {
+  +check(a: Agent, topic: TopicId, before: TopicBelief, after: TopicBelief): BeliefCrossingEvent?
+}
+
+class AttributionEngine {
+  +windowDaysMin: int
+  +windowDaysMax: int
+  +assignCredit(e: BeliefCrossingEvent, history: ExposureHistory): AttributionSet  'uses ExposureEvent.intake_mode
+}
+
+class ExposureHistory {
+  +events: List<ExposureEvent>
+  +query(a: AgentId, topic: TopicId, since: long): List<ExposureEvent>
+}
+
+class ExposureEvent {
+  +timestamp: long
+  +agent: AgentId
+  +contentId: ContentId
+  +sourceActor: ActorId
+  +channel: ChannelType  'online/physical
+  +tieStrength: float
+}
+
+class InfluenceEvent {
+  +timestamp: long
+  +source: ActorId
+  +target: AgentId
+  +topic: TopicId?
+  +channel: ChannelType
+  +intake_mode: IntakeMode
+  +attemptType: String  'persuade, coordinate, intimidate, reassure, etc.
+  +outcome: String      'success, failure, backfire, noop
+  +deltaBelief: float?
+  +deltaAction: float?
+  +deltaRelationship: float?
+  +evidence: List<String>  'contentIds, interactionIds, etc.
+}
+
+class InfluencePath {
+  +id: string
+  +agent: AgentId
+  +topic: TopicId?
+  +windowStart: long
+  +windowEnd: long
+  +exposures: List<ExposureEvent>
+  +influenceEvents: List<InfluenceEvent>
+  +result: String  'belief_crossing, action_change, relationship_shift
+}
+
+class BeliefCrossingEvent {
+  +id: string
+  +timestamp: long
+  +agent: AgentId
+  +topic: TopicId
+  +prior: TopicBelief
+  +after: TopicBelief
+  +attribution: AttributionSet
+}
+
+class AttributionSet {
+  +credits: List<AttributionCredit>
+}
+
+class AttributionCredit {
+  +source: ActorId
+  +weight: float
+  +channelMultiplier: float
+  +recencyWeight: float
+}
+
+Agent --> BeliefUpdateEngine
+BeliefUpdateEngine --> BeliefCrossingDetector
+BeliefCrossingDetector --> BeliefCrossingEvent
+AttributionEngine --> AttributionSet
+ExposureHistory o-- ExposureEvent
+BeliefCrossingEvent *-- AttributionSet
+AttributionSet o-- AttributionCredit
+
+'========================
+' Daily identity consolidation
+'========================
+class IdentityConsolidator {
+  +compressBeliefs(a: Agent)
+  +reAnchorIdentity(a: Agent)
+  +capAnchorDrift(a: Agent)
+}
+
+Agent --> IdentityConsolidator
+
+'========================
+' Moderation & Institutions
+'========================
+class InstitutionalActor {
+  +id: ActorId
+  +role: ActorRole
+  +post(ctx: WorldContext): ContentItem
+}
+
+class ModerationEngine {
+  +enforce(item: ContentItem, layer: NetworkLayer): ModerationDecision
+}
+
+class ModerationDecision {
+  +action: ModerationAction
+  +probability: float
+}
+
+'========================
+' Evolutionary System
+'========================
+class EvolutionarySystem {
+  +evaluateFitness(a: Agent): Fitness
+  +maybeExit(a: Agent): bool
+  +replace(a: Agent): Agent
+}
+
+class Fitness {
+  +reward: float
+  +connectedness: float
+  +reputation: float
+  +noise: float
+}
+
+EvolutionarySystem --> Fitness
+EvolutionarySystem --> AgentPopulation
+
+'========================
+' Analytics + Logging
+'========================
+class Analytics {
+  +logInfluenceEvent(e: InfluenceEvent)
+  +logInfluencePath(p: InfluencePath)
+  +scroll_exposures: int
+
+  +seek_exposures: int
+
+  +physical_exposures: int
+
+  +scroll_seek_ratio(): float
+
+  +logExposure(e: ExposureEvent)
+  +logImpression(i: Impression)
+  +logAction(a: Action)
+  +logReward(r: RewardVector)
+  +logBeliefUpdate(d: BeliefDelta)
+  +logCrossing(e: BeliefCrossingEvent)
+  +reportMetrics(): MetricsReport
+}
+
+class MetricsReport {
+  +influenceGraph: Map<String,float>  'who→whom weights (by topic/channel)
+  +influenceEfficiency: float
+  +influenceConcentration: float
+  +scrollInfluenceShare: float
+  +seekInfluenceShare: float
+  +physicalInfluenceShare: float
+  +scrollExposures: int
+
+  +seekExposures: int
+
+  +physicalExposures: int
+
+  +scrollSeekRatio: float
+
+  +polarization: float
+  +conversionRate: float
+  +physicalVsOnlineRatio: float
+  +cascadeStats: Map<String,float>
+}
+
+Analytics --> MetricsReport
+
+@enduml

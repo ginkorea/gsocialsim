@@ -1,0 +1,59 @@
+@startuml
+title SSES - Sequence: Tick, Attention, Belief Update, Attribution
+
+actor "WorldKernel" as WK
+participant "AgentEngine" as AE
+participant "Agent" as A
+participant "NetworkLayer" as NL
+participant "PhysicalWorld" as PW
+participant "AttentionSystem" as AT
+participant "BeliefUpdateEngine" as BUE
+participant "CrossingDetector" as CD
+participant "AttributionEngine" as ATR
+participant "Analytics" as AN
+
+WK -> AE: step(dt)
+AE -> NL: generateCandidateContent(A)
+AE -> PW: generatePhysicalInteractions(A)
+
+NL --> AE: percepts_online(List<Percept>, intake_mode=scroll|seek)
+PW --> AE: percepts_physical(List<Percept>, intake_mode=physical)
+
+AE -> A: tick(ctx, percepts)
+A -> AT: evaluate(percepts)
+AT --> A: impressions
+
+loop For each impression
+  A -> BUE: update(A, impression, ctx)
+  BUE --> A: beliefDelta (bounded)
+  A -> AN: logImpression(impression)
+  A -> AN: logBeliefUpdate(beliefDelta)
+end
+
+alt Deep focus triggered
+  A -> AT: deepFocus(targetContent)
+  AT --> A: deepResult
+  A -> AN: logAction(deepFocus)
+end
+
+A -> A: maybeAct(ctx)
+alt Action chosen
+  A -> NL: post/send(action) or engage()
+  NL --> A: exposureResults + costs
+  A -> AN: logAction(action)
+  alt action has influence intent
+    A -> AN: logInfluenceEvent(InfluenceEvent)
+  end
+
+end
+
+A -> CD: checkCrossing(before, after, topic)
+CD --> A: crossingEvent? (optional)
+
+alt crossingEvent exists
+  A -> ATR: assignCredit(crossingEvent, exposureHistory)
+  ATR --> A: attributionSet
+  A -> AN: logCrossing(crossingEvent+attribution)
+end
+
+@enduml
