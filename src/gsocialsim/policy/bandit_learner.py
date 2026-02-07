@@ -1,58 +1,51 @@
-from dataclasses import dataclass, field
-from typing import Dict
 from collections import defaultdict
 import random
-import math
+from typing import Optional, TYPE_CHECKING
+from dataclasses import dataclass
 
 from src.gsocialsim.policy.action_policy import ActionPolicy
 from src.gsocialsim.agents.reward_weights import RewardWeights
-from src.gsocialsim.types import TopicId
+from src.gsocialsim.stimuli.interaction import Interaction, InteractionVerb
 from src.gsocialsim.stimuli.content_item import ContentItem
+from src.gsocialsim.types import TopicId
+
+if TYPE_CHECKING:
+    from src.gsocialsim.agents.agent import Agent
 
 @dataclass
 class RewardVector:
     status: float = 0.0
     affiliation: float = 0.0
-    # ... other reward types ...
-
     def weighted_sum(self, weights: RewardWeights) -> float:
         return self.status * weights.status + self.affiliation * weights.affiliation
 
 class BanditLearner(ActionPolicy):
-    """
-    An epsilon-greedy contextual bandit that learns which topics to post about.
-    """
-    def __init__(self, epsilon: float = 0.1):
+    def __init__(self, epsilon: float = 0.2):
         self.epsilon = epsilon
-        self.action_counts: Dict[TopicId, int] = defaultdict(int)
-        self.action_rewards: Dict[TopicId, float] = defaultdict(float)
+        self.action_counts: dict[str, int] = defaultdict(int)
+        self.action_rewards: dict[str, float] = defaultdict(float)
 
-    def generate_action(self, agent: "Agent", tick: int) -> Optional["ContentItem"]:
-        if not agent.beliefs.topics:
+    def generate_interaction(self, agent: "Agent", tick: int) -> Optional[Interaction]:
+        if agent.rng.random() > 0.1: # 10% chance to act
             return None
 
-        if agent.rng.random() < self.epsilon:
-            # Explore: choose a random topic
-            topic_id = agent.rng.choice(list(agent.beliefs.topics.keys()))
+        # Decide whether to interact with a remembered stimulus or create original content
+        if agent.recent_exposures and agent.rng.random() < 0.7:
+            # High chance to interact with something from memory
+            target_id = agent.rng.choice(list(agent.recent_exposures))
+            verb = agent.rng.choice([InteractionVerb.LIKE, InteractionVerb.FORWARD])
+            return Interaction(agent_id=agent.id, verb=verb, target_stimulus_id=target_id)
         else:
-            # Exploit: choose the best-known topic
-            avg_rewards = {
-                t: self.action_rewards[t] / self.action_counts[t]
-                for t in self.action_counts if self.action_counts[t] > 0
-            }
-            if not avg_rewards: # Handle case where no actions have been tried
-                 topic_id = agent.rng.choice(list(agent.beliefs.topics.keys()))
-            else:
-                topic_id = max(avg_rewards, key=avg_rewards.get)
+            # Create original content
+            if not agent.beliefs.topics: return None
+            topic_id = agent.rng.choice(list(agent.beliefs.topics.keys()))
+            belief = agent.beliefs.get(topic_id)
+            content = ContentItem(
+                id=f"C_{agent.id}_{tick}", author_id=agent.id,
+                topic=topic_id, stance=belief.stance
+            )
+            return Interaction(agent_id=agent.id, verb=InteractionVerb.CREATE, original_content=content)
 
-        belief = agent.beliefs.get(topic_id)
-        return ContentItem(
-            id=f"C_{agent.id}_{tick}",
-            author_id=agent.id,
-            topic=topic_id,
-            stance=belief.stance
-        )
-
-    def learn(self, topic: TopicId, reward: float):
-        self.action_counts[topic] += 1
-        self.action_rewards[topic] += reward
+    def learn(self, action_key: str, reward: float):
+        self.action_counts[action_key] += 1
+        self.action_rewards[action_key] += reward

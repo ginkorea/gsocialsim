@@ -3,14 +3,15 @@ from src.gsocialsim.agents.agent import Agent
 from src.gsocialsim.types import AgentId, TopicId
 from src.gsocialsim.visualization.exporter import generate_influence_graph_html
 from src.gsocialsim.social.relationship_vector import RelationshipVector
+from src.gsocialsim.stimuli.data_source import CsvDataSource
 
-def setup_simulation_scenario(kernel: WorldKernel):
+def setup_and_run_simulation(kernel: WorldKernel, num_ticks: int):
     """
-    Creates a small social network with a clear influence path.
-    A -> B -> C, and D is a peripheral agent.
-    A strongly trusts B. B moderately trusts C.
+    Sets up a scenario with agents and external stimuli, runs the simulation,
+    and returns the kernel state.
     """
     print("Setting up simulation scenario...")
+    # --- Create Agents and Network ---
     agent_A = Agent(id=AgentId("A"), seed=1)
     agent_B = Agent(id=AgentId("B"), seed=2)
     agent_C = Agent(id=AgentId("C (Source)"), seed=3)
@@ -18,35 +19,39 @@ def setup_simulation_scenario(kernel: WorldKernel):
     
     agents = [agent_A, agent_B, agent_C, agent_D]
     for a in agents:
-        a.budgets.action_budget = 100 # Give plenty of budget
+        a.budgets.action_budget = 100
         kernel.agents.add_agent(a)
 
-    # --- Setup Social Graph ---
     graph = kernel.world_context.network.graph
     graph.add_edge(follower=agent_A.id, followed=agent_B.id)
     graph.add_edge(follower=agent_B.id, followed=agent_C.id)
+    graph.add_edge(follower=agent_D.id, followed=agent_A.id) # D follows A
 
     # --- Setup Trust ---
     gsr = kernel.world_context.gsr
-    gsr.set_relationship(agent_A.id, agent_B.id, RelationshipVector(trust=0.9)) # A trusts B
-    gsr.set_relationship(agent_B.id, agent_C.id, RelationshipVector(trust=0.6)) # B trusts C
+    gsr.set_relationship(agent_A.id, agent_B.id, RelationshipVector(trust=0.9))
+    gsr.set_relationship(agent_B.id, agent_C.id, RelationshipVector(trust=0.6))
 
     # --- Setup Initial Belief ---
-    topic = TopicId("T_Viz")
+    topic = TopicId("T_Original")
     agent_C.beliefs.update(topic, stance=1.0, confidence=1.0, salience=1.0, knowledge=1.0)
+    
+    # --- Register Data Source ---
+    csv_source = CsvDataSource(file_path="stimuli.csv")
+    kernel.world_context.stimulus_engine.register_data_source(csv_source)
     print("Scenario setup complete.")
 
-if __name__ == "__main__":
-    # --- 1. Initialize ---
-    sim_kernel = WorldKernel(seed=101)
-    setup_simulation_scenario(sim_kernel)
-
-    # --- 2. Run Simulation ---
-    print("\nRunning simulation...")
-    # Run for enough ticks for influence to spread
-    # With a 1% action chance, 500 ticks should be enough for several posts
-    sim_kernel.step(500)
+    # --- Run Simulation ---
+    print(f"\nRunning simulation for {num_ticks} ticks...")
+    kernel.step(num_ticks)
     print("Simulation finished.\n")
 
-    # --- 3. Generate Visualization ---
+
+if __name__ == "__main__":
+    # --- 1. Initialize & Run ---
+    sim_kernel = WorldKernel(seed=101)
+    # Run long enough for stimuli at ticks 10, 50, 100 to appear and be acted upon
+    setup_and_run_simulation(sim_kernel, num_ticks=200)
+
+    # --- 2. Generate Visualization ---
     generate_influence_graph_html(sim_kernel)

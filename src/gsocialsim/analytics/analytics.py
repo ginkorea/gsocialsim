@@ -6,26 +6,31 @@ from src.gsocialsim.analytics.attribution import (
     BeliefCrossingEvent,
     ExposureEvent
 )
+from src.gsocialsim.stimuli.interaction import Interaction
 
 class Analytics:
     """
-    Phase 7: A logger that also manages exposure history and belief crossing attribution.
+    Manages all logging for the simulation, including verbose debugging
+    and storing data for visualization.
     """
     def __init__(self):
         self.exposure_history = ExposureHistory()
         self.crossing_detector = BeliefCrossingDetector()
         self.attribution_engine = AttributionEngine()
         self.crossings: list[BeliefCrossingEvent] = []
+        self.interactions: list[Interaction] = []
 
     def log_belief_update(self, timestamp: int, agent_id: str, delta: Any):
-        # This can be commented out for cleaner output if desired
-        # print(
-        #     f"LOG:[T={timestamp}] Agent['{agent_id}'] BeliefUpdate: "
-        #     f"Topic='{delta.topic_id}', StanceΔ={delta.stance_delta:.4f}, ConfΔ={delta.confidence_delta:.4f}"
-        # )
-        pass
+        print(
+            f"DEBUG:[T={timestamp}] Agent['{agent_id}'] BeliefUpdate: "
+            f"Topic='{delta.topic_id}', StanceΔ={delta.stance_delta:.4f}, ConfΔ={delta.confidence_delta:.4f}"
+        )
     
     def log_exposure(self, viewer_id: str, source_id: str, topic: str, is_physical: bool, timestamp: int):
+        print(
+            f"DEBUG:[T={timestamp}] Agent['{viewer_id}'] Perceived: "
+            f"Source='{source_id}', Topic='{topic}', Physical={is_physical}"
+        )
         event = ExposureEvent(
             timestamp=timestamp,
             source_actor_id=source_id,
@@ -33,6 +38,14 @@ class Analytics:
             is_physical=is_physical
         )
         self.exposure_history.log_exposure(viewer_id, event)
+
+    def log_interaction(self, timestamp: int, interaction: Interaction):
+        target = interaction.target_stimulus_id or (interaction.original_content.id if interaction.original_content else 'None')
+        print(
+            f"DEBUG:[T={timestamp}] Agent['{interaction.agent_id}'] Interacted: "
+            f"Verb='{interaction.verb.value}', Target='{target}'"
+        )
+        self.interactions.append(interaction)
 
     def log_belief_crossing(self, event: BeliefCrossingEvent):
         print(
