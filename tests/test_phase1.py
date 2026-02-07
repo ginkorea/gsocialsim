@@ -42,6 +42,8 @@ class TestPhase1(unittest.TestCase):
         agent1 = Agent(id="agent_001", seed=seed + 1)
         agent2 = Agent(id="agent_002", seed=seed + 2)
 
+        agent1.beliefs.update("T1", 0, 0, 0, 0) # Give a belief to prevent IndexError
+        agent2.beliefs.update("T1", 0, 0, 0, 0)
         kernel.agents.add_agent(agent1)
         kernel.agents.add_agent(agent2)
 

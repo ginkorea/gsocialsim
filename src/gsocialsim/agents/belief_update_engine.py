@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from src.gsocialsim.agents.impression import Impression
+from src.gsocialsim.agents.impression import Impression, IntakeMode
 from src.gsocialsim.agents.belief_state import BeliefStore, TopicId
 from src.gsocialsim.social.global_social_reality import GlobalSocialReality
 from src.gsocialsim.types import AgentId, ActorId
@@ -32,14 +32,16 @@ class BeliefUpdateEngine:
         
         # Get the trust from the viewer's perspective towards the author
         trust = gsr.get_relationship(viewer_id, content_author_id).trust
+        
+        # Physical interactions are more potent
+        multiplier = 10.0 if impression.intake_mode == IntakeMode.PHYSICAL else 1.0
 
         if current_belief is None:
-            # Agent has no opinion. New confidence is now scaled by trust.
-            # A completely untrusted source (trust=0) will result in zero confidence.
+            # Agent has no opinion. New stance and confidence are scaled by trust.
             return BeliefDelta(
                 topic_id=topic_id,
-                stance_delta=impression.stance_signal,
-                confidence_delta=0.1 * trust # Confidence in new belief depends on trust
+                stance_delta=impression.stance_signal * trust * multiplier, # Stance is also scaled by trust
+                confidence_delta=0.1 * trust * multiplier # Confidence in new belief depends on trust
             )
         else:
             # Agent has an opinion.
@@ -47,10 +49,10 @@ class BeliefUpdateEngine:
             # trust=1.0 -> 10% change, trust=0.5 -> 5% change, trust=0 -> 0% change
             base_influence_factor = 0.10
             stance_difference = impression.stance_signal - current_belief.stance
-            stance_change = stance_difference * base_influence_factor * trust
+            stance_change = stance_difference * base_influence_factor * trust * multiplier
             
             # Confidence increases slightly, also scaled by trust
-            confidence_change = 0.02 * trust
+            confidence_change = 0.02 * trust * multiplier
 
             return BeliefDelta(
                 topic_id=topic_id,

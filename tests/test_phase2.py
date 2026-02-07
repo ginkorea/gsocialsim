@@ -46,15 +46,15 @@ class TestPhase2(unittest.TestCase):
         # Check the agent's belief state
         new_belief = self.agent.beliefs.get(self.topic)
         self.assertIsNotNone(new_belief)
-        self.assertAlmostEqual(new_belief.stance, 0.8) # Stance is adopted directly
-        self.assertAlmostEqual(new_belief.confidence, 0.1) # Confidence starts low
+        self.assertAlmostEqual(new_belief.stance, 0.4) # Stance is adopted, scaled by default trust (0.8 * 0.5)
+        self.assertAlmostEqual(new_belief.confidence, 0.05) # Confidence is also scaled (0.1 * 0.5)
         print(f"Agent's new belief: Stance={new_belief.stance:.2f}, Confidence={new_belief.confidence:.2f}")
 
         # Check if the event was logged
         self.assertIn("LOG:", log_output)
         self.assertIn(f"Agent['{self.agent.id}']", log_output)
         self.assertIn(f"Topic='{self.topic}'", log_output)
-        self.assertIn("StanceΔ=0.8000", log_output)
+        self.assertIn("StanceΔ=0.4000", log_output)
         print("Belief formation was logged successfully.")
 
     def test_agent_updates_existing_belief(self):
