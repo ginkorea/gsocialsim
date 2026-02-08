@@ -12,3 +12,4 @@ class ContentItem:
     author_id: ActorId
     topic: TopicId
     stance: float # A value from -1.0 to 1.0 representing the content's position
+    is_identity_threatening: bool = False

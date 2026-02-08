@@ -1,6 +1,6 @@
+from dataclasses import dataclass, field
 import random
 from typing import Dict, Optional
-from dataclasses import dataclass, field
 
 from src.gsocialsim.kernel.sim_clock import SimClock
 from src.gsocialsim.agents.agent import Agent
@@ -9,9 +9,9 @@ from src.gsocialsim.social.global_social_reality import GlobalSocialReality
 from src.gsocialsim.networks.network_layer import NetworkLayer
 from src.gsocialsim.physical.physical_world import PhysicalWorld
 from src.gsocialsim.evolution.evolutionary_system import EvolutionarySystem
-from src.gsocialsim.stimuli.content_item import ContentItem
 from src.gsocialsim.kernel.stimulus_ingestion import StimulusIngestionEngine
-from src.gsocialsim.types import TopicId
+from src.gsocialsim.kernel.event_scheduler import EventScheduler
+from src.gsocialsim.kernel.events import DayBoundaryEvent, StimulusIngestionEvent, AgentActionEvent
 
 @dataclass
 class WorldContext:
@@ -22,6 +22,8 @@ class WorldContext:
     physical_world: PhysicalWorld
     evolutionary_system: EvolutionarySystem
     stimulus_engine: StimulusIngestionEngine
+    scheduler: EventScheduler
+    agents: "AgentPopulation"
 
 @dataclass
 class AgentPopulation:
@@ -44,6 +46,7 @@ class WorldKernel:
     physical_world: PhysicalWorld = field(default_factory=PhysicalWorld)
     evolutionary_system: EvolutionarySystem = field(default_factory=EvolutionarySystem)
     stimulus_engine: StimulusIngestionEngine = field(default_factory=StimulusIngestionEngine)
+    scheduler: EventScheduler = field(default_factory=EventScheduler)
     world_context: WorldContext = field(init=False)
 
     def __post_init__(self):
@@ -51,58 +54,37 @@ class WorldKernel:
         self.world_context = WorldContext(
             analytics=self.analytics, gsr=self.gsr, network=self.network,
             clock=self.clock, physical_world=self.physical_world,
-            evolutionary_system=self.evolutionary_system, stimulus_engine=self.stimulus_engine
+            evolutionary_system=self.evolutionary_system, stimulus_engine=self.stimulus_engine,
+            scheduler=self.scheduler, agents=self.agents
         )
 
+    def start(self):
+        """Seeds the initial events to start the simulation."""
+        # Schedule the first of each perpetual event
+        self.scheduler.schedule(DayBoundaryEvent(timestamp=self.clock.ticks_per_day))
+        self.scheduler.schedule(StimulusIngestionEvent(timestamp=0))
+        for agent_id in self.agents.agents.keys():
+            self.scheduler.schedule(AgentActionEvent(timestamp=0, agent_id=agent_id))
+
     def step(self, num_ticks: int = 1):
-        for _ in range(num_ticks):
-            current_tick = self.clock.t
-            all_agents = list(self.agents.agents.values())
+        """Processes events for a given number of ticks."""
+        target_tick = self.clock.t + num_ticks
 
-            # --- Phase 0: Stimulus Ingestion ---
-            new_stimuli_this_tick = self.stimulus_engine.tick(current_tick)
-            
-            # --- Phase 1: Stimulus Perception ---
-            if new_stimuli_this_tick:
-                for agent in all_agents:
-                    for stimulus in new_stimuli_this_tick:
-                        temp_content = ContentItem(
-                            id=stimulus.id, author_id=stimulus.source,
-                            topic=TopicId(f"stim_{stimulus.id}"), stance=0.0
-                        )
-                        agent.perceive(temp_content, self.world_context, stimulus_id=stimulus.id)
+        # Loop until the event queue is empty or the target time is reached
+        while self.clock.t < target_tick:
+            next_event = self.scheduler.get_next_event()
+            if not next_event:
+                print("Event queue is empty. Halting simulation.")
+                break
 
-            # --- Phase 2: Agent Action ---
-            interactions_this_tick = []
-            for agent in all_agents:
-                new_interaction = agent.act(tick=current_tick)
-                if new_interaction:
-                    interactions_this_tick.append(new_interaction)
-                    self.analytics.log_interaction(current_tick, new_interaction)
+            # If the next event is in the future, we can simply advance the clock
+            if next_event.timestamp >= target_tick:
+                self.scheduler.schedule(next_event) # Put it back
+                self.clock.t = target_tick # Move time to the end of the window
+                break
+
+            # Advance clock to the event's time
+            self.clock.t = next_event.timestamp
             
-            # --- Phase 3: Interaction Perception ---
-            if interactions_this_tick:
-                from src.gsocialsim.policy.bandit_learner import RewardVector
-                from src.gsocialsim.stimuli.interaction import InteractionVerb
-                
-                for viewer in all_agents:
-                    following_list = self.world_context.network.graph.get_following(viewer.id)
-                    for interaction in interactions_this_tick:
-                        if interaction.agent_id == viewer.id or interaction.agent_id not in following_list:
-                            continue
-                        
-                        author = self.agents.get(interaction.agent_id)
-                        reward = RewardVector(affiliation=0.1)
-                        
-                        if interaction.verb == InteractionVerb.CREATE:
-                            viewer.perceive(interaction.original_content, self.world_context)
-                            author.learn(f"CREATE_{interaction.original_content.topic}", reward)
-                        elif interaction.verb in [InteractionVerb.FORWARD, InteractionVerb.LIKE]:
-                             author.learn(f"{interaction.verb.value}_{interaction.target_stimulus_id}", reward)
-            
-            # --- Phase 4: Day Boundary ---
-            day_before = self.clock.day
-            self.clock.advance(1)
-            if self.clock.day > day_before:
-                for agent in all_agents:
-                    agent.consolidate_daily(self.world_context)
+            # Apply the event, which may schedule future events
+            next_event.apply(self.world_context)

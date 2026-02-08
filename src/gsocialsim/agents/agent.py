@@ -12,7 +12,7 @@ from src.gsocialsim.agents.attention_system import AttentionSystem
 from src.gsocialsim.agents.belief_update_engine import BeliefUpdateEngine
 from src.gsocialsim.stimuli.content_item import ContentItem
 from src.gsocialsim.policy.bandit_learner import BanditLearner, RewardVector
-from src.gsocialsim.stimuli.interaction import Interaction
+from src.gsocialsim.stimuli.interaction import Interaction, InteractionVerb
 
 if TYPE_CHECKING:
     from src.gsocialsim.kernel.world_kernel import WorldContext
@@ -49,13 +49,18 @@ class Agent:
             viewer_id=self.id, source_id=content.author_id, topic=content.topic,
             is_physical=is_physical, timestamp=context.clock.t
         )
+        
         old_stance = self.beliefs.get(content.topic).stance if self.beliefs.get(content.topic) else 0.0
         belief_delta = self.belief_update_engine.update(
-            viewer_id=self.id, content_author_id=content.author_id, belief_store=self.beliefs,
-            impression=impression, gsr=context.gsr
+            viewer=self,
+            content_author_id=content.author_id,
+            impression=impression,
+            gsr=context.gsr
         )
+        
         self.beliefs.apply_delta(belief_delta)
         new_stance = self.beliefs.get(content.topic).stance
+        
         if context.analytics.crossing_detector.check(old_stance, new_stance):
             attribution = context.analytics.attribution_engine.assign_credit(
                 agent_id=self.id, topic=content.topic, history=context.analytics.exposure_history
@@ -66,19 +71,28 @@ class Agent:
                 old_stance=old_stance, new_stance=new_stance, attribution=attribution
             )
             context.analytics.log_belief_crossing(crossing_event)
-
+        
         context.analytics.log_belief_update(timestamp=context.clock.t, agent_id=self.id, delta=belief_delta)
 
     def learn(self, action_key: str, reward_vector: RewardVector):
-        subjective_reward = reward_vector.weighted_sum(self.personality)
-        self.policy.learn(action_key, subjective_reward)
+        self.policy.learn(action_key, reward_vector)
 
     def act(self, tick: int) -> Optional[Interaction]:
-        if self.budgets.action_budget < 1:
-            return None
+        if self.budgets.action_budget < 1: return None
         interaction = self.policy.generate_interaction(self, tick)
         if interaction:
             self.budgets.spend(BudgetKind.ACTION, 1.0)
+            reward = RewardVector()
+            topic = None
+            if interaction.verb == InteractionVerb.LIKE:
+                reward.affiliation = 0.2
+                topic = interaction.target_stimulus_id
+            elif interaction.verb == InteractionVerb.FORWARD:
+                reward.status = 0.3
+                topic = interaction.target_stimulus_id
+            if topic:
+                action_key = f"{interaction.verb.value}_{topic}"
+                self.learn(action_key, reward)
         return interaction
 
     def consolidate_daily(self, world_context):
