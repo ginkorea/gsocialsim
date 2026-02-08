@@ -1,4 +1,51 @@
-id,tick,source,content_text
-news1,10,NewsOutlet,A major scientific breakthrough has been announced.
-news2,50,RivalNews,A competing report raises doubts about the recent breakthrough.
-meme1,100,UserA,"That feeling when you realize it's Friday, lol"
+id,tick,source,topic,content_text
+news1,10,NewsOutlet,T_Science,A major scientific breakthrough has been announced.
+news2,50,RivalNews,T_Science,A competing report raises doubts about the recent breakthrough.
+meme1,100,UserA,T_Memes,"That feeling when you realize it's Friday, lol"
+
+sci1,15,ScienceDaily,T_Science,Peer review highlights key limitations in the breakthrough study.
+sci2,20,UniLab,T_Science,Researchers publish replication results with mixed outcomes.
+sci3,25,ScienceDaily,T_Science,Explainer: what the breakthrough actually claims and what it does not.
+sci4,30,UniLab,T_Science,New dataset released to validate claims independently.
+sci5,35,ScienceDaily,T_Science,Interview: lead author responds to criticism.
+
+pol1,40,NewsOutlet,T_Politics,Lawmakers call for hearings on research funding priorities.
+pol2,45,RivalNews,T_Politics,Opposition says the hearings are political theater.
+pol3,55,CapitolWatch,T_Politics,Bill introduced to increase transparency in grants.
+pol4,60,CapitolWatch,T_Politics,Committee schedules public testimony next week.
+pol5,65,NewsOutlet,T_Politics,Debate escalates over who benefits from the new policy.
+
+eco1,70,MarketWire,T_Economy,Markets react to the news with modest volatility.
+eco2,75,MarketWire,T_Economy,Analysts: impact may be overstated in the short term.
+eco3,80,FinBlog,T_Economy,Thread: how hype cycles distort investment decisions.
+eco4,85,MarketWire,T_Economy,Report: funding reallocations could reshape the sector.
+eco5,90,FinBlog,T_Economy,Opinion: focus on fundamentals not narratives.
+
+cult1,95,TrendFeed,T_Culture,Influencers argue the story proves "experts are out of touch."
+cult2,105,TrendFeed,T_Culture,Viral clip sparks debate about scientific literacy.
+cult3,110,PodcasterX,T_Culture,Hot take: institutions cannot be trusted anymore.
+cult4,115,PodcasterX,T_Culture,Counterpoint: skepticism is healthy but facts matter.
+cult5,120,TrendFeed,T_Culture,Community notes provide corrections and sources.
+
+meme2,125,UserB,T_Memes,"Me reading the comments: 'I will not engage' (engages anyway)."
+meme3,130,UserC,T_Memes,"Breaking: my confidence is 1.0 and my evidence is vibes."
+meme4,135,UserD,T_Memes,"When your model overfits and you call it 'intuition'."
+meme5,140,UserE,T_Memes,"Trust me bro, I ran it once."
+
+sports1,145,SportsDesk,T_Sports,Upset win sparks celebration and trash talk.
+sports2,150,SportsDesk,T_Sports,Analysts debate whether the win was luck or skill.
+sports3,155,FanAccount,T_Sports,"Hot take: refs decided the game."
+sports4,160,FanAccount,T_Sports,Replay breakdown thread goes viral.
+sports5,165,SportsDesk,T_Sports,Coach addresses controversy in press conference.
+
+sec1,170,InfosecNews,T_Security,Security researchers disclose a new vulnerability class.
+sec2,175,InfosecNews,T_Security,Patch guidance issued with mitigations and timelines.
+sec3,180,ForumUser,T_Security,"This will be exploited in the wild within 72 hours."
+sec4,185,InfosecNews,T_Security,Early telemetry suggests opportunistic scanning.
+sec5,190,ForumUser,T_Security,"If you are unpatched you are already compromised."
+
+mix1,195,NewsOutlet,T_Original,Summary: what we know so far and what is still uncertain.
+mix2,200,RivalNews,T_Original,Opinion: the story is being misframed by both sides.
+mix3,205,NewsOutlet,T_Original,Fact check: common claims circulating are inaccurate.
+mix4,210,TrendFeed,T_Original,Compilation: reactions across platforms and communities.
+mix5,215,ScienceDaily,T_Original,Update: new evidence clarifies earlier ambiguities.
