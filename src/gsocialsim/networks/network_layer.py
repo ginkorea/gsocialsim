@@ -1,7 +1,7 @@
 from typing import Dict, Set, List
 from dataclasses import dataclass, field
 
-from src.gsocialsim.types import AgentId
+from gsocialsim.types import AgentId
 
 @dataclass
 class NetworkGraph:

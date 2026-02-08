@@ -1,12 +1,12 @@
 from typing import Any
-from src.gsocialsim.analytics.attribution import (
+from gsocialsim.analytics.attribution import (
     ExposureHistory,
     BeliefCrossingDetector,
     AttributionEngine,
     BeliefCrossingEvent,
     ExposureEvent
 )
-from src.gsocialsim.stimuli.interaction import Interaction
+from gsocialsim.stimuli.interaction import Interaction
 
 class Analytics:
     """

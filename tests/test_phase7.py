@@ -1,8 +1,8 @@
 import unittest
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.types import AgentId, TopicId
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.types import AgentId, TopicId
 
 class TestPhase7(unittest.TestCase):
 
@@ -19,7 +19,7 @@ class TestPhase7(unittest.TestCase):
         self.viewer.beliefs.update(self.topic, -0.2, 0.5, 0, 0) # Start with a moderately negative belief
 
         # Set trust to 1.0 to ensure influence is strong enough to cross the threshold
-        from src.gsocialsim.social.relationship_vector import RelationshipVector
+        from gsocialsim.social.relationship_vector import RelationshipVector
         self.kernel.world_context.gsr.set_relationship(self.viewer.id, self.source1.id, RelationshipVector(trust=1.0))
         self.kernel.world_context.gsr.set_relationship(self.viewer.id, self.source2.id, RelationshipVector(trust=1.0))
 

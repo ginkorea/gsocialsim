@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-from src.gsocialsim.agents.impression import Impression, IntakeMode
-from src.gsocialsim.agents.belief_state import BeliefStore, TopicId
-from src.gsocialsim.social.global_social_reality import GlobalSocialReality
-from src.gsocialsim.types import ActorId
+from gsocialsim.agents.impression import Impression, IntakeMode
+from gsocialsim.agents.belief_state import BeliefStore, TopicId
+from gsocialsim.social.global_social_reality import GlobalSocialReality
+from gsocialsim.types import ActorId
 
 if TYPE_CHECKING:
-    from src.gsocialsim.agents.agent import Agent
+    from gsocialsim.agents.agent import Agent
 
 @dataclass
 class BeliefDelta:

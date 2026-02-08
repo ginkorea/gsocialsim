@@ -26,8 +26,8 @@
             
             # --- 3. Online Interaction Perception Phase ---
             if interactions_this_tick:
-                from src.gsocialsim.policy.bandit_learner import RewardVector
-                from src.gsocialsim.stimuli.interaction import InteractionVerb
+                from gsocialsim.policy.bandit_learner import RewardVector
+                from gsocialsim.stimuli.interaction import InteractionVerb
                 
                 for viewer in all_agents:
                     following_list = self.world_context.network.graph.get_following(viewer.id)

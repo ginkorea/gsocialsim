@@ -2,11 +2,11 @@ import unittest
 import io
 from contextlib import redirect_stdout
 
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.types import AgentId, ContentId, TopicId, ActorId
-from src.gsocialsim.social.relationship_vector import RelationshipVector
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.types import AgentId, ContentId, TopicId, ActorId
+from gsocialsim.social.relationship_vector import RelationshipVector
 
 class TestPhase3(unittest.TestCase):
 

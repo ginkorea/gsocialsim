@@ -1,6 +1,6 @@
 from typing import List
-from src.gsocialsim.stimuli.data_source import DataSource
-from src.gsocialsim.stimuli.stimulus import Stimulus
+from gsocialsim.stimuli.data_source import DataSource
+from gsocialsim.stimuli.stimulus import Stimulus
 
 class StimulusIngestionEngine:
     def __init__(self):

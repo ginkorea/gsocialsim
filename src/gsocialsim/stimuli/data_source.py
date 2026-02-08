@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 import csv
-from src.gsocialsim.stimuli.stimulus import Stimulus
+from gsocialsim.stimuli.stimulus import Stimulus
 
 class DataSource(ABC):
     """ Abstract base class for any source of external data. """

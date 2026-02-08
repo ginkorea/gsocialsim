@@ -1,8 +1,8 @@
 import unittest
 import datetime
-from src.gsocialsim.kernel.world_kernel import WorldKernel, AgentPopulation
-from src.gsocialsim.kernel.sim_clock import SimClock
-from src.gsocialsim.agents.agent import Agent
+from gsocialsim.kernel.world_kernel import WorldKernel, AgentPopulation
+from gsocialsim.kernel.sim_clock import SimClock
+from gsocialsim.agents.agent import Agent
 
 class TestPhase1(unittest.TestCase):
 

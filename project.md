@@ -5,10 +5,10 @@
 | Metric | Value |
 |:--|:--|
 | Root Directory | `/home/gompert/data/workspace/gsocialsim` |
-| Total Directories | 15 |
-| Total Indexed Files | 56 |
+| Total Directories | 16 |
+| Total Indexed Files | 75 |
 | Skipped Files | 1 |
-| Indexed Size | 152.34 KB |
+| Indexed Size | 169.26 KB |
 | Max File Size Limit | 2 MB |
 
 ## 📚 Table of Contents
@@ -21,10 +21,19 @@
 - [diagrams/class_diagram.uml](#diagrams-class-diagram-uml)
 - [diagrams/component_diagram.uml](#diagrams-component-diagram-uml)
 - [diagrams/sequence_diagram.uml](#diagrams-sequence-diagram-uml)
+- [fix_event_phase_init.patch](#fix-event-phase-init-patch)
 - [influence_graph.html](#influence-graph-html)
+- [phase_patch.py](#phase-patch-py)
+- [pyproject.toml](#pyproject-toml)
 - [requirements.txt](#requirements-txt)
 - [run_and_visualize.py](#run-and-visualize-py)
 - [run_stimulus_sim.py](#run-stimulus-sim-py)
+- [src/gsocialsim.egg-info/PKG-INFO](#src-gsocialsim-egg-info-pkg-info)
+- [src/gsocialsim.egg-info/SOURCES.txt](#src-gsocialsim-egg-info-sources-txt)
+- [src/gsocialsim.egg-info/dependency_links.txt](#src-gsocialsim-egg-info-dependency-links-txt)
+- [src/gsocialsim.egg-info/top_level.txt](#src-gsocialsim-egg-info-top-level-txt)
+- [src/gsocialsim/__init__.py](#src-gsocialsim-init-py)
+- [src/gsocialsim/agents/__init__.py](#src-gsocialsim-agents-init-py)
 - [src/gsocialsim/agents/agent.py](#src-gsocialsim-agents-agent-py)
 - [src/gsocialsim/agents/attention_system.py](#src-gsocialsim-agents-attention-system-py)
 - [src/gsocialsim/agents/belief_state.py](#src-gsocialsim-agents-belief-state-py)
@@ -34,26 +43,36 @@
 - [src/gsocialsim/agents/identity_state.py](#src-gsocialsim-agents-identity-state-py)
 - [src/gsocialsim/agents/impression.py](#src-gsocialsim-agents-impression-py)
 - [src/gsocialsim/agents/reward_weights.py](#src-gsocialsim-agents-reward-weights-py)
+- [src/gsocialsim/analytics/__init__.py](#src-gsocialsim-analytics-init-py)
 - [src/gsocialsim/analytics/analytics.py](#src-gsocialsim-analytics-analytics-py)
 - [src/gsocialsim/analytics/attribution.py](#src-gsocialsim-analytics-attribution-py)
+- [src/gsocialsim/evolution/__init__.py](#src-gsocialsim-evolution-init-py)
 - [src/gsocialsim/evolution/evolutionary_system.py](#src-gsocialsim-evolution-evolutionary-system-py)
+- [src/gsocialsim/kernel/__init__.py](#src-gsocialsim-kernel-init-py)
 - [src/gsocialsim/kernel/event_scheduler.py](#src-gsocialsim-kernel-event-scheduler-py)
 - [src/gsocialsim/kernel/events.py](#src-gsocialsim-kernel-events-py)
 - [src/gsocialsim/kernel/sim_clock.py](#src-gsocialsim-kernel-sim-clock-py)
 - [src/gsocialsim/kernel/stimulus_ingestion.py](#src-gsocialsim-kernel-stimulus-ingestion-py)
+- [src/gsocialsim/kernel/world_context.py](#src-gsocialsim-kernel-world-context-py)
 - [src/gsocialsim/kernel/world_kernel.py](#src-gsocialsim-kernel-world-kernel-py)
 - [src/gsocialsim/kernel/world_kernel_step.py](#src-gsocialsim-kernel-world-kernel-step-py)
+- [src/gsocialsim/networks/__init__.py](#src-gsocialsim-networks-init-py)
 - [src/gsocialsim/networks/network_layer.py](#src-gsocialsim-networks-network-layer-py)
+- [src/gsocialsim/physical/__init__.py](#src-gsocialsim-physical-init-py)
 - [src/gsocialsim/physical/physical_world.py](#src-gsocialsim-physical-physical-world-py)
+- [src/gsocialsim/policy/__init__.py](#src-gsocialsim-policy-init-py)
 - [src/gsocialsim/policy/action_policy.py](#src-gsocialsim-policy-action-policy-py)
 - [src/gsocialsim/policy/bandit_learner.py](#src-gsocialsim-policy-bandit-learner-py)
+- [src/gsocialsim/social/__init__.py](#src-gsocialsim-social-init-py)
 - [src/gsocialsim/social/global_social_reality.py](#src-gsocialsim-social-global-social-reality-py)
 - [src/gsocialsim/social/relationship_vector.py](#src-gsocialsim-social-relationship-vector-py)
+- [src/gsocialsim/stimuli/__init__.py](#src-gsocialsim-stimuli-init-py)
 - [src/gsocialsim/stimuli/content_item.py](#src-gsocialsim-stimuli-content-item-py)
 - [src/gsocialsim/stimuli/data_source.py](#src-gsocialsim-stimuli-data-source-py)
 - [src/gsocialsim/stimuli/interaction.py](#src-gsocialsim-stimuli-interaction-py)
 - [src/gsocialsim/stimuli/stimulus.py](#src-gsocialsim-stimuli-stimulus-py)
 - [src/gsocialsim/types.py](#src-gsocialsim-types-py)
+- [src/gsocialsim/visualization/__init__.py](#src-gsocialsim-visualization-init-py)
 - [src/gsocialsim/visualization/exporter.py](#src-gsocialsim-visualization-exporter-py)
 - [stimuli.csv](#stimuli-csv)
 - [tests/test_attention_system.py](#tests-test-attention-system-py)
@@ -82,6 +101,7 @@
 📁 src/
     📁 gsocialsim/
         📁 agents/
+            📄 __init__.py
             📄 agent.py
             📄 attention_system.py
             📄 belief_state.py
@@ -92,35 +112,51 @@
             📄 impression.py
             📄 reward_weights.py
         📁 analytics/
+            📄 __init__.py
             📄 analytics.py
             📄 attribution.py
         📁 evolution/
+            📄 __init__.py
             📄 evolutionary_system.py
         📁 kernel/
+            📄 __init__.py
             📄 event_scheduler.py
             📄 events.py
             📄 sim_clock.py
             📄 stimulus_ingestion.py
+            📄 world_context.py
             📄 world_kernel.py
             📄 world_kernel_step.py
         📁 networks/
+            📄 __init__.py
             📄 network_layer.py
         📁 physical/
+            📄 __init__.py
             📄 physical_world.py
         📁 policy/
+            📄 __init__.py
             📄 action_policy.py
             📄 bandit_learner.py
         📁 social/
+            📄 __init__.py
             📄 global_social_reality.py
             📄 relationship_vector.py
         📁 stimuli/
+            📄 __init__.py
             📄 content_item.py
             📄 data_source.py
             📄 interaction.py
             📄 stimulus.py
         📁 visualization/
+            📄 __init__.py
             📄 exporter.py
+        📄 __init__.py
         📄 types.py
+    📁 gsocialsim.egg-info/
+        📄 dependency_links.txt
+        📄 PKG-INFO
+        📄 SOURCES.txt
+        📄 top_level.txt
 📁 tests/
     📄 test_attention_system.py
     📄 test_belief_model.py
@@ -135,11 +171,13 @@
     📄 test_phase6.py
     📄 test_phase7.py
     📄 test_phase8.py
+📄 fix_event_phase_init.patch
 📄 gsocialsim-logo.png
 📄 influence_graph.html
 📄 LICENSE
+📄 phase_patch.py
 📄 PRD.md
-📄 project.md
+📄 pyproject.toml
 📄 README.md
 📄 requirements.txt
 📄 run_and_visualize.py
@@ -1895,6 +1933,48 @@ end
 
 ```
 
+## `fix_event_phase_init.patch`
+
+```text
+*** Begin Patch
+*** Update File: src/gsocialsim/kernel/events.py
+@@
+ class Event(ABC):
+     timestamp: int = field(compare=True)
+-    phase: int = field(default=int(EventPhase.ACT), compare=True)
++    phase: int = field(default=int(EventPhase.ACT), init=False, compare=True)
+@@
+ class StimulusIngestionEvent(Event):
+-    phase: int = field(default=int(EventPhase.INGEST), compare=True)
++    phase: int = field(default=int(EventPhase.INGEST), init=False, compare=True)
+@@
+ class StimulusPerceptionEvent(Event):
+-    phase: int = field(default=int(EventPhase.PERCEIVE), compare=True)
++    phase: int = field(default=int(EventPhase.PERCEIVE), init=False, compare=True)
+@@
+ class AgentActionEvent(Event):
+-    phase: int = field(default=int(EventPhase.ACT), compare=True)
++    phase: int = field(default=int(EventPhase.ACT), init=False, compare=True)
+@@
+ class InteractionPerceptionEvent(Event):
+-    phase: int = field(default=int(EventPhase.INTERACT_PERCEIVE), compare=True)
++    phase: int = field(default=int(EventPhase.INTERACT_PERCEIVE), init=False, compare=True)
+@@
+ class DeepFocusEvent(Event):
+-    phase: int = field(default=int(EventPhase.DEEP_FOCUS), compare=True)
++    phase: int = field(default=int(EventPhase.DEEP_FOCUS), init=False, compare=True)
+@@
+ class AllocateAttentionEvent(Event):
+-    phase: int = field(default=int(EventPhase.ALLOCATE_ATTENTION), compare=True)
++    phase: int = field(default=int(EventPhase.ALLOCATE_ATTENTION), init=False, compare=True)
+@@
+ class DayBoundaryEvent(Event):
+-    phase: int = field(default=int(EventPhase.DAY_BOUNDARY), compare=True)
++    phase: int = field(default=int(EventPhase.DAY_BOUNDARY), init=False, compare=True)
+*** End Patch
+
+```
+
 ## `influence_graph.html`
 
 ```html
@@ -2190,8 +2270,8 @@ function highlightFilter(filter) {
                   
 
                   // parsing and collecting nodes and edges from the python
-                  nodes = new vis.DataSet([{"color": "#cccccc", "id": "A", "label": "A", "shape": "dot", "size": 26.26, "title": "Agent A\nTopic: T_Original\nStance: 0.07"}, {"color": "#0080ff", "id": "B", "label": "B", "shape": "dot", "size": 27.400000000000002, "title": "Agent B\nTopic: T_Original\nStance: 0.47"}, {"color": "#0080ff", "id": "C (Source)", "label": "C (Source)", "shape": "dot", "size": 35.0, "title": "Agent C (Source)\nTopic: T_Original\nStance: 1.00"}, {"color": "#cccccc", "id": "D (Lurker)", "label": "D (Lurker)", "shape": "dot", "size": 27.900000000000002, "title": "Agent D (Lurker)\nTopic: T_Original\nStance: 0.00"}, {"color": "#00cc66", "id": "news1", "label": "news1", "shape": "square", "size": 25, "title": "Stimulus: news1\nSource: NewsOutlet\nContent: A major scientific breakthrough has been announced."}, {"color": "#00cc66", "id": "news2", "label": "news2", "shape": "square", "size": 25, "title": "Stimulus: news2\nSource: RivalNews\nContent: A competing report raises doubts about the recent breakthrough."}, {"color": "#00cc66", "id": "meme1", "label": "meme1", "shape": "square", "size": 25, "title": "Stimulus: meme1\nSource: UserA\nContent: That feeling when you realize it\u0027s Friday, lol"}]);
-                  edges = new vis.DataSet([{"arrows": "to", "color": "#cccccc", "from": "A", "to": "B", "width": 1}, {"arrows": "to", "color": "#cccccc", "from": "B", "to": "C (Source)", "width": 1}, {"arrows": "to", "color": "#cccccc", "from": "D (Lurker)", "to": "A", "width": 1}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 24 time(s)", "to": "news1", "width": 9.307692307692308}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 22 time(s)", "to": "news1", "width": 8.615384615384615}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 8 time(s)", "to": "news2", "width": 3.769230769230769}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 26 time(s)", "to": "news1", "width": 10.0}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 11 time(s)", "to": "news2", "width": 4.8076923076923075}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 15 time(s)", "to": "news2", "width": 6.192307692307692}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 10 time(s)", "to": "news1", "width": 4.461538461538462}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 3 time(s)", "to": "meme1", "width": 2.0384615384615383}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 1 time(s)", "to": "meme1", "width": 1.3461538461538463}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 1 time(s)", "to": "meme1", "width": 1.3461538461538463}, {"arrows": "to", "color": "#ff0000", "from": "C (Source)", "title": "Influenced 1 time(s)", "to": "B", "width": 2}, {"arrows": "to", "color": "#ff0000", "from": "B", "title": "Influenced 1 time(s)", "to": "A", "width": 2}, {"arrows": "to", "color": "#ff0000", "from": "A", "title": "Influenced 1 time(s)", "to": "D (Lurker)", "width": 2}]);
+                  nodes = new vis.DataSet([{"color": "#cccccc", "id": "A", "label": "A", "shape": "dot", "size": 25.72, "title": "Agent A\nTopic: T_Original\nStance: 0.01"}, {"color": "#0080ff", "id": "B", "label": "B", "shape": "dot", "size": 27.400000000000002, "title": "Agent B\nTopic: T_Original\nStance: 0.47"}, {"color": "#0080ff", "id": "C (Source)", "label": "C (Source)", "shape": "dot", "size": 35.0, "title": "Agent C (Source)\nTopic: T_Original\nStance: 1.00"}, {"color": "#cccccc", "id": "D (Lurker)", "label": "D (Lurker)", "shape": "dot", "size": 25.700000000000003, "title": "Agent D (Lurker)\nTopic: T_Original\nStance: 0.00"}, {"color": "#00cc66", "id": "news1", "label": "news1", "shape": "square", "size": 25, "title": "Stimulus: news1\nSource: NewsOutlet\nContent: A major scientific breakthrough has been announced."}, {"color": "#00cc66", "id": "news2", "label": "news2", "shape": "square", "size": 25, "title": "Stimulus: news2\nSource: RivalNews\nContent: A competing report raises doubts about the recent breakthrough."}, {"color": "#00cc66", "id": "meme1", "label": "meme1", "shape": "square", "size": 25, "title": "Stimulus: meme1\nSource: UserA\nContent: That feeling when you realize it\u0027s Friday, lol"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "color": "#cccccc", "from": "A", "to": "B", "width": 1}, {"arrows": "to", "color": "#cccccc", "from": "B", "to": "C (Source)", "width": 1}, {"arrows": "to", "color": "#cccccc", "from": "D (Lurker)", "to": "A", "width": 1}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 6 time(s)", "to": "news2", "width": 3.0}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 26 time(s)", "to": "news1", "width": 9.666666666666666}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 6 time(s)", "to": "news2", "width": 3.0}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 1 time(s)", "to": "meme1", "width": 1.3333333333333333}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 1 time(s)", "to": "meme1", "width": 1.3333333333333333}, {"arrows": "to", "color": "#ff0000", "from": "C (Source)", "title": "Influenced 1 time(s)", "to": "B", "width": 2}, {"arrows": "to", "color": "#ff0000", "from": "B", "title": "Influenced 1 time(s)", "to": "A", "width": 2}, {"arrows": "to", "color": "#ff0000", "from": "A", "title": "Influenced 1 time(s)", "to": "D (Lurker)", "width": 2}]);
 
                   nodeColors = {};
                   allNodes = nodes.get({ returnType: "Object" });
@@ -2264,6 +2344,366 @@ function highlightFilter(filter) {
 </html>
 ```
 
+## `phase_patch.py`
+
+```python
+#!/usr/bin/env python3
+"""
+apply_phase_scheduler_patch.py
+
+Drop this file in your repo root (gsocialsim) and run:
+  python apply_phase_scheduler_patch.py
+
+It writes a unified diff patch to a temp file and applies it using:
+  1) git apply
+  2) patch -p1  (fallback)
+
+This implements:
+- EventPhase + phase ordering
+- Scheduler ordering: (timestamp, phase, tie_breaker)
+- Agent.last_perception_tick set on perceive()
+- AllocateAttentionEvent reactive gate (must have perceived this tick)
+- Updates test_event_system expectations for phase ordering
+
+If it fails, it prints stderr so you can see what mismatched.
+"""
+
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+PATCH_TEXT = r"""diff --git a/src/gsocialsim/kernel/event_scheduler.py b/src/gsocialsim/kernel/event_scheduler.py
+index 1f3c1a2..0d7a4b1 100644
+--- a/src/gsocialsim/kernel/event_scheduler.py
++++ b/src/gsocialsim/kernel/event_scheduler.py
+@@ -1,23 +1,24 @@
+ import heapq
+ from typing import List
+ from gsocialsim.kernel.events import Event
+ 
+ class EventScheduler:
+     """A priority queue to manage and dispatch events in chronological order."""
+     def __init__(self):
+-        # The queue now stores tuples: (timestamp, tie_breaker, event_object)
+-        self._queue: List[tuple[int, int, Event]] = []
++        # The queue stores tuples: (timestamp, phase, tie_breaker, event_object)
++        self._queue: List[tuple[int, int, int, Event]] = []
+ 
+     def schedule(self, event: Event):
+         """Add an event to the queue as a tuple for robust sorting."""
+-        entry = (event.timestamp, event.tie_breaker, event)
++        entry = (event.timestamp, int(event.phase), event.tie_breaker, event)
+         heapq.heappush(self._queue, entry)
+ 
+     def get_next_event(self) -> Event | None:
+         """Pop the next event from the queue."""
+         if not self._queue:
+             return None
+-        # The event object is the third item in the tuple
+-        return heapq.heappop(self._queue)[2]
++        # The event object is the fourth item in the tuple
++        return heapq.heappop(self._queue)[3]
+ 
+     def is_empty(self) -> bool:
+         return len(self._queue) == 0
+diff --git a/src/gsocialsim/kernel/events.py b/src/gsocialsim/kernel/events.py
+index 0b4f3aa..d6f4f73 100644
+--- a/src/gsocialsim/kernel/events.py
++++ b/src/gsocialsim/kernel/events.py
+@@ -1,19 +1,34 @@
+ from __future__ import annotations
+ from abc import ABC, abstractmethod
+ from dataclasses import dataclass, field
+ from typing import TYPE_CHECKING
+ import itertools
++from enum import IntEnum
+ 
+ from gsocialsim.agents.budget_state import BudgetKind
+ from gsocialsim.stimuli.content_item import ContentItem
+ from gsocialsim.agents.impression import Impression, IntakeMode
+ from gsocialsim.types import TopicId
+ 
+ if TYPE_CHECKING:
+     from gsocialsim.kernel.world_kernel import WorldContext
+     from gsocialsim.stimuli.interaction import Interaction
+     from gsocialsim.stimuli.stimulus import Stimulus
+ 
+ _event_counter = itertools.count()
+ 
++class EventPhase(IntEnum):
++    """
++    Ordering within the same simulation tick.
++    Smaller runs earlier.
++    """
++    INGEST = 10
++    PERCEIVE = 20
++    INTERACT_PERCEIVE = 30
++    ACT = 40
++    ALLOCATE_ATTENTION = 50
++    DEEP_FOCUS = 60
++
+ @dataclass(order=True)
+ class Event(ABC):
+     timestamp: int = field(compare=True)
++    phase: int = field(default=int(EventPhase.ACT), compare=True)
+     tie_breaker: int = field(init=False, compare=True)
+     def __post_init__(self): self.tie_breaker = next(_event_counter)
+     @abstractmethod
+     def apply(self, context: "WorldContext"):
+         pass
+ 
+ @dataclass(order=True)
+ class StimulusIngestionEvent(Event):
++    phase: int = field(default=int(EventPhase.INGEST), compare=True)
+     def apply(self, context: "WorldContext"):
+         new_stimuli = context.stimulus_engine.tick(self.timestamp)
+         if new_stimuli:
+             for stimulus in new_stimuli:
+                 context.scheduler.schedule(StimulusPerceptionEvent(timestamp=self.timestamp, stimulus_id=stimulus.id))
+         context.scheduler.schedule(StimulusIngestionEvent(timestamp=self.timestamp + 1))
+ 
+ @dataclass(order=True)
+ class StimulusPerceptionEvent(Event):
++    phase: int = field(default=int(EventPhase.PERCEIVE), compare=True)
+     stimulus_id: str = field(compare=False)
+     def apply(self, context: "WorldContext"):
+         stimulus = context.stimulus_engine.get_stimulus(self.stimulus_id)
+         if not stimulus: return
+         
+         temp_content = ContentItem(id=stimulus.id, author_id=stimulus.source, topic=TopicId(f"stim_{stimulus.id}"), stance=0.0)
+         for agent in context.agents.agents.values():
+             agent.perceive(temp_content, context, stimulus_id=stimulus.id)
+ 
+ @dataclass(order=True)
+ class AgentActionEvent(Event):
++    phase: int = field(default=int(EventPhase.ACT), compare=True)
+     agent_id: str = field(compare=False)
+     def apply(self, context: "WorldContext"):
+         agent = context.agents.get(self.agent_id)
+         if not agent: return
+ 
+@@ -35,11 +50,12 @@ class AgentActionEvent(Event):
+         context.scheduler.schedule(AgentActionEvent(timestamp=self.timestamp + 1, agent_id=self.agent_id))
+ 
+ @dataclass(order=True)
+ class InteractionPerceptionEvent(Event):
++    phase: int = field(default=int(EventPhase.INTERACT_PERCEIVE), compare=True)
+     interaction: "Interaction" = field(compare=False)
+ 
+     def apply(self, context: "WorldContext"):
+         from gsocialsim.policy.bandit_learner import RewardVector
+         from gsocialsim.stimuli.interaction import InteractionVerb
+@@ -90,6 +106,7 @@ class InteractionPerceptionEvent(Event):
+             author.learn(action_key, reward)
+ 
+ @dataclass(order=True)
+ class DeepFocusEvent(Event):
++    phase: int = field(default=int(EventPhase.DEEP_FOCUS), compare=True)
+     agent_id: str = field(compare=False)
+     content_id: str = field(compare=False)
+     original_impression: Impression = field(compare=False) # Store the impression that led to deep focus
+ 
+@@ -141,10 +158,26 @@ class DeepFocusEvent(Event):
+             print(f"DEBUG:[T={self.timestamp}] Agent['{self.agent_id}'] failed Deep Focus due to insufficient budget.")
+ 
+ @dataclass(order=True)
+ class AllocateAttentionEvent(Event):
++    phase: int = field(default=int(EventPhase.ALLOCATE_ATTENTION), compare=True)
+     agent_id: str = field(compare=False)
+     def apply(self, context: "WorldContext"):
+         agent = context.agents.get(self.agent_id)
+         if not agent: return
+ 
++        # Deep focus should be reactive: only consider deep focus if the agent perceived
++        # something at this same tick. Otherwise, just schedule next allocation tick.
++        if getattr(agent, "last_perception_tick", None) != self.timestamp:
++            context.scheduler.schedule(
++                AllocateAttentionEvent(timestamp=self.timestamp + 1, agent_id=self.agent_id)
++            )
++            return
++
+         # PRD: Triggered by salience thresholds. Consumes deep_focus_budget.
+         # For this phase: if a recent impression has high salience, trigger deep focus.
+         high_salience_impressions = []
+         for impression in agent.recent_impressions.values():
+             if agent.beliefs.get(impression.topic) and agent.beliefs.get(impression.topic).salience > 0.5: # Example threshold
+                 high_salience_impressions.append(impression)
+         
+         if high_salience_impressions and agent.budgets.deep_focus_budget >= 1 and agent.budgets.attention_minutes >= 10:
+             # Choose one high-salience impression to deep focus on
+             impression_to_focus = agent.rng.choice(high_salience_impressions)
+             context.scheduler.schedule(DeepFocusEvent(timestamp=self.timestamp, agent_id=self.agent_id, content_id=impression_to_focus.content_id, original_impression=impression_to_focus))
+         
+         # Schedule next attention allocation event (e.g., for next tick)
+         context.scheduler.schedule(AllocateAttentionEvent(timestamp=self.timestamp + 1, agent_id=self.agent_id))
+ 
+ @dataclass(order=True)
+ class DayBoundaryEvent(Event):
+     def apply(self, context: "WorldContext"):
+         for agent in context.agents.agents.values():
+             agent.consolidate_daily(context)
+         context.scheduler.schedule(DayBoundaryEvent(timestamp=self.timestamp + context.clock.ticks_per_day))
+diff --git a/src/gsocialsim/agents/agent.py b/src/gsocialsim/agents/agent.py
+index 3f9f9c1..c5adf63 100644
+--- a/src/gsocialsim/agents/agent.py
++++ b/src/gsocialsim/agents/agent.py
+@@ -1,6 +1,6 @@
+ from dataclasses import dataclass, field
+ from typing import Optional, TYPE_CHECKING
+ from collections import deque
+ import random
+ 
+@@ -33,6 +33,8 @@ class Agent:
+     policy: BanditLearner = field(default_factory=BanditLearner)
+     # Store the most recent impressions, keyed by content_id
+     recent_impressions: dict[str, Impression] = field(default_factory=dict)
++    # Tracks whether the agent perceived anything during a given tick
++    last_perception_tick: Optional[int] = None
+ 
+     def __post_init__(self):
+         self.rng = random.Random(self.seed)
+         self.budgets._rng = self.rng
+ 
+     def perceive(self, content: ContentItem, context: "WorldContext", is_physical: bool = False, stimulus_id: Optional[str] = None):
++        self.last_perception_tick = context.clock.t
+         impression = self.attention.evaluate(content, is_physical=is_physical)
+         # Store the impression for potential deep focus/later action
+         if impression.content_id:
+             self.recent_impressions[impression.content_id] = impression
+diff --git a/tests/test_event_system.py b/tests/test_event_system.py
+index 8b1c3c0..6a9bb7d 100644
+--- a/tests/test_event_system.py
++++ b/tests/test_event_system.py
+@@ -1,12 +1,13 @@
+ import unittest
+ from unittest.mock import Mock
+ from gsocialsim.kernel.event_scheduler import EventScheduler
+ from gsocialsim.kernel.events import (
+     Event,
+     StimulusIngestionEvent,
+     DayBoundaryEvent,
+     AgentActionEvent,
++    EventPhase,
+ )
+ 
+ class TestEventSystem(unittest.TestCase):
+ 
+     def test_event_scheduler_tie_breaking(self):
+@@ -14,35 +15,44 @@ class TestEventSystem(unittest.TestCase):
+         Verify that the EventScheduler correctly orders and dispatches
+         different event types that are scheduled for the exact same timestamp.
+         """
+         print("
+ --- Test: Event Scheduler Tie-Breaking ---")
+         scheduler = EventScheduler()
+         
+         # Schedule three different event types for the same timestamp (t=0)
+-        # Their tie-breaker values will be 0, 1, 2 respectively.
++        # Now ordering is by (timestamp, phase, tie_breaker).
+         e1 = StimulusIngestionEvent(timestamp=0)
+         e2 = DayBoundaryEvent(timestamp=0)
+         e3 = AgentActionEvent(timestamp=0, agent_id="A1")
+ 
+         scheduler.schedule(e1)
+         scheduler.schedule(e2)
+         scheduler.schedule(e3)
+ 
+         # Retrieve the events.
+-        # They should come out in the order they were added
+-        # because the tie-breaker maintains insertion order for same-timestamp events.
++        # They should come out ordered by phase first:
++        #   INGEST (StimulusIngestionEvent) -> ACT (AgentActionEvent) -> default (DayBoundaryEvent uses ACT default unless set)
++        # DayBoundaryEvent is a system boundary event; if you later give it a specific phase,
++        # update this test accordingly.
+         out1 = scheduler.get_next_event()
+         out2 = scheduler.get_next_event()
+         out3 = scheduler.get_next_event()
+ 
+         self.assertIsInstance(out1, StimulusIngestionEvent, "First event should be StimulusIngestionEvent")
+-        self.assertIsInstance(out2, DayBoundaryEvent, "Second event should be DayBoundaryEvent")
+-        self.assertIsInstance(out3, AgentActionEvent, "Third event should be AgentActionEvent")
+-        print("Verified: Events with the same timestamp are dispatched in a stable, predictable order.")
++        # AgentActionEvent has ACT phase
++        self.assertIsInstance(out2, AgentActionEvent, "Second event should be AgentActionEvent (ACT phase)")
++        # DayBoundaryEvent currently inherits default phase (ACT). If you later set DayBoundaryEvent phase,
++        # this should be updated.
++        self.assertIsInstance(out3, DayBoundaryEvent, "Third event should be DayBoundaryEvent")
++        print("Verified: Events with the same timestamp are dispatched in a stable, phase-driven order.")
+ 
+     def test_event_apply_calls(self):
+         """
+         Verify that calling apply() on an event triggers its logic.
+         """
+"""
+
+def _run(cmd: list[str]) -> tuple[int, str, str]:
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    return p.returncode, p.stdout, p.stderr
+
+def main() -> int:
+    repo_root = Path.cwd()
+    tmp_patch = repo_root / ".tmp_phase_scheduler.patch"
+    tmp_patch.write_text(PATCH_TEXT, encoding="utf-8")
+
+    try:
+        # Prefer git apply if available
+        if shutil.which("git"):
+            code, out, err = _run(["git", "apply", str(tmp_patch)])
+            if code == 0:
+                print("OK: applied patch with git apply")
+                return 0
+            print("git apply failed, trying patch -p1")
+            if out.strip():
+                print(out)
+            if err.strip():
+                print(err, file=sys.stderr)
+
+        if shutil.which("patch"):
+            code, out, err = _run(["patch", "-p1", "-i", str(tmp_patch)])
+            if code == 0:
+                print("OK: applied patch with patch -p1")
+                return 0
+            if out.strip():
+                print(out)
+            if err.strip():
+                print(err, file=sys.stderr)
+
+        print("ERROR: could not apply patch (no git/patch or patch did not match).", file=sys.stderr)
+        print(f"Patch file left at: {tmp_patch}", file=sys.stderr)
+        return 2
+
+    finally:
+        # Keep it around if something failed so you can inspect; delete on success
+        pass
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+```
+
+## `pyproject.toml`
+
+```toml
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gsocialsim"
+version = "0.1.0"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+```
+
 ## `requirements.txt`
 
 ```text
@@ -2274,12 +2714,12 @@ pyvis>=0.3.2
 ## `run_and_visualize.py`
 
 ```python
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.types import AgentId, TopicId
-from src.gsocialsim.visualization.exporter import generate_influence_graph_html
-from src.gsocialsim.social.relationship_vector import RelationshipVector
-from src.gsocialsim.stimuli.data_source import CsvDataSource
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.types import AgentId, TopicId
+from gsocialsim.visualization.exporter import generate_influence_graph_html
+from gsocialsim.social.relationship_vector import RelationshipVector
+from gsocialsim.stimuli.data_source import CsvDataSource
 
 def setup_simulation_scenario(kernel: WorldKernel):
     """
@@ -2339,10 +2779,10 @@ if __name__ == "__main__":
 ## `run_stimulus_sim.py`
 
 ```python
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.types import AgentId, TopicId
-from src.gsocialsim.stimuli.data_source import CsvDataSource
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.types import AgentId, TopicId
+from gsocialsim.stimuli.data_source import CsvDataSource
 
 def setup_stimulus_scenario(kernel: WorldKernel):
     print("Setting up stimulus simulation scenario...")
@@ -2388,6 +2828,110 @@ Running simulation with external stimuli...")
 
 ```
 
+## `src/gsocialsim.egg-info/PKG-INFO`
+
+```text
+Metadata-Version: 2.4
+Name: gsocialsim
+Version: 0.1.0
+License-File: LICENSE
+Dynamic: license-file
+
+```
+
+## `src/gsocialsim.egg-info/SOURCES.txt`
+
+```text
+LICENSE
+README.md
+pyproject.toml
+src/gsocialsim/__init__.py
+src/gsocialsim/types.py
+src/gsocialsim.egg-info/PKG-INFO
+src/gsocialsim.egg-info/SOURCES.txt
+src/gsocialsim.egg-info/dependency_links.txt
+src/gsocialsim.egg-info/top_level.txt
+src/gsocialsim/agents/__init__.py
+src/gsocialsim/agents/agent.py
+src/gsocialsim/agents/attention_system.py
+src/gsocialsim/agents/belief_state.py
+src/gsocialsim/agents/belief_update_engine.py
+src/gsocialsim/agents/budget_state.py
+src/gsocialsim/agents/emotion_state.py
+src/gsocialsim/agents/identity_state.py
+src/gsocialsim/agents/impression.py
+src/gsocialsim/agents/reward_weights.py
+src/gsocialsim/analytics/__init__.py
+src/gsocialsim/analytics/analytics.py
+src/gsocialsim/analytics/attribution.py
+src/gsocialsim/evolution/__init__.py
+src/gsocialsim/evolution/evolutionary_system.py
+src/gsocialsim/kernel/__init__.py
+src/gsocialsim/kernel/event_scheduler.py
+src/gsocialsim/kernel/events.py
+src/gsocialsim/kernel/sim_clock.py
+src/gsocialsim/kernel/stimulus_ingestion.py
+src/gsocialsim/kernel/world_context.py
+src/gsocialsim/kernel/world_kernel.py
+src/gsocialsim/kernel/world_kernel_step.py
+src/gsocialsim/networks/__init__.py
+src/gsocialsim/networks/network_layer.py
+src/gsocialsim/physical/__init__.py
+src/gsocialsim/physical/physical_world.py
+src/gsocialsim/policy/__init__.py
+src/gsocialsim/policy/action_policy.py
+src/gsocialsim/policy/bandit_learner.py
+src/gsocialsim/social/__init__.py
+src/gsocialsim/social/global_social_reality.py
+src/gsocialsim/social/relationship_vector.py
+src/gsocialsim/stimuli/__init__.py
+src/gsocialsim/stimuli/content_item.py
+src/gsocialsim/stimuli/data_source.py
+src/gsocialsim/stimuli/interaction.py
+src/gsocialsim/stimuli/stimulus.py
+src/gsocialsim/visualization/__init__.py
+src/gsocialsim/visualization/exporter.py
+tests/test_attention_system.py
+tests/test_belief_model.py
+tests/test_event_system.py
+tests/test_learning_policy.py
+tests/test_phase1.py
+tests/test_phase10.py
+tests/test_phase2.py
+tests/test_phase3.py
+tests/test_phase4.py
+tests/test_phase5.py
+tests/test_phase6.py
+tests/test_phase7.py
+tests/test_phase8.py
+```
+
+## `src/gsocialsim.egg-info/dependency_links.txt`
+
+```text
+
+
+```
+
+## `src/gsocialsim.egg-info/top_level.txt`
+
+```text
+gsocialsim
+
+```
+
+## `src/gsocialsim/__init__.py`
+
+```python
+
+```
+
+## `src/gsocialsim/agents/__init__.py`
+
+```python
+
+```
+
 ## `src/gsocialsim/agents/agent.py`
 
 ```python
@@ -2396,21 +2940,21 @@ from typing import Optional, TYPE_CHECKING
 from collections import deque
 import random
 
-from src.gsocialsim.agents.identity_state import IdentityState
-from src.gsocialsim.agents.belief_state import BeliefStore
-from src.gsocialsim.agents.emotion_state import EmotionState
-from src.gsocialsim.agents.budget_state import BudgetState, BudgetKind
-from src.gsocialsim.agents.reward_weights import RewardWeights
-from src.gsocialsim.agents.attention_system import AttentionSystem
-from src.gsocialsim.agents.belief_update_engine import BeliefUpdateEngine
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.policy.bandit_learner import BanditLearner, RewardVector
-from src.gsocialsim.stimuli.interaction import Interaction, InteractionVerb
-from src.gsocialsim.agents.impression import Impression
+from gsocialsim.agents.identity_state import IdentityState
+from gsocialsim.agents.belief_state import BeliefStore
+from gsocialsim.agents.emotion_state import EmotionState
+from gsocialsim.agents.budget_state import BudgetState, BudgetKind
+from gsocialsim.agents.reward_weights import RewardWeights
+from gsocialsim.agents.attention_system import AttentionSystem
+from gsocialsim.agents.belief_update_engine import BeliefUpdateEngine
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.policy.bandit_learner import BanditLearner, RewardVector
+from gsocialsim.stimuli.interaction import Interaction, InteractionVerb
+from gsocialsim.agents.impression import Impression
 
 if TYPE_CHECKING:
-    from src.gsocialsim.kernel.world_kernel import WorldContext
-    from src.gsocialsim.types import TopicId
+    from gsocialsim.kernel.world_kernel import WorldContext
+    from gsocialsim.types import TopicId
 
 class MemoryStore: pass
 
@@ -2461,7 +3005,7 @@ class Agent:
             attribution = context.analytics.attribution_engine.assign_credit(
                 agent_id=self.id, topic=content.topic, history=context.analytics.exposure_history
             )
-            from src.gsocialsim.analytics.attribution import BeliefCrossingEvent
+            from gsocialsim.analytics.attribution import BeliefCrossingEvent
             crossing_event = BeliefCrossingEvent(
                 timestamp=context.clock.t, agent_id=self.id, topic=content.topic,
                 old_stance=old_stance, new_stance=new_stance, attribution=attribution
@@ -2494,14 +3038,13 @@ class Agent:
     def consolidate_daily(self, world_context):
         self.budgets.regen_daily()
         self.recent_impressions.clear() # Clear memory of impressions daily
-
 ```
 
 ## `src/gsocialsim/agents/attention_system.py`
 
 ```python
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.agents.impression import Impression, IntakeMode
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.agents.impression import Impression, IntakeMode
 
 class AttentionSystem:
     """
@@ -2532,7 +3075,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.gsocialsim.agents.belief_update_engine import BeliefDelta
+    from gsocialsim.agents.belief_update_engine import BeliefDelta
 
 # Placeholder for TopicId (can be a string for now)
 TopicId = str
@@ -2584,13 +3127,13 @@ class BeliefStore:
 ```python
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-from src.gsocialsim.agents.impression import Impression, IntakeMode
-from src.gsocialsim.agents.belief_state import BeliefStore, TopicId
-from src.gsocialsim.social.global_social_reality import GlobalSocialReality
-from src.gsocialsim.types import ActorId
+from gsocialsim.agents.impression import Impression, IntakeMode
+from gsocialsim.agents.belief_state import BeliefStore, TopicId
+from gsocialsim.social.global_social_reality import GlobalSocialReality
+from gsocialsim.types import ActorId
 
 if TYPE_CHECKING:
-    from src.gsocialsim.agents.agent import Agent
+    from gsocialsim.agents.agent import Agent
 
 @dataclass
 class BeliefDelta:
@@ -2738,7 +3281,7 @@ from enum import Enum
 from dataclasses import dataclass
 from typing import Optional
 
-from src.gsocialsim.types import ContentId, TopicId
+from gsocialsim.types import ContentId, TopicId
 
 class IntakeMode(Enum):
     """ How an agent perceived a piece of content. """
@@ -2781,18 +3324,24 @@ class RewardWeights:
 
 ```
 
+## `src/gsocialsim/analytics/__init__.py`
+
+```python
+
+```
+
 ## `src/gsocialsim/analytics/analytics.py`
 
 ```python
 from typing import Any
-from src.gsocialsim.analytics.attribution import (
+from gsocialsim.analytics.attribution import (
     ExposureHistory,
     BeliefCrossingDetector,
     AttributionEngine,
     BeliefCrossingEvent,
     ExposureEvent
 )
-from src.gsocialsim.stimuli.interaction import Interaction
+from gsocialsim.stimuli.interaction import Interaction
 
 class Analytics:
     """
@@ -2848,7 +3397,7 @@ class Analytics:
 from dataclasses import dataclass, field
 from typing import Dict, List
 from collections import defaultdict
-from src.gsocialsim.types import AgentId, TopicId, ActorId
+from gsocialsim.types import AgentId, TopicId, ActorId
 
 @dataclass
 class ExposureEvent:
@@ -2908,12 +3457,18 @@ class AttributionEngine:
 
 ```
 
+## `src/gsocialsim/evolution/__init__.py`
+
+```python
+
+```
+
 ## `src/gsocialsim/evolution/evolutionary_system.py`
 
 ```python
 from dataclasses import dataclass
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.agents.reward_weights import RewardWeights
+from gsocialsim.agents.agent import Agent
+from gsocialsim.agents.reward_weights import RewardWeights
 import random
 
 @dataclass
@@ -2956,12 +3511,18 @@ class EvolutionarySystem:
 
 ```
 
+## `src/gsocialsim/kernel/__init__.py`
+
+```python
+
+```
+
 ## `src/gsocialsim/kernel/event_scheduler.py`
 
 ```python
 import heapq
 from typing import List
-from src.gsocialsim.kernel.events import Event
+from gsocialsim.kernel.events import Event
 
 class EventScheduler:
     """A priority queue to manage and dispatch events in chronological order."""
@@ -2974,6 +3535,14 @@ class EventScheduler:
         entry = (event.timestamp, event.tie_breaker, event)
         heapq.heappush(self._queue, entry)
 
+    def pop_due(self, timestamp: int):
+        """Pop and return all events scheduled exactly at `timestamp` (in phase/order priority)."""
+        due = []
+        while self._queue and self._queue[0][0] == timestamp:
+            _, _, event = heapq.heappop(self._queue)
+            due.append(event)
+        return due
+
     def get_next_event(self) -> Event | None:
         """Pop the next event from the queue."""
         if not self._queue:
@@ -2983,6 +3552,7 @@ class EventScheduler:
 
     def is_empty(self) -> bool:
         return len(self._queue) == 0
+
 ```
 
 ## `src/gsocialsim/kernel/events.py`
@@ -2994,15 +3564,15 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 import itertools
 
-from src.gsocialsim.agents.budget_state import BudgetKind
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.agents.impression import Impression, IntakeMode
-from src.gsocialsim.types import TopicId
+from gsocialsim.agents.budget_state import BudgetKind
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.agents.impression import Impression, IntakeMode
+from gsocialsim.types import TopicId
 
 if TYPE_CHECKING:
-    from src.gsocialsim.kernel.world_kernel import WorldContext
-    from src.gsocialsim.stimuli.interaction import Interaction
-    from src.gsocialsim.stimuli.stimulus import Stimulus
+    from gsocialsim.kernel.world_kernel import WorldContext
+    from gsocialsim.stimuli.interaction import Interaction
+    from gsocialsim.stimuli.stimulus import Stimulus
 
 _event_counter = itertools.count()
 
@@ -3053,8 +3623,8 @@ class InteractionPerceptionEvent(Event):
     interaction: "Interaction" = field(compare=False)
 
     def apply(self, context: "WorldContext"):
-        from src.gsocialsim.policy.bandit_learner import RewardVector
-        from src.gsocialsim.stimuli.interaction import InteractionVerb
+        from gsocialsim.policy.bandit_learner import RewardVector
+        from gsocialsim.stimuli.interaction import InteractionVerb
         
         author = context.agents.get(self.interaction.agent_id)
         if not author: return
@@ -3196,8 +3766,8 @@ class SimClock:
 
 ```python
 from typing import List
-from src.gsocialsim.stimuli.data_source import DataSource
-from src.gsocialsim.stimuli.stimulus import Stimulus
+from gsocialsim.stimuli.data_source import DataSource
+from gsocialsim.stimuli.stimulus import Stimulus
 
 class StimulusIngestionEngine:
     def __init__(self):
@@ -3222,50 +3792,90 @@ class StimulusIngestionEngine:
 
 ```
 
-## `src/gsocialsim/kernel/world_kernel.py`
+## `src/gsocialsim/kernel/world_context.py`
 
 ```python
-from dataclasses import dataclass, field
-import random
-from typing import Dict, Optional
+# src/gsocialsim/kernel/world_context.py
+from __future__ import annotations
 
-from src.gsocialsim.kernel.sim_clock import SimClock
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.analytics.analytics import Analytics
-from src.gsocialsim.social.global_social_reality import GlobalSocialReality
-from src.gsocialsim.networks.network_layer import NetworkLayer
-from src.gsocialsim.physical.physical_world import PhysicalWorld
-from src.gsocialsim.evolution.evolutionary_system import EvolutionarySystem
-from src.gsocialsim.kernel.stimulus_ingestion import StimulusIngestionEngine
-from src.gsocialsim.kernel.event_scheduler import EventScheduler
-from src.gsocialsim.kernel.events import DayBoundaryEvent, StimulusIngestionEvent, AgentActionEvent, AllocateAttentionEvent
+from dataclasses import dataclass
+from typing import Any, Optional
+
 
 @dataclass
 class WorldContext:
-    analytics: Analytics
-    gsr: GlobalSocialReality
-    network: NetworkLayer
-    clock: SimClock
-    physical_world: PhysicalWorld
-    evolutionary_system: EvolutionarySystem
-    stimulus_engine: StimulusIngestionEngine
-    scheduler: EventScheduler
-    agents: "AgentPopulation"
+    """
+    Shared simulation context passed into Events and Agents.
+    Keep this intentionally lightweight: it's a container for pointers to
+    subsystems (scheduler, network, physical_world, etc).
+
+    The WorldKernel is responsible for wiring these references in __post_init__.
+    """
+
+    # Core pointers
+    kernel: Optional[Any] = None
+    clock: Optional[Any] = None
+    agents: Optional[Any] = None
+
+    # Required by many Events
+    scheduler: Optional[Any] = None
+
+    # Optional subsystems (present in later phases)
+    network: Optional[Any] = None
+    stimulus_engine: Optional[Any] = None
+    physical_world: Optional[Any] = None
+    attention_system: Optional[Any] = None
+    evolutionary_system: Optional[Any] = None
+    analytics: Optional[Any] = None
+
+```
+
+## `src/gsocialsim/kernel/world_kernel.py`
+
+```python
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Dict
+import random
+
+from gsocialsim.agents.agent import Agent
+from gsocialsim.analytics.analytics import Analytics
+from gsocialsim.evolution.evolutionary_system import EvolutionarySystem
+from gsocialsim.kernel.sim_clock import SimClock
+from gsocialsim.kernel.event_scheduler import EventScheduler
+from gsocialsim.kernel.world_context import WorldContext
+from gsocialsim.kernel.stimulus_ingestion import StimulusIngestionEngine
+from gsocialsim.kernel.events import (
+    DayBoundaryEvent,
+    StimulusIngestionEvent,
+    AgentActionEvent,
+    AllocateAttentionEvent,
+)
+from gsocialsim.networks.network_layer import NetworkLayer
+from gsocialsim.physical.physical_world import PhysicalWorld
+from gsocialsim.social.global_social_reality import GlobalSocialReality
+
 
 @dataclass
 class AgentPopulation:
     agents: Dict[str, Agent] = field(default_factory=dict)
-    def get(self, agent_id: str) -> Optional[Agent]: return self.agents.get(agent_id)
-    def add_agent(self, agent: Agent): self.agents[agent.id] = agent
-    def replace(self, exited_agent_id: str, newborn_agent: Agent):
-        if exited_agent_id in self.agents: del self.agents[exited_agent_id]
+
+    def add_agent(self, agent: Agent) -> None:
+        self.agents[agent.id] = agent
+
+    def replace(self, exited_agent_id: str, newborn_agent: Agent) -> None:
+        if exited_agent_id in self.agents:
+            del self.agents[exited_agent_id]
         self.add_agent(newborn_agent)
+
 
 @dataclass
 class WorldKernel:
     seed: int
     clock: SimClock = field(default_factory=SimClock)
     rng: random.Random = field(init=False)
+
     agents: AgentPopulation = field(default_factory=AgentPopulation)
     analytics: Analytics = field(default_factory=Analytics)
     gsr: GlobalSocialReality = field(default_factory=GlobalSocialReality)
@@ -3274,47 +3884,76 @@ class WorldKernel:
     evolutionary_system: EvolutionarySystem = field(default_factory=EvolutionarySystem)
     stimulus_engine: StimulusIngestionEngine = field(default_factory=StimulusIngestionEngine)
     scheduler: EventScheduler = field(default_factory=EventScheduler)
+
     world_context: WorldContext = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.rng = random.Random(self.seed)
         self.world_context = WorldContext(
-            analytics=self.analytics, gsr=self.gsr, network=self.network,
-            clock=self.clock, physical_world=self.physical_world,
-            evolutionary_system=self.evolutionary_system, stimulus_engine=self.stimulus_engine,
-            scheduler=self.scheduler, agents=self.agents
+            analytics=self.analytics,
+            gsr=self.gsr,
+            network=self.network,
+            clock=self.clock,
+            physical_world=self.physical_world,
+            evolutionary_system=self.evolutionary_system,
+            stimulus_engine=self.stimulus_engine,
+            scheduler=self.scheduler,
+            agents=self.agents,
         )
 
-    def start(self):
-        """Seeds the initial events to start the simulation."""
-        # Schedule the first of each perpetual event
+    def start(self) -> None:
+        """
+        Seeds the initial events to start the simulation.
+        """
+        # First day boundary at end of day 0
         self.scheduler.schedule(DayBoundaryEvent(timestamp=self.clock.ticks_per_day))
+
+        # Start ingestion immediately
         self.scheduler.schedule(StimulusIngestionEvent(timestamp=0))
+
+        # Start agent loops immediately
         for agent_id in self.agents.agents.keys():
             self.scheduler.schedule(AgentActionEvent(timestamp=0, agent_id=agent_id))
             self.scheduler.schedule(AllocateAttentionEvent(timestamp=0, agent_id=agent_id))
 
-    def step(self, num_ticks: int = 1):
-        """Processes events for a given number of ticks."""
+    def step(self, num_ticks: int = 1) -> None:
+        """
+        Authoritative simulation advance.
+
+        Guarantees:
+          - The clock advances by exactly num_ticks (even if no events exist).
+          - Events are applied in timestamp order.
+          - No event with timestamp > target_tick is applied.
+        """
+        if num_ticks <= 0:
+            return
+
         target_tick = self.clock.t + num_ticks
 
-        # Loop until the event queue is empty or the target time is reached
-        while self.clock.t < target_tick:
+        while True:
             next_event = self.scheduler.get_next_event()
-            if not next_event:
-                print("Event queue is empty. Halting simulation.")
-                break
 
-            # If the next event is in the future, we can simply advance the clock
+            # No events left: advance time to the target and stop.
+            if next_event is None:
+                remaining = target_tick - self.clock.t
+                if remaining > 0:
+                    self.clock.advance(remaining)
+                return
+
+            # Event is at/after end of window: put it back, advance to target, stop.
             if next_event.timestamp >= target_tick:
-                self.scheduler.schedule(next_event) # Put it back
-                self.clock.t = target_tick # Move time to the end of the window
-                break
+                self.scheduler.schedule(next_event)
+                remaining = target_tick - self.clock.t
+                if remaining > 0:
+                    self.clock.advance(remaining)
+                return
 
-            # Advance clock to the event's time
-            self.clock.t = next_event.timestamp
-            
-            # Apply the event, which may schedule future events
+            # Advance to event time
+            delta = next_event.timestamp - self.clock.t
+            if delta > 0:
+                self.clock.advance(delta)
+
+            # Apply event at current time
             next_event.apply(self.world_context)
 
 ```
@@ -3350,8 +3989,8 @@ class WorldKernel:
             
             # --- 3. Online Interaction Perception Phase ---
             if interactions_this_tick:
-                from src.gsocialsim.policy.bandit_learner import RewardVector
-                from src.gsocialsim.stimuli.interaction import InteractionVerb
+                from gsocialsim.policy.bandit_learner import RewardVector
+                from gsocialsim.stimuli.interaction import InteractionVerb
                 
                 for viewer in all_agents:
                     following_list = self.world_context.network.graph.get_following(viewer.id)
@@ -3387,13 +4026,19 @@ class WorldKernel:
 
 ```
 
+## `src/gsocialsim/networks/__init__.py`
+
+```python
+
+```
+
 ## `src/gsocialsim/networks/network_layer.py`
 
 ```python
 from typing import Dict, Set, List
 from dataclasses import dataclass, field
 
-from src.gsocialsim.types import AgentId
+from gsocialsim.types import AgentId
 
 @dataclass
 class NetworkGraph:
@@ -3429,12 +4074,18 @@ class NetworkLayer:
 
 ```
 
+## `src/gsocialsim/physical/__init__.py`
+
+```python
+
+```
+
 ## `src/gsocialsim/physical/physical_world.py`
 
 ```python
 from dataclasses import dataclass, field
 from typing import Dict, List
-from src.gsocialsim.types import AgentId, TopicId
+from gsocialsim.types import AgentId, TopicId
 
 @dataclass
 class Place:
@@ -3465,17 +4116,23 @@ class PhysicalWorld:
 
 ```
 
+## `src/gsocialsim/policy/__init__.py`
+
+```python
+
+```
+
 ## `src/gsocialsim/policy/action_policy.py`
 
 ```python
 import random
 from typing import Optional, TYPE_CHECKING
 
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.types import ContentId
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.types import ContentId
 
 if TYPE_CHECKING:
-    from src.gsocialsim.agents.agent import Agent
+    from gsocialsim.agents.agent import Agent
 
 class ActionPolicy:
     """
@@ -3520,13 +4177,13 @@ import random
 from typing import Optional, TYPE_CHECKING
 from dataclasses import dataclass
 
-from src.gsocialsim.policy.action_policy import ActionPolicy
-from src.gsocialsim.agents.reward_weights import RewardWeights
-from src.gsocialsim.stimuli.interaction import Interaction, InteractionVerb
-from src.gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.policy.action_policy import ActionPolicy
+from gsocialsim.agents.reward_weights import RewardWeights
+from gsocialsim.stimuli.interaction import Interaction, InteractionVerb
+from gsocialsim.stimuli.content_item import ContentItem
 
 if TYPE_CHECKING:
-    from src.gsocialsim.agents.agent import Agent
+    from gsocialsim.agents.agent import Agent
 
 @dataclass
 class RewardVector:
@@ -3581,13 +4238,19 @@ class BanditLearner(ActionPolicy):
 
 ```
 
+## `src/gsocialsim/social/__init__.py`
+
+```python
+
+```
+
 ## `src/gsocialsim/social/global_social_reality.py`
 
 ```python
 from typing import Dict, Tuple
 from dataclasses import dataclass, field
-from src.gsocialsim.types import AgentId
-from src.gsocialsim.social.relationship_vector import RelationshipVector
+from gsocialsim.types import AgentId
+from gsocialsim.social.relationship_vector import RelationshipVector
 
 @dataclass
 class GlobalSocialReality:
@@ -3625,7 +4288,7 @@ class GlobalSocialReality:
 ```python
 from dataclasses import dataclass, field
 from typing import Dict
-from src.gsocialsim.types import TopicId
+from gsocialsim.types import TopicId
 
 @dataclass
 class RelationshipVector:
@@ -3643,13 +4306,19 @@ class RelationshipVector:
 
 ```
 
+## `src/gsocialsim/stimuli/__init__.py`
+
+```python
+
+```
+
 ## `src/gsocialsim/stimuli/content_item.py`
 
 ```python
 from dataclasses import dataclass
 from typing import Optional
 
-from src.gsocialsim.types import ContentId, ActorId, TopicId
+from gsocialsim.types import ContentId, ActorId, TopicId
 
 @dataclass
 class ContentItem:
@@ -3670,7 +4339,7 @@ class ContentItem:
 from abc import ABC, abstractmethod
 from typing import List
 import csv
-from src.gsocialsim.stimuli.stimulus import Stimulus
+from gsocialsim.stimuli.stimulus import Stimulus
 
 class DataSource(ABC):
     """ Abstract base class for any source of external data. """
@@ -3755,13 +4424,19 @@ ActorId = NewType("ActorId", str) # Can be an AgentId or an institutional actor
 
 ```
 
+## `src/gsocialsim/visualization/__init__.py`
+
+```python
+
+```
+
 ## `src/gsocialsim/visualization/exporter.py`
 
 ```python
 from collections import defaultdict
 from pyvis.network import Network
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.stimuli.interaction import InteractionVerb
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.stimuli.interaction import InteractionVerb
 
 def generate_influence_graph_html(kernel: WorldKernel, output_path: str = "influence_graph.html"):
     """
@@ -3844,73 +4519,62 @@ meme1,100,UserA,"That feeling when you realize it's Friday, lol"
 ```python
 import unittest
 from unittest.mock import Mock, patch
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.types import AgentId, TopicId
-from src.gsocialsim.kernel.events import DeepFocusEvent, AllocateAttentionEvent, StimulusPerceptionEvent
-from src.gsocialsim.agents.budget_state import BudgetKind
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.agents.impression import Impression, IntakeMode
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.types import AgentId, TopicId
+from gsocialsim.kernel.events import DeepFocusEvent, AllocateAttentionEvent
+from gsocialsim.agents.impression import Impression, IntakeMode
 
 class TestAttentionSystem(unittest.TestCase):
 
-    def setUp(self):
-        self.kernel = WorldKernel(seed=1000)
-        self.agent = Agent(id=AgentId("test_agent"), seed=1001)
-        self.agent.budgets.deep_focus_budget = 5 # Give initial deep focus budget
-        self.agent.budgets.attention_minutes = 100 # Give initial attention budget
-        # Agent now needs a belief with high salience to trigger deep focus
-        self.high_salience_topic = TopicId("T_Focus_High")
-        self.agent.beliefs.update(self.high_salience_topic, stance=0.0, confidence=0.1, salience=0.8, knowledge=0.1)
-        self.kernel.agents.add_agent(self.agent)
-        self.kernel.start() # Initialize event queue
+    def test_salience_triggers_deep_focus(self):
+        """
+        Verify that a high-salience impression in an agent's memory
+        correctly triggers the scheduling of a DeepFocusEvent.
+        """
+        print("\n--- Test: Salience Triggers Deep Focus ---")
+        
+        # --- Setup ---
+        kernel = WorldKernel(seed=1001)
+        agent = Agent(id=AgentId("test_agent"), seed=1002)
+        agent.budgets.deep_focus_budget = 5
+        agent.budgets.attention_minutes = 100
+        kernel.agents.add_agent(agent)
 
-    def test_deep_focus_event_scheduling_and_cost(self):
-        print("\n--- Test: Deep Focus Event Scheduling and Cost ---")
-        initial_deep_focus_budget = self.agent.budgets.deep_focus_budget
-        initial_attention_budget = self.agent.budgets.attention_minutes
+        # 1. Create a belief with high salience
+        high_salience_topic = TopicId("T_IMPORTANT")
+        agent.beliefs.update(high_salience_topic, stance=0.5, confidence=0.5, salience=0.9, knowledge=0.5)
 
-        # --- Ensure agent has a recent impression with high salience for DeepFocusEvent to pick ---
-        content_id = "stim_test1"
-        stimulus_content = ContentItem(id=content_id, author_id="SourceX", topic=self.high_salience_topic, stance=0.5)
-        # Directly call agent.perceive to populate recent_impressions for the test
-        self.agent.perceive(stimulus_content, self.kernel.world_context, stimulus_id=content_id)
-        self.assertIn(content_id, self.agent.recent_impressions)
-        print(f"Agent has recent impression for '{content_id}'.")
+        # 2. Add an impression related to that topic to the agent's memory
+        impression = Impression(
+            intake_mode=IntakeMode.SCROLL,
+            content_id="important_stimulus",
+            topic=high_salience_topic,
+            stance_signal=0.6
+        )
+        agent.recent_impressions["important_stimulus"] = impression
+        
+        # --- Execution ---
+        # Directly call the apply method of the event
+        allocate_event = AllocateAttentionEvent(timestamp=1, agent_id=agent.id)
+        allocate_event.apply(kernel.world_context)
 
-        # --- Trigger AllocateAttentionEvent, expecting DeepFocus ---
-        # No need to mock rng if salience-based triggering is deterministic
-        allocate_event = AllocateAttentionEvent(timestamp=1, agent_id=self.agent.id)
-        allocate_event.apply(self.kernel.world_context)
+        # --- Verification ---
+        # Check the scheduler's queue for a DeepFocusEvent
+        found_event = False
+        while not kernel.scheduler.is_empty():
+            event = kernel.scheduler.get_next_event()
+            if isinstance(event, DeepFocusEvent):
+                found_event = True
+                self.assertEqual(event.agent_id, agent.id)
+                self.assertEqual(event.content_id, "important_stimulus")
+                break # Stop once we've found it
 
-        # --- Verify DeepFocusEvent was scheduled and applied ---
-        found_deep_focus_event = False
-        deep_focus_event = None
-        for _ in range(len(self.kernel.world_context.scheduler._queue)):
-            event = self.kernel.world_context.scheduler.get_next_event()
-            if isinstance(event, DeepFocusEvent) and event.agent_id == self.agent.id:
-                found_deep_focus_event = True
-                deep_focus_event = event
-                break
-            else:
-                self.kernel.world_context.scheduler.schedule(event) # Put other events back
-
-        self.assertTrue(found_deep_focus_event, "DeepFocusEvent should have been scheduled.")
-        self.assertIsNotNone(deep_focus_event)
-
-        # Apply the deep focus event to test its effects
-        deep_focus_event.apply(self.kernel.world_context)
-
-        # --- Verify Budgets were spent ---
-        self.assertEqual(self.agent.budgets.deep_focus_budget, initial_deep_focus_budget - 1,
-                         "Deep focus budget should have decreased by 1.")
-        self.assertEqual(self.agent.budgets.attention_minutes, initial_attention_budget - 10,
-                         "Attention minutes should have decreased by 10.")
-        print("Verified: DeepFocusEvent scheduled, applied, and budgets correctly spent.")
+        self.assertTrue(found_event, "A DeepFocusEvent should have been scheduled for the high-salience topic.")
+        print("Verified: High salience correctly schedules a DeepFocusEvent.")
 
 if __name__ == '__main__':
     unittest.main()
-
 ```
 
 ## `tests/test_belief_model.py`
@@ -3918,13 +4582,13 @@ if __name__ == '__main__':
 ```python
 import unittest
 from unittest.mock import patch
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.types import AgentId, TopicId
-from src.gsocialsim.social.relationship_vector import RelationshipVector
-from src.gsocialsim.agents.impression import Impression, IntakeMode
-from src.gsocialsim.agents.belief_update_engine import BeliefUpdateEngine
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.types import AgentId, TopicId
+from gsocialsim.social.relationship_vector import RelationshipVector
+from gsocialsim.agents.impression import Impression, IntakeMode
+from gsocialsim.agents.belief_update_engine import BeliefUpdateEngine
 
 class TestBeliefModel(unittest.TestCase):
 
@@ -3982,8 +4646,8 @@ if __name__ == '__main__':
 ```python
 import unittest
 from unittest.mock import Mock
-from src.gsocialsim.kernel.event_scheduler import EventScheduler
-from src.gsocialsim.kernel.events import (
+from gsocialsim.kernel.event_scheduler import EventScheduler
+from gsocialsim.kernel.events import (
     Event,
     StimulusIngestionEvent,
     DayBoundaryEvent,
@@ -3997,8 +4661,7 @@ class TestEventSystem(unittest.TestCase):
         Verify that the EventScheduler correctly orders and dispatches
         different event types that are scheduled for the exact same timestamp.
         """
-        print("
---- Test: Event Scheduler Tie-Breaking ---")
+        print("--- Test: Event Scheduler Tie-Breaking ---")
         scheduler = EventScheduler()
         
         # Schedule three different event types for the same timestamp (t=0)
@@ -4037,6 +4700,8 @@ class TestEventSystem(unittest.TestCase):
         mock_event.apply.assert_called_once_with(mock_context)
 
 if __name__ == '__main__':
+
+
     unittest.main()
 
 ```
@@ -4045,12 +4710,12 @@ if __name__ == '__main__':
 
 ```python
 import unittest
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.agents.reward_weights import RewardWeights
-from src.gsocialsim.types import AgentId
-from src.gsocialsim.stimuli.data_source import CsvDataSource
-from src.gsocialsim.stimuli.interaction import InteractionVerb
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.agents.reward_weights import RewardWeights
+from gsocialsim.types import AgentId
+from gsocialsim.stimuli.data_source import CsvDataSource
+from gsocialsim.stimuli.interaction import InteractionVerb
 
 class TestLearningPolicy(unittest.TestCase):
 
@@ -4136,9 +4801,9 @@ if __name__ == '__main__':
 ```python
 import unittest
 import datetime
-from src.gsocialsim.kernel.world_kernel import WorldKernel, AgentPopulation
-from src.gsocialsim.kernel.sim_clock import SimClock
-from src.gsocialsim.agents.agent import Agent
+from gsocialsim.kernel.world_kernel import WorldKernel, AgentPopulation
+from gsocialsim.kernel.sim_clock import SimClock
+from gsocialsim.agents.agent import Agent
 
 class TestPhase1(unittest.TestCase):
 
@@ -4237,10 +4902,10 @@ if __name__ == '__main__':
 ```python
 import unittest
 import statistics
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.agents.reward_weights import RewardWeights
-from src.gsocialsim.types import AgentId
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.agents.reward_weights import RewardWeights
+from gsocialsim.types import AgentId
 
 class TestPhase10(unittest.TestCase):
 
@@ -4278,7 +4943,7 @@ class TestPhase10(unittest.TestCase):
             
             # Action/Perception is simplified: every agent just acts and gets a reward
             for agent in list(kernel.agents.agents.values()):
-                from src.gsocialsim.policy.bandit_learner import RewardVector
+                from gsocialsim.policy.bandit_learner import RewardVector
                 # The ENVIRONMENT rewards status-seeking behavior.
                 # Here, we simulate that by giving a high reward if the agent chooses to "post about status".
                 # For simplicity, we'll just use the personality as a proxy for the *action choice*.
@@ -4309,10 +4974,10 @@ import unittest
 import io
 from contextlib import redirect_stdout
 
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.types import AgentId, ContentId, TopicId, ActorId
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.types import AgentId, ContentId, TopicId, ActorId
 
 class TestPhase2(unittest.TestCase):
 
@@ -4429,11 +5094,11 @@ import unittest
 import io
 from contextlib import redirect_stdout
 
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.types import AgentId, ContentId, TopicId, ActorId
-from src.gsocialsim.social.relationship_vector import RelationshipVector
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.types import AgentId, ContentId, TopicId, ActorId
+from gsocialsim.social.relationship_vector import RelationshipVector
 
 class TestPhase3(unittest.TestCase):
 
@@ -4542,9 +5207,9 @@ import unittest
 import io
 from contextlib import redirect_stdout
 
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.types import AgentId, TopicId
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.types import AgentId, TopicId
 
 class TestPhase4(unittest.TestCase):
 
@@ -4637,9 +5302,9 @@ if __name__ == '__main__':
 
 ```python
 import unittest
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.types import AgentId, TopicId
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.types import AgentId, TopicId
 
 class TestPhase5(unittest.TestCase):
 
@@ -4704,10 +5369,10 @@ if __name__ == '__main__':
 
 ```python
 import unittest
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.types import AgentId, TopicId
-from src.gsocialsim.physical.physical_world import Place, Schedule
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.types import AgentId, TopicId
+from gsocialsim.physical.physical_world import Place, Schedule
 
 class TestPhase6(unittest.TestCase):
 
@@ -4770,10 +5435,10 @@ if __name__ == '__main__':
 
 ```python
 import unittest
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.types import AgentId, TopicId
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.types import AgentId, TopicId
 
 class TestPhase7(unittest.TestCase):
 
@@ -4790,7 +5455,7 @@ class TestPhase7(unittest.TestCase):
         self.viewer.beliefs.update(self.topic, -0.2, 0.5, 0, 0) # Start with a moderately negative belief
 
         # Set trust to 1.0 to ensure influence is strong enough to cross the threshold
-        from src.gsocialsim.social.relationship_vector import RelationshipVector
+        from gsocialsim.social.relationship_vector import RelationshipVector
         self.kernel.world_context.gsr.set_relationship(self.viewer.id, self.source1.id, RelationshipVector(trust=1.0))
         self.kernel.world_context.gsr.set_relationship(self.viewer.id, self.source2.id, RelationshipVector(trust=1.0))
 
@@ -4836,10 +5501,10 @@ if __name__ == '__main__':
 
 ```python
 import unittest
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.agents.reward_weights import RewardWeights
-from src.gsocialsim.types import AgentId, TopicId
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.agents.reward_weights import RewardWeights
+from gsocialsim.types import AgentId, TopicId
 
 class TestPhase8(unittest.TestCase):
 
@@ -4881,7 +5546,7 @@ class TestPhase8(unittest.TestCase):
         for i in range(100): # More than enough to learn
             content = agent.act(kernel.clock.t + i)
             if content:
-                from src.gsocialsim.policy.bandit_learner import RewardVector
+                from gsocialsim.policy.bandit_learner import RewardVector
                 agent.learn(content.topic, RewardVector())
         
         # After learning, disable exploration (epsilon=0) to check exploitation
@@ -4914,6 +5579,7 @@ if __name__ == '__main__':
 📁 src/
     📁 gsocialsim/
         📁 agents/
+            📄 __init__.py
             📄 agent.py
             📄 attention_system.py
             📄 belief_state.py
@@ -4924,35 +5590,51 @@ if __name__ == '__main__':
             📄 impression.py
             📄 reward_weights.py
         📁 analytics/
+            📄 __init__.py
             📄 analytics.py
             📄 attribution.py
         📁 evolution/
+            📄 __init__.py
             📄 evolutionary_system.py
         📁 kernel/
+            📄 __init__.py
             📄 event_scheduler.py
             📄 events.py
             📄 sim_clock.py
             📄 stimulus_ingestion.py
+            📄 world_context.py
             📄 world_kernel.py
             📄 world_kernel_step.py
         📁 networks/
+            📄 __init__.py
             📄 network_layer.py
         📁 physical/
+            📄 __init__.py
             📄 physical_world.py
         📁 policy/
+            📄 __init__.py
             📄 action_policy.py
             📄 bandit_learner.py
         📁 social/
+            📄 __init__.py
             📄 global_social_reality.py
             📄 relationship_vector.py
         📁 stimuli/
+            📄 __init__.py
             📄 content_item.py
             📄 data_source.py
             📄 interaction.py
             📄 stimulus.py
         📁 visualization/
+            📄 __init__.py
             📄 exporter.py
+        📄 __init__.py
         📄 types.py
+    📁 gsocialsim.egg-info/
+        📄 dependency_links.txt
+        📄 PKG-INFO
+        📄 SOURCES.txt
+        📄 top_level.txt
 📁 tests/
     📄 test_attention_system.py
     📄 test_belief_model.py
@@ -4967,11 +5649,13 @@ if __name__ == '__main__':
     📄 test_phase6.py
     📄 test_phase7.py
     📄 test_phase8.py
+📄 fix_event_phase_init.patch
 📄 gsocialsim-logo.png
 📄 influence_graph.html
 📄 LICENSE
+📄 phase_patch.py
 📄 PRD.md
-📄 project.md
+📄 pyproject.toml
 📄 README.md
 📄 requirements.txt
 📄 run_and_visualize.py

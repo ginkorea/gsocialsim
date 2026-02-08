@@ -1,7 +1,7 @@
 import unittest
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.types import AgentId, TopicId
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.types import AgentId, TopicId
 
 class TestPhase5(unittest.TestCase):
 

@@ -2,7 +2,7 @@ from enum import Enum
 from dataclasses import dataclass
 from typing import Optional
 
-from src.gsocialsim.types import ContentId, TopicId
+from gsocialsim.types import ContentId, TopicId
 
 class IntakeMode(Enum):
     """ How an agent perceived a piece of content. """

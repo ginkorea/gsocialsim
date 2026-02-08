@@ -1,11 +1,11 @@
 import random
 from typing import Optional, TYPE_CHECKING
 
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.types import ContentId
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.types import ContentId
 
 if TYPE_CHECKING:
-    from src.gsocialsim.agents.agent import Agent
+    from gsocialsim.agents.agent import Agent
 
 class ActionPolicy:
     """

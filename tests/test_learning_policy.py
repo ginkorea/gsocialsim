@@ -1,10 +1,10 @@
 import unittest
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.agents.reward_weights import RewardWeights
-from src.gsocialsim.types import AgentId
-from src.gsocialsim.stimuli.data_source import CsvDataSource
-from src.gsocialsim.stimuli.interaction import InteractionVerb
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.agents.reward_weights import RewardWeights
+from gsocialsim.types import AgentId
+from gsocialsim.stimuli.data_source import CsvDataSource
+from gsocialsim.stimuli.interaction import InteractionVerb
 
 class TestLearningPolicy(unittest.TestCase):
 

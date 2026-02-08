@@ -1,12 +1,12 @@
 import unittest
 from unittest.mock import patch
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.types import AgentId, TopicId
-from src.gsocialsim.social.relationship_vector import RelationshipVector
-from src.gsocialsim.agents.impression import Impression, IntakeMode
-from src.gsocialsim.agents.belief_update_engine import BeliefUpdateEngine
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.types import AgentId, TopicId
+from gsocialsim.social.relationship_vector import RelationshipVector
+from gsocialsim.agents.impression import Impression, IntakeMode
+from gsocialsim.agents.belief_update_engine import BeliefUpdateEngine
 
 class TestBeliefModel(unittest.TestCase):
 

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Dict, List
-from src.gsocialsim.types import AgentId, TopicId
+from gsocialsim.types import AgentId, TopicId
 
 @dataclass
 class Place:

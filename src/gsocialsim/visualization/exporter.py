@@ -1,7 +1,7 @@
 from collections import defaultdict
 from pyvis.network import Network
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.stimuli.interaction import InteractionVerb
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.stimuli.interaction import InteractionVerb
 
 def generate_influence_graph_html(kernel: WorldKernel, output_path: str = "influence_graph.html"):
     """

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
-from src.gsocialsim.kernel.event_scheduler import EventScheduler
-from src.gsocialsim.kernel.events import (
+from gsocialsim.kernel.event_scheduler import EventScheduler
+from gsocialsim.kernel.events import (
     Event,
     StimulusIngestionEvent,
     DayBoundaryEvent,
@@ -15,8 +15,7 @@ class TestEventSystem(unittest.TestCase):
         Verify that the EventScheduler correctly orders and dispatches
         different event types that are scheduled for the exact same timestamp.
         """
-        print("
---- Test: Event Scheduler Tie-Breaking ---")
+        print("--- Test: Event Scheduler Tie-Breaking ---")
         scheduler = EventScheduler()
         
         # Schedule three different event types for the same timestamp (t=0)
@@ -55,4 +54,6 @@ class TestEventSystem(unittest.TestCase):
         mock_event.apply.assert_called_once_with(mock_context)
 
 if __name__ == '__main__':
+
+
     unittest.main()

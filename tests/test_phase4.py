@@ -2,9 +2,9 @@ import unittest
 import io
 from contextlib import redirect_stdout
 
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.types import AgentId, TopicId
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.types import AgentId, TopicId
 
 class TestPhase4(unittest.TestCase):
 

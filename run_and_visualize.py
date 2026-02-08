@@ -1,9 +1,9 @@
-from src.gsocialsim.kernel.world_kernel import WorldKernel
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.types import AgentId, TopicId
-from src.gsocialsim.visualization.exporter import generate_influence_graph_html
-from src.gsocialsim.social.relationship_vector import RelationshipVector
-from src.gsocialsim.stimuli.data_source import CsvDataSource
+from gsocialsim.kernel.world_kernel import WorldKernel
+from gsocialsim.agents.agent import Agent
+from gsocialsim.types import AgentId, TopicId
+from gsocialsim.visualization.exporter import generate_influence_graph_html
+from gsocialsim.social.relationship_vector import RelationshipVector
+from gsocialsim.stimuli.data_source import CsvDataSource
 
 def setup_simulation_scenario(kernel: WorldKernel):
     """

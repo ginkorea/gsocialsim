@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Dict, List
 from collections import defaultdict
-from src.gsocialsim.types import AgentId, TopicId, ActorId
+from gsocialsim.types import AgentId, TopicId, ActorId
 
 @dataclass
 class ExposureEvent:

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from src.gsocialsim.types import ContentId, ActorId, TopicId
+from gsocialsim.types import ContentId, ActorId, TopicId
 
 @dataclass
 class ContentItem:

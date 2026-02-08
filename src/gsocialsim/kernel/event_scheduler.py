@@ -1,6 +1,6 @@
 import heapq
 from typing import List
-from src.gsocialsim.kernel.events import Event
+from gsocialsim.kernel.events import Event
 
 class EventScheduler:
     """A priority queue to manage and dispatch events in chronological order."""
@@ -12,6 +12,14 @@ class EventScheduler:
         """Add an event to the queue as a tuple for robust sorting."""
         entry = (event.timestamp, event.tie_breaker, event)
         heapq.heappush(self._queue, entry)
+
+    def pop_due(self, timestamp: int):
+        """Pop and return all events scheduled exactly at `timestamp` (in phase/order priority)."""
+        due = []
+        while self._queue and self._queue[0][0] == timestamp:
+            _, _, event = heapq.heappop(self._queue)
+            due.append(event)
+        return due
 
     def get_next_event(self) -> Event | None:
         """Pop the next event from the queue."""

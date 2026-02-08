@@ -3,21 +3,21 @@ from typing import Optional, TYPE_CHECKING
 from collections import deque
 import random
 
-from src.gsocialsim.agents.identity_state import IdentityState
-from src.gsocialsim.agents.belief_state import BeliefStore
-from src.gsocialsim.agents.emotion_state import EmotionState
-from src.gsocialsim.agents.budget_state import BudgetState, BudgetKind
-from src.gsocialsim.agents.reward_weights import RewardWeights
-from src.gsocialsim.agents.attention_system import AttentionSystem
-from src.gsocialsim.agents.belief_update_engine import BeliefUpdateEngine
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.policy.bandit_learner import BanditLearner, RewardVector
-from src.gsocialsim.stimuli.interaction import Interaction, InteractionVerb
-from src.gsocialsim.agents.impression import Impression
+from gsocialsim.agents.identity_state import IdentityState
+from gsocialsim.agents.belief_state import BeliefStore
+from gsocialsim.agents.emotion_state import EmotionState
+from gsocialsim.agents.budget_state import BudgetState, BudgetKind
+from gsocialsim.agents.reward_weights import RewardWeights
+from gsocialsim.agents.attention_system import AttentionSystem
+from gsocialsim.agents.belief_update_engine import BeliefUpdateEngine
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.policy.bandit_learner import BanditLearner, RewardVector
+from gsocialsim.stimuli.interaction import Interaction, InteractionVerb
+from gsocialsim.agents.impression import Impression
 
 if TYPE_CHECKING:
-    from src.gsocialsim.kernel.world_kernel import WorldContext
-    from src.gsocialsim.types import TopicId
+    from gsocialsim.kernel.world_kernel import WorldContext
+    from gsocialsim.types import TopicId
 
 class MemoryStore: pass
 
@@ -68,7 +68,7 @@ class Agent:
             attribution = context.analytics.attribution_engine.assign_credit(
                 agent_id=self.id, topic=content.topic, history=context.analytics.exposure_history
             )
-            from src.gsocialsim.analytics.attribution import BeliefCrossingEvent
+            from gsocialsim.analytics.attribution import BeliefCrossingEvent
             crossing_event = BeliefCrossingEvent(
                 timestamp=context.clock.t, agent_id=self.id, topic=content.topic,
                 old_stance=old_stance, new_stance=new_stance, attribution=attribution

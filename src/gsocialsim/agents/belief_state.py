@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.gsocialsim.agents.belief_update_engine import BeliefDelta
+    from gsocialsim.agents.belief_update_engine import BeliefDelta
 
 # Placeholder for TopicId (can be a string for now)
 TopicId = str

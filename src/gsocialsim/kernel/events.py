@@ -4,15 +4,15 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 import itertools
 
-from src.gsocialsim.agents.budget_state import BudgetKind
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.agents.impression import Impression, IntakeMode
-from src.gsocialsim.types import TopicId
+from gsocialsim.agents.budget_state import BudgetKind
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.agents.impression import Impression, IntakeMode
+from gsocialsim.types import TopicId
 
 if TYPE_CHECKING:
-    from src.gsocialsim.kernel.world_kernel import WorldContext
-    from src.gsocialsim.stimuli.interaction import Interaction
-    from src.gsocialsim.stimuli.stimulus import Stimulus
+    from gsocialsim.kernel.world_kernel import WorldContext
+    from gsocialsim.stimuli.interaction import Interaction
+    from gsocialsim.stimuli.stimulus import Stimulus
 
 _event_counter = itertools.count()
 
@@ -63,8 +63,8 @@ class InteractionPerceptionEvent(Event):
     interaction: "Interaction" = field(compare=False)
 
     def apply(self, context: "WorldContext"):
-        from src.gsocialsim.policy.bandit_learner import RewardVector
-        from src.gsocialsim.stimuli.interaction import InteractionVerb
+        from gsocialsim.policy.bandit_learner import RewardVector
+        from gsocialsim.stimuli.interaction import InteractionVerb
         
         author = context.agents.get(self.interaction.agent_id)
         if not author: return

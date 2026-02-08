@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Dict
-from src.gsocialsim.types import TopicId
+from gsocialsim.types import TopicId
 
 @dataclass
 class RelationshipVector:

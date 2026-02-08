@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from src.gsocialsim.agents.agent import Agent
-from src.gsocialsim.agents.reward_weights import RewardWeights
+from gsocialsim.agents.agent import Agent
+from gsocialsim.agents.reward_weights import RewardWeights
 import random
 
 @dataclass

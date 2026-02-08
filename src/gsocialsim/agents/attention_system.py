@@ -1,5 +1,5 @@
-from src.gsocialsim.stimuli.content_item import ContentItem
-from src.gsocialsim.agents.impression import Impression, IntakeMode
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.agents.impression import Impression, IntakeMode
 
 class AttentionSystem:
     """
