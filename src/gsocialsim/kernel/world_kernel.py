@@ -11,7 +11,7 @@ from src.gsocialsim.physical.physical_world import PhysicalWorld
 from src.gsocialsim.evolution.evolutionary_system import EvolutionarySystem
 from src.gsocialsim.kernel.stimulus_ingestion import StimulusIngestionEngine
 from src.gsocialsim.kernel.event_scheduler import EventScheduler
-from src.gsocialsim.kernel.events import DayBoundaryEvent, StimulusIngestionEvent, AgentActionEvent
+from src.gsocialsim.kernel.events import DayBoundaryEvent, StimulusIngestionEvent, AgentActionEvent, AllocateAttentionEvent
 
 @dataclass
 class WorldContext:
@@ -65,6 +65,7 @@ class WorldKernel:
         self.scheduler.schedule(StimulusIngestionEvent(timestamp=0))
         for agent_id in self.agents.agents.keys():
             self.scheduler.schedule(AgentActionEvent(timestamp=0, agent_id=agent_id))
+            self.scheduler.schedule(AllocateAttentionEvent(timestamp=0, agent_id=agent_id))
 
     def step(self, num_ticks: int = 1):
         """Processes events for a given number of ticks."""

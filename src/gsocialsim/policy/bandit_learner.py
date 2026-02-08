@@ -31,9 +31,9 @@ class BanditLearner(ActionPolicy):
         for topic, belief in agent.beliefs.topics.items():
             content = ContentItem(id=f"C_{agent.id}_{tick}", author_id=agent.id, topic=topic, stance=belief.stance)
             actions.append(Interaction(agent_id=agent.id, verb=InteractionVerb.CREATE, original_content=content))
-        for stim_id in agent.recent_exposures:
-            actions.append(Interaction(agent_id=agent.id, verb=InteractionVerb.LIKE, target_stimulus_id=stim_id))
-            actions.append(Interaction(agent_id=agent.id, verb=InteractionVerb.FORWARD, target_stimulus_id=stim_id))
+        for content_id in agent.recent_impressions.keys():
+            actions.append(Interaction(agent_id=agent.id, verb=InteractionVerb.LIKE, target_stimulus_id=content_id))
+            actions.append(Interaction(agent_id=agent.id, verb=InteractionVerb.FORWARD, target_stimulus_id=content_id))
         return actions
 
     def generate_interaction(self, agent: "Agent", tick: int) -> Optional[Interaction]:

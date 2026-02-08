@@ -13,6 +13,7 @@ from src.gsocialsim.agents.belief_update_engine import BeliefUpdateEngine
 from src.gsocialsim.stimuli.content_item import ContentItem
 from src.gsocialsim.policy.bandit_learner import BanditLearner, RewardVector
 from src.gsocialsim.stimuli.interaction import Interaction, InteractionVerb
+from src.gsocialsim.agents.impression import Impression
 
 if TYPE_CHECKING:
     from src.gsocialsim.kernel.world_kernel import WorldContext
@@ -34,7 +35,8 @@ class Agent:
     belief_update_engine: BeliefUpdateEngine = field(default_factory=BeliefUpdateEngine)
     memory: MemoryStore = field(default_factory=MemoryStore)
     policy: BanditLearner = field(default_factory=BanditLearner)
-    recent_exposures: deque[str] = field(default_factory=lambda: deque(maxlen=20))
+    # Store the most recent impressions, keyed by content_id
+    recent_impressions: dict[str, Impression] = field(default_factory=dict)
 
     def __post_init__(self):
         self.rng = random.Random(self.seed)
@@ -42,8 +44,9 @@ class Agent:
 
     def perceive(self, content: ContentItem, context: "WorldContext", is_physical: bool = False, stimulus_id: Optional[str] = None):
         impression = self.attention.evaluate(content, is_physical=is_physical)
-        if stimulus_id and stimulus_id not in self.recent_exposures:
-            self.recent_exposures.append(stimulus_id)
+        # Store the impression for potential deep focus/later action
+        if impression.content_id:
+            self.recent_impressions[impression.content_id] = impression
 
         context.analytics.log_exposure(
             viewer_id=self.id, source_id=content.author_id, topic=content.topic,
@@ -97,3 +100,4 @@ class Agent:
 
     def consolidate_daily(self, world_context):
         self.budgets.regen_daily()
+        self.recent_impressions.clear() # Clear memory of impressions daily

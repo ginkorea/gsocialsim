@@ -14,16 +14,14 @@ class BudgetState:
     action_budget: float = 0.0
     deep_focus_budget: float = 0.0
     risk_budget: float = 0.0
-    _rng: random.Random = None  # To be set by agent on initialization
+    _rng: random.Random = None
 
     def regen_daily(self):
-        if self._rng is None:
-            raise ValueError("RNG not set for BudgetState. Cannot regenerate daily budgets.")
-        # Example of heavy-tailed distribution (can be refined later)
-        self.attention_minutes = max(0, self._rng.gauss(60, 30))  # avg 60 min, std dev 30
-        self.action_budget = max(0, self._rng.gauss(10, 5)) # avg 10 actions, std dev 5
+        if self._rng is None: raise ValueError("RNG not set for BudgetState.")
+        self.attention_minutes = max(0, self._rng.gauss(60, 30))
+        self.action_budget = max(0, self._rng.gauss(10, 5))
         self.deep_focus_budget = max(0, self._rng.betavariate(2, 5) * 5) # Skewed towards lower deep focus
-        self.risk_budget = max(0, self._rng.uniform(0, 1)) # Uniform for now
+        self.risk_budget = max(0, self._rng.uniform(0, 1))
 
     def spend(self, kind: BudgetKind, amount: float) -> bool:
         if kind == BudgetKind.ATTENTION:
