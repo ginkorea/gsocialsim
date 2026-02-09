@@ -1,59 +1,144 @@
 @startuml
-title SSES - Sequence: Tick, Attention, Belief Update, Attribution
+title SSES - Per-Tick Sequence (Full Capability: Subscriptions + Media-weighted Consume/Interact)
 
-actor "WorldKernel" as WK
-participant "AgentEngine" as AE
+autonumber
+hide footbox
+
+actor "Scenario/Stimuli" as SCN
+
+participant "WorldKernel" as WK
+participant "EventScheduler" as ES
+participant "WorldContext" as CTX
+participant "StimulusStore" as SS
+participant "ProvenanceTransformer" as PT
+participant "ContentStore" as CS
+participant "SubscriptionService" as SUBS
+participant "NetworkManager" as NM
+participant "BroadcastFeedNetwork" as BF
+participant "DirectMessageNetwork" as DM
+participant "AgentPopulation" as POP
 participant "Agent" as A
-participant "NetworkLayer" as NL
-participant "PhysicalWorld" as PW
-participant "AttentionSystem" as AT
+participant "AttentionSystem" as ATTN
+participant "MediaBehaviorModel" as MBM
 participant "BeliefUpdateEngine" as BUE
-participant "CrossingDetector" as CD
-participant "AttributionEngine" as ATR
-participant "Analytics" as AN
+participant "ActionPolicy" as POL
+participant "GlobalSocialReality" as GSR
+participant "Analytics" as AL
 
-WK -> AE: step(dt)
-AE -> NL: generateCandidateContent(A)
-AE -> PW: generatePhysicalInteractions(A)
-
-NL --> AE: percepts_online(List<Percept>, intake_mode=scroll|seek)
-PW --> AE: percepts_physical(List<Percept>, intake_mode=physical)
-
-AE -> A: tick(ctx, percepts)
-A -> AT: evaluate(percepts)
-AT --> A: impressions
-
-loop For each impression
-  A -> BUE: update(A, impression, ctx)
-  BUE --> A: beliefDelta (bounded)
-  A -> AN: logImpression(impression)
-  A -> AN: logBeliefUpdate(beliefDelta)
+== Tick Start / Scheduled Events ==
+WK -> ES: nextEvents(tick)
+ES --> WK: [events]
+loop for each event
+  WK -> ES: apply(e, CTX)
 end
 
-alt Deep focus triggered
-  A -> AT: deepFocus(targetContent)
-  AT --> A: deepResult
-  A -> AN: logAction(deepFocus)
-end
-
-A -> A: maybeAct(ctx)
-alt Action chosen
-  A -> NL: post/send(action) or engage()
-  NL --> A: exposureResults + costs
-  A -> AN: logAction(action)
-  alt action has influence intent
-    A -> AN: logInfluenceEvent(InfluenceEvent)
+== Exogenous Stimuli Ingestion (Read-only) ==
+WK -> SS: getAt(tick)
+SS --> WK: [stimuli]
+loop for each stimulus
+  WK -> PT: transform(stimulus)
+  PT --> WK: [ContentItem*] (with MediaType, Topics, Provenance)
+  loop for each content
+    WK -> CS: add(content)
   end
-
 end
 
-A -> CD: checkCrossing(before, after, topic)
-CD --> A: crossingEvent? (optional)
+== Agents Act (Create / Reply / Like / Reshare / DM) ==
+WK -> POP: agents()
+POP --> WK: [agents]
 
-alt crossingEvent exists
-  A -> ATR: assignCredit(crossingEvent, exposureHistory)
-  ATR --> A: attributionSet
-  A -> AN: logCrossing(crossingEvent+attribution)
+loop for each agent (actor)
+  WK -> A: tick(CTX)
+  note right of A
+    Agent tick includes:
+    - perceive() from last deliveries (cached)
+    - maybeAct() to produce an Action/Interaction
+  end note
+  A -> POL: selectIntent(A, CTX)
+  POL --> A: intent
+  A -> POL: instantiate(intent -> Action)
+  POL --> A: action
+  alt action produced
+    A -> AL: logAction(action)
+    A -> GSR: update(u,v) (relationship deltas from action)
+    A -> NM: publish(action.interaction, CTX)
+  else no action
+  end
 end
+
+== Network Publish: materialize into ContentStore and Layer State ==
+NM -> BF: publish(interaction, CTX)
+alt interaction contains new content (CREATE/REPLY)
+  BF -> CS: add(ContentItem)
+else engagement action (LIKE/RESHARE)
+  BF -> CS: update engagement counters
+end
+
+NM -> DM: publish(interaction, CTX)
+alt DM message
+  DM -> CS: add(ContentItem)
+  DM -> DM: enqueue(inbox[to], contentId)
+end
+
+== Online Delivery: Subscription-driven Broadcast Feed ==
+loop for each viewer agent (consumer)
+  WK -> SUBS: getSubs(viewer)
+  SUBS --> WK: [Subscription*]
+
+  WK -> BF: deliver(viewer, intake=scroll, CTX)
+  activate BF
+  BF -> SUBS: getSubs(viewer)  'optional internal call
+  BF -> CS: queryByAuthor(subscribed_creators, sinceTick)
+  BF -> CS: queryByTopic(subscribed_topics, sinceTick)
+  BF -> CS: queryByOutlet(subscribed_outlets, sinceTick)
+  BF -> GSR: get(viewer, author) (trust/affinity signals)
+  BF -> MBM: consume_bias(mediaType), interact_bias(mediaType)
+  BF --> WK: [ranked ContentItem*] + DeliveryRecord(eligible/shown)
+  deactivate BF
+
+  WK -> AL: logDelivery(DeliveryRecord)
+
+  == Perception: Consume vs Interact (Media-weighted) ==
+  loop for each delivered content
+    WK -> A: perceive(Percept{contentId, layer=BF, intake=scroll})
+    A -> ATTN: evaluate(percepts)
+    activate ATTN
+    ATTN -> MBM: lookup media biases + action priors
+    ATTN --> A: [Impression*] (consumed_prob, interact_prob, intake_mode)
+    deactivate ATTN
+
+    A -> AL: logImpression(Impression)
+    alt consumed
+      A -> BUE: update(A, Impression, CTX)
+      BUE --> A: BeliefDelta
+      A -> AL: logBeliefUpdate(BeliefDelta)
+    else not consumed
+      note right of A: exposure logged but no belief update
+    end
+  end
+end
+
+== Online Delivery: Direct Messages ==
+loop for each viewer agent
+  WK -> DM: deliver(viewer, intake=seek, CTX)
+  DM --> WK: [DM ContentItem*] + DeliveryRecord
+  WK -> AL: logDelivery(DeliveryRecord)
+
+  loop for each DM content
+    WK -> A: perceive(Percept{contentId, layer=DM, intake=seek})
+    A -> ATTN: evaluate(percepts)
+    ATTN -> MBM: lookup biases
+    ATTN --> A: Impression
+    A -> AL: logImpression(Impression)
+    alt consumed
+      A -> BUE: update(A, Impression, CTX)
+      BUE --> A: BeliefDelta
+      A -> AL: logBeliefUpdate(BeliefDelta)
+    end
+  end
+end
+
+== Tick End ==
+WK -> AL: reportMetrics()  'optional periodic
 
 @enduml
