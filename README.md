@@ -9,7 +9,6 @@
 </p>
 
 <p align="center">
-
 <img alt="License" src="https://img.shields.io/github/license/ginkorea/gsocialsim">
 <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-blue">
 <img alt="Repo Size" src="https://img.shields.io/github/repo-size/ginkorea/gsocialsim">
@@ -18,171 +17,183 @@
 <img alt="Forks" src="https://img.shields.io/github/forks/ginkorea/gsocialsim?style=social">
 <img alt="Status" src="https://img.shields.io/badge/status-research--active-purple">
 <img alt="Domain" src="https://img.shields.io/badge/domain-social--simulation-orange">
-
 </p>
 
 ---
 
-**gsocialsim** is a Python research framework for simulating belief formation, influence propagation, and behavioral evolution across synthetic social ecosystems.
+## Overview
 
-It models how beliefs **spread, survive, mutate, and dominate** through:
+**gsocialsim** is a research framework for modeling **belief formation, influence propagation, attention dynamics, and evolutionary selection** in synthetic social ecosystems.
 
-- network influence
-- physical proximity interactions
-- personality-driven learning
-- resource-bounded attention
-- evolutionary selection
+It is not a diffusion toy or a static agent-based model.
 
-Built for computational social science, influence research, and agent-based modeling experiments.
+It is an **event-driven, multi-layer influence environment** designed to make belief change:
 
----
-
-# 🧠 What This Simulator Is For
-
-gsocialsim is designed to answer questions like:
-
-- Why do some beliefs spread and others die?
-- How does influence actually propagate through a network?
-- What role does personality play in persuasion?
-- How do offline interactions amplify online influence?
-- Which agents become long-term belief winners under selection pressure?
-- Who *actually* caused a belief shift?
-
-This is not a toy diffusion model. It is a **multi-layer influence ecology**.
+- rare
+- attributable
+- causal
+- reproducible
 
 ---
 
-# ⚙️ Core Model Concepts
+## What This Simulator Is For
 
-## 👤 Persistent Agents
-Agents are long-lived entities with:
+gsocialsim is built to answer questions like:
 
-- belief vectors
-- personality traits
-- trust relationships
-- finite daily budgets
-- adaptive action policies
+- Why do some beliefs spread while others die?
+- How does influence *actually* propagate across networks and physical space?
+- What role does attention scarcity play in persuasion?
+- How do online and offline interactions interact?
+- Which personalities survive under platform incentives?
+- Who caused a belief crossing and through what pathway?
 
-They learn what works for *them*, not what works globally.
-
----
-
-## 💰 Budget-Constrained Behavior
-
-Each agent has limited:
-
-- attention budget
-- action budget
-
-This forces tradeoffs:
-
-- scroll vs seek
-- post vs engage
-- online vs physical
-- influence vs reinforce
-
-Constraint drives realism.
+The output is not just adoption curves, but **causal influence graphs**.
 
 ---
 
-## 🌐 Dual Influence Channels
+## Core Architecture
 
-### Online Layer
-- Directed social graph
-- Follower / trust weighted edges
-- Content exposure + engagement
-- Repeated exposure effects
+### Event-Driven World Kernel
 
-### Physical Layer
-- Location + schedule overlap
-- High-impact interactions
-- Amplified persuasion weight
-- Small-world shortcuts
+The simulation is driven by a centralized **WorldKernel**:
+
+- discrete simulation clock
+- deterministic phase ordering
+- explicit event scheduling
+- reproducible runs under fixed seeds
+
+All social, physical, and cognitive processes are coordinated through the kernel.
 
 ---
 
-## 🎯 Personality-Driven Learning
+### Persistent Agents
 
-Agents use contextual bandit learning to decide:
+Agents are long-lived and stateful:
 
-- what actions to take
+- belief vectors per topic
+- attention and action budgets
+- emotional and identity state
+- personality-weighted reward preferences
+- adaptive policies learned over time
+
+Agents optimize locally based on personality and experience, not global truth.
+
+---
+
+### Attention & Intake Modes
+
+Agents consume information via explicit **intake modes**:
+
+- **scroll** (passive feed exposure)
+- **seek** (active information search)
+- **physical** (in-person interaction)
+
+Attention is finite. Every exposure is a tradeoff.
+
+---
+
+### Stimuli & Content Pipeline
+
+External data enters the world as **Stimuli**:
+
+- typed media (news, post, meme, video, longform, forum)
+- source, creator, outlet, or community identifiers
+- optional topic hints
+- provenance tracking
+
+Stimuli are transformed into internal content items and logged as exposure events.
+
+---
+
+### Belief Update & Crossing Detection
+
+Beliefs evolve incrementally through exposure and interaction.
+
+When a belief crosses a configured threshold:
+
+- the event is detected
+- prior and post states are recorded
+- attribution is triggered
+- causal credit is assigned
+
+Belief change is not assumed. It must be *earned*.
+
+---
+
+### Attribution Engine
+
+Attribution reconstructs influence causality:
+
+- configurable temporal windows
+- exposure histories across channels
+- tie strength and intake mode weighting
+- multi-source credit assignment
+
+The result is **who influenced whom, how, and when**.
+
+---
+
+### Dual Influence Layers
+
+#### Online Layer
+- directed social graph
+- weighted relationships
+- broadcast and direct interactions
+- repeated exposure effects
+
+#### Physical Layer
+- places, schedules, and co-presence
+- high-impact interactions
+- small-world shortcuts
+- amplified persuasion
+
+Physical influence is explicitly modeled, not approximated.
+
+---
+
+### Learning & Adaptation
+
+Agents use contextual bandits to learn:
+
+- which actions to take
 - which channels to use
-- which strategies yield reward
+- how to allocate scarce attention
 
-Reward is personality-weighted:
-
-- affiliation
-- status
-- certainty
-- novelty
-- reinforcement
+Reward is personality-weighted (status, affiliation, certainty, novelty, reinforcement).
 
 ---
 
-## 🧬 Evolutionary Dynamics
+### Evolutionary Dynamics
 
-Population turnover is built in:
+The population evolves:
 
-- low-fitness agents removed
-- high-fitness agents reproduced
-- offspring receive mutations
-- long-term selective pressure emerges
+- low-fitness agents are removed
+- high-fitness agents reproduce
+- offspring inherit traits with mutation
+- diversity is preserved
 
-You get **belief ecosystems**, not snapshots.
-
----
-
-## 📌 Attributable Belief Crossings
-
-Primary research output:
-
-When an agent belief crosses a defined threshold:
-
-- event is logged
-- influence sources are traced
-- credit is attributed
-- propagation chains are recorded
-
-This produces **causal influence graphs**, not just diffusion traces.
+You get belief **ecosystems**, not snapshots.
 
 ---
 
-# 📊 Visualization
+## Visualization
 
-The framework includes an HTML exporter that produces an interactive graph:
+Multiple HTML exporters are included:
 
-- nodes = agents
-- color = belief stance
-- gray edges = network potential
-- red edges = realized influence
-- edge weight = influence count
+- **agents-only** (agent states, no platforms)
+- **platform view** (agent-platform interactions)
+- **bipartite** (agents ↔ content)
+- **threshold view** (belief crossings only)
+- **full graph** (everything)
 
-Run:
-
-```bash
-python3 run_and_visualize.py
-````
-
-Open:
-
-```
-influence_graph.html
-```
-
-in your browser.
+Nodes represent agents or content.
+Edges represent realized influence, not just potential.
 
 ---
 
-# 🚀 Quick Start
+## Running the Simulator
 
-## Requirements
-
-* Python 3.10+
-* pip
-
----
-
-## Install
+### Install
 
 ```bash
 git clone https://github.com/ginkorea/gsocialsim.git
@@ -190,78 +201,79 @@ cd gsocialsim
 
 python3 -m venv .venv
 source .venv/bin/activate
-
 pip install -r requirements.txt
-```
+````
 
----
-
-## Run Demo Simulation
+### Run a Demo
 
 ```bash
 python3 run_and_visualize.py
 ```
 
-Outputs:
+Outputs one or more HTML files (depending on exporter selection), e.g.:
 
-```
+```text
 influence_graph.html
+agents_only.html
+bipartite.html
+platform.html
+threshold.html
+```
+
+Open them in a browser.
+
+---
+
+## Research Metrics
+
+The system is designed to measure:
+
+* belief conversion pathways
+* influence efficiency
+* influence concentration
+* cascade shapes
+* polarization drift
+* personality survival rates
+* platform selection effects
+* physical vs online influence ratios
+
+---
+
+## Research Framing
+
+gsocialsim is an **evolutionary attention-and-influence environment**:
+
+* platforms define incentives
+* personalities define reward
+* learning defines adaptation
+* evolution defines selection
+
+The guiding question:
+
+> Under which social and technical conditions do certain beliefs and behaviors survive, spread, and thrive, and what are the measurable mechanisms of influence that drive those outcomes?
+
+---
+
+## Project Structure
+
+```
+src/gsocialsim/
+├── agents/          # agent state, beliefs, attention, personality
+├── analytics/       # metrics and attribution
+├── evolution/       # evolutionary system
+├── kernel/          # event scheduling and world coordination
+├── networks/        # social graph layers
+├── physical/        # places, schedules, physical interaction
+├── policy/          # learning and action selection
+├── social/          # global social reality model
+├── stimuli/         # external stimuli and content ingestion
+├── visualization/   # HTML exporters
+└── types.py
 ```
 
 ---
 
-# 🧪 Example Use Cases
-
-* influence campaign modeling
-* belief resilience testing
-* narrative spread experiments
-* network intervention simulation
-* algorithmic feed impact studies
-* social reinforcement analysis
-* evolutionary persuasion dynamics
-
----
-
-# 🗂 Project Structure
-
-```
-gsocialsim/
-├── PRD.md
-├── README.md
-├── requirements.txt
-├── run_and_visualize.py
-├── src/gsocialsim/
-│   ├── agents/
-│   ├── analytics/
-│   ├── evolution/
-│   ├── kernel/
-│   ├── networks/
-│   ├── physical/
-│   ├── policy/
-│   ├── social/
-│   ├── stimuli/
-│   └── visualization/
-└── tests/
-```
-
----
-
-# 🔬 Research Orientation
-
-This system is built around:
-
-* reproducible simulation
-* explicit event logging
-* causal attribution
-* configurable policies
-* parameterized environments
-* testable hypotheses
-
-It is intended as a **research instrument**, not just a demo simulator.
-
----
-
-# 🐒 Design Philosophy
+## Design Philosophy
 
 > All models are wrong.
 > Some monkeys are influential.
@@ -270,32 +282,14 @@ Minimal magic. Explicit mechanics. Measurable outcomes.
 
 ---
 
-# 📜 License
+## License
 
-MIT License
-
-See `LICENSE` file.
+MIT License. See `LICENSE`.
 
 ---
 
-# 🤝 Contributions
+## Disclaimer
 
-Pull requests welcome for:
-
-* new influence models
-* policy learners
-* attribution methods
-* visualization layers
-* experiment packs
-* benchmark scenarios
-
-Open an issue first for major design changes.
-
----
-
-# ⚠️ Disclaimer
-
-This framework models influence dynamics.
-It does not endorse or support manipulation campaigns.
-Use responsibly for research and defensive analysis.
-
+This framework models influence dynamics for research and defensive analysis.
+It does not endorse manipulation campaigns.
+Use responsibly.
