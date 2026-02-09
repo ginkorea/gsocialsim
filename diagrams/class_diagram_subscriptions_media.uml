@@ -1,5 +1,5 @@
 @startuml
-title SSES - Core Class Diagram
+title SSES - Core Class Diagram (Full Capability - Subscriptions + Media Weights)
 
 skinparam classAttributeIconSize 0
 
@@ -41,6 +41,8 @@ class WorldContext {
   +agents: AgentPopulation
   +gsr: GlobalSocialReality
   +networks: NetworkManager
+  +subscriptions: SubscriptionService
+  +content: ContentStore
   +physical: PhysicalWorld
   +stimuli: StimulusStore
   +analytics: Analytics
@@ -133,11 +135,12 @@ Agent *-- BudgetState
 Agent *-- RewardWeights
 
 '========================
-' Attention
+' Attention: Consumption vs Interaction (Media-weighted)
 '========================
 class AttentionSystem {
   +scout: ScrollOrSeekner
   +deep: DeepFocusEngine
+  +mediaParams: MediaBehaviorModel
   +evaluate(percepts: List<Percept>): List<Impression>
   +shouldDeepFocus(imps: List<Impression>): bool
   +deepFocus(target: ContentItem): DeepResult
@@ -152,19 +155,31 @@ class DeepFocusEngine {
 }
 
 enum IntakeMode {
-
   scroll
-
   seek
-
   physical
-
 }
 
+enum MediaType {
+  news
+  social_post
+  video
+  meme
+  longform
+  forum_thread
+}
+
+class MediaBehaviorModel {
+  +consume_bias: Map<MediaType,float>        '[0,1] baseline read/see/watch
+  +interact_bias: Map<MediaType,float>       '[0,1] baseline like/comment/share
+  +deep_focus_bias: Map<MediaType,float>     '[0,1] baseline deep focus likelihood
+  +action_type_priors: Map<MediaType,Map<InteractionType,float>>
+}
 
 class Impression {
   +intake_mode: IntakeMode
   +contentId: ContentId
+  +media_type: MediaType
   +topic: TopicId?
   +valence: float
   +arousal: float
@@ -173,6 +188,8 @@ class Impression {
   +identity_threat: float
   +social_proof: float
   +source_strength: float
+  +consumed_prob: float     '[0,1]
+  +interact_prob: float     '[0,1]
   +decay()
 }
 
@@ -185,6 +202,7 @@ class DeepResult {
 Agent --> AttentionSystem
 AttentionSystem --> ScrollOrSeekner
 AttentionSystem --> DeepFocusEngine
+AttentionSystem --> MediaBehaviorModel
 
 '========================
 ' Policy + Learning
@@ -193,6 +211,7 @@ class ActionPolicy {
   +selectIntent(a: Agent, ctx: WorldContext): Intent
   +selectActionTemplate(intent: Intent): ActionTemplate
   +instantiate(tpl: ActionTemplate, ctx: WorldContext): Action
+  +chooseInteractionType(imp: Impression): InteractionType
 }
 
 class BanditLearner {
@@ -216,7 +235,7 @@ Agent --> BanditLearner
 BanditLearner --> RewardVector
 
 '========================
-' Social Reality + Graph Layers
+' Social Reality + Online Networks
 '========================
 class GlobalSocialReality {
   +R: Map<Pair<AgentId,AgentId>, RelationshipVector>
@@ -234,29 +253,73 @@ class RelationshipVector {
   +topic_alignment: Map<TopicId,float>
 }
 
+'---- Subscriptions (opt-in feed semantics)
+enum SubscriptionType {
+  creator
+  topic
+  outlet
+  community
+}
+
+class Subscription {
+  +subscriber: AgentId
+  +type: SubscriptionType
+  +targetId: String      'CreatorId / TopicId / OutletId / CommunityId
+  +strength: float       '[0,1] how strongly opted-in
+  +created_tick: long
+}
+
+class SubscriptionService {
+  +subs_by_agent: Map<AgentId,List<Subscription>>
+  +subscribers_by_target: Map<Pair<SubscriptionType,String>,Set<AgentId>>
+  +getSubs(a: AgentId): List<Subscription>
+  +isSubscribed(a: AgentId, type: SubscriptionType, targetId: String): bool
+  +subscribe(a: AgentId, type: SubscriptionType, targetId: String, strength: float)
+  +unsubscribe(a: AgentId, type: SubscriptionType, targetId: String)
+}
+
+'---- Content + delivery pipeline
+class ContentStore {
+  +content_by_id: Map<ContentId,ContentItem>
+  +recent_by_author: Map<AgentId,Deque<ContentId>>
+  +recent_by_topic: Map<TopicId,Deque<ContentId>>
+  +recent_by_outlet: Map<OutletId,Deque<ContentId>>
+  +add(item: ContentItem)
+  +get(id: ContentId): ContentItem
+  +queryByAuthor(a: AgentId, sinceTick: long): List<ContentId>
+  +queryByTopic(t: TopicId, sinceTick: long): List<ContentId>
+}
+
+class DeliveryRecord {
+  +tick: long
+  +viewer: AgentId
+  +layer_id: NetworkId
+  +intake_mode: IntakeMode
+  +eligible: List<ContentId>
+  +shown: List<ContentId>
+  +seen: List<ContentId>
+  +media_breakdown: Map<MediaType,int>
+}
+
 abstract class NetworkLayer {
   +id: NetworkId
-  +graph: NetworkGraph
   +mechanics: PlatformMechanics
-  +projectEdge(u: Agent, v: Agent, gsr: GlobalSocialReality): Edge
-  +rankFeed(viewer: Agent, candidates: List<ContentItem>): List<ContentItem>
-  +enforceModeration(item: ContentItem): ModerationDecision
+  +publish(interaction: Interaction, ctx: WorldContext)
+  +deliver(viewer: AgentId, intake: IntakeMode, ctx: WorldContext): List<ContentItem>
 }
 
-class BroadcastFeedNetwork
-class DirectMessageNetwork
-
-class NetworkGraph {
-  +nodes: Set<AgentId>
-  +edges: Set<Edge>
-  +neighbors(u: AgentId): List<AgentId>
+class BroadcastFeedNetwork {
+  +candidateWindowTicks: long
+  +maxCandidates: int
+  +maxShown: int
+  +buildCandidates(viewer: AgentId, subs: List<Subscription>, ctx: WorldContext): List<ContentId>
+  +rank(viewer: AgentId, candidates: List<ContentId>, ctx: WorldContext): List<ContentId>
 }
 
-class Edge {
-  +u: AgentId
-  +v: AgentId
-  +weight: float
-  +features: float[*]  'relationship projection vector
+class DirectMessageNetwork {
+  +inboxes: Map<AgentId,Deque<ContentId>>
+  +send(from: AgentId, to: AgentId, item: ContentItem)
+  +deliver(viewer: AgentId, intake: IntakeMode, ctx: WorldContext): List<ContentItem>
 }
 
 class PlatformMechanics {
@@ -264,21 +327,33 @@ class PlatformMechanics {
   +rankingModel: RankingModel
   +riskProfile: RiskProfile
   +rewardMapping: RewardMapping
+  +mediaPolicy: MediaPolicy
+}
+
+class MediaPolicy {
+  +media_behavior: MediaBehaviorModel
+  +format_costs: Map<MediaType,float>    'effort to produce
+  +friction: Map<InteractionType,Map<MediaType,float>>  'UI friction
 }
 
 class NetworkManager {
-  +layers: List<NetworkLayer>
+  +layers: Map<NetworkId,NetworkLayer>
   +getLayer(id: NetworkId): NetworkLayer
 }
 
 NetworkLayer <|-- BroadcastFeedNetwork
 NetworkLayer <|-- DirectMessageNetwork
-NetworkLayer *-- NetworkGraph
 NetworkLayer *-- PlatformMechanics
 NetworkManager o-- NetworkLayer
 
+WorldContext --> SubscriptionService
+WorldContext --> ContentStore
+BroadcastFeedNetwork --> SubscriptionService : expand subscriptions into candidates
+BroadcastFeedNetwork --> ContentStore : retrieve content
+BroadcastFeedNetwork --> GlobalSocialReality : trust/affinity signals
+DirectMessageNetwork --> ContentStore
+
 Agent --> GlobalSocialReality : updates via interactions
-NetworkLayer --> GlobalSocialReality : projects edges
 
 '========================
 ' Physical Layer
@@ -344,11 +419,23 @@ class ProvenanceTransformer {
 class ContentItem {
   +id: ContentId
   +timestamp: long
-  +publisher: ActorId
-  +topic: TopicId?
+  +author: AgentId?
+  +outlet: OutletId?
+  +community: CommunityId?
+  +media_type: MediaType
+  +topics: List<TopicId>
   +stance: float?
   +emotionDerivative: float?
   +provenance: ProvenanceRecord
+  +engagement: EngagementCounters
+}
+
+class EngagementCounters {
+  +views: int
+  +likes: int
+  +reshares: int
+  +replies: int
+  +bookmarks: int
 }
 
 class ProvenanceRecord {
@@ -359,9 +446,11 @@ class ProvenanceRecord {
 StimulusStore o-- ExternalStimulus
 ProvenanceTransformer --> ContentItem
 ContentItem *-- ProvenanceRecord
+ContentItem *-- EngagementCounters
+WorldContext --> StimulusStore
 
 '========================
-' Belief Update + Crossing + Attribution
+' Belief Update + Crossing + Attribution (unchanged)
 '========================
 class BeliefUpdateEngine {
   +update(a: Agent, imp: Impression, ctx: WorldContext): BeliefDelta
@@ -375,7 +464,7 @@ class BeliefCrossingDetector {
 class AttributionEngine {
   +windowDaysMin: int
   +windowDaysMax: int
-  +assignCredit(e: BeliefCrossingEvent, history: ExposureHistory): AttributionSet  'uses ExposureEvent.intake_mode
+  +assignCredit(e: BeliefCrossingEvent, history: ExposureHistory): AttributionSet
 }
 
 class ExposureHistory {
@@ -388,34 +477,10 @@ class ExposureEvent {
   +agent: AgentId
   +contentId: ContentId
   +sourceActor: ActorId
-  +channel: ChannelType  'online/physical
-  +tieStrength: float
-}
-
-class InfluenceEvent {
-  +timestamp: long
-  +source: ActorId
-  +target: AgentId
-  +topic: TopicId?
   +channel: ChannelType
+  +tieStrength: float
   +intake_mode: IntakeMode
-  +attemptType: String  'persuade, coordinate, intimidate, reassure, etc.
-  +outcome: String      'success, failure, backfire, noop
-  +deltaBelief: float?
-  +deltaAction: float?
-  +deltaRelationship: float?
-  +evidence: List<String>  'contentIds, interactionIds, etc.
-}
-
-class InfluencePath {
-  +id: string
-  +agent: AgentId
-  +topic: TopicId?
-  +windowStart: long
-  +windowEnd: long
-  +exposures: List<ExposureEvent>
-  +influenceEvents: List<InfluenceEvent>
-  +result: String  'belief_crossing, action_change, relationship_shift
+  +media_type: MediaType
 }
 
 class BeliefCrossingEvent {
@@ -428,9 +493,7 @@ class BeliefCrossingEvent {
   +attribution: AttributionSet
 }
 
-class AttributionSet {
-  +credits: List<AttributionCredit>
-}
+class AttributionSet { +credits: List<AttributionCredit> }
 
 class AttributionCredit {
   +source: ActorId
@@ -448,67 +511,10 @@ BeliefCrossingEvent *-- AttributionSet
 AttributionSet o-- AttributionCredit
 
 '========================
-' Daily identity consolidation
-'========================
-class IdentityConsolidator {
-  +compressBeliefs(a: Agent)
-  +reAnchorIdentity(a: Agent)
-  +capAnchorDrift(a: Agent)
-}
-
-Agent --> IdentityConsolidator
-
-'========================
-' Moderation & Institutions
-'========================
-class InstitutionalActor {
-  +id: ActorId
-  +role: ActorRole
-  +post(ctx: WorldContext): ContentItem
-}
-
-class ModerationEngine {
-  +enforce(item: ContentItem, layer: NetworkLayer): ModerationDecision
-}
-
-class ModerationDecision {
-  +action: ModerationAction
-  +probability: float
-}
-
-'========================
-' Evolutionary System
-'========================
-class EvolutionarySystem {
-  +evaluateFitness(a: Agent): Fitness
-  +maybeExit(a: Agent): bool
-  +replace(a: Agent): Agent
-}
-
-class Fitness {
-  +reward: float
-  +connectedness: float
-  +reputation: float
-  +noise: float
-}
-
-EvolutionarySystem --> Fitness
-EvolutionarySystem --> AgentPopulation
-
-'========================
-' Analytics + Logging
+' Analytics + Logging (add delivery + media metrics)
 '========================
 class Analytics {
-  +logInfluenceEvent(e: InfluenceEvent)
-  +logInfluencePath(p: InfluencePath)
-  +scroll_exposures: int
-
-  +seek_exposures: int
-
-  +physical_exposures: int
-
-  +scroll_seek_ratio(): float
-
+  +logDelivery(r: DeliveryRecord)
   +logExposure(e: ExposureEvent)
   +logImpression(i: Impression)
   +logAction(a: Action)
@@ -518,27 +524,8 @@ class Analytics {
   +reportMetrics(): MetricsReport
 }
 
-class MetricsReport {
-  +influenceGraph: Map<String,float>  'who→whom weights (by topic/channel)
-  +influenceEfficiency: float
-  +influenceConcentration: float
-  +scrollInfluenceShare: float
-  +seekInfluenceShare: float
-  +physicalInfluenceShare: float
-  +scrollExposures: int
-
-  +seekExposures: int
-
-  +physicalExposures: int
-
-  +scrollSeekRatio: float
-
-  +polarization: float
-  +conversionRate: float
-  +physicalVsOnlineRatio: float
-  +cascadeStats: Map<String,float>
-}
-
-Analytics --> MetricsReport
+Analytics --> DeliveryRecord
+Analytics --> ExposureEvent
+Analytics --> Impression
 
 @enduml

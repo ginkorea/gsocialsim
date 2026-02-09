@@ -8,7 +8,7 @@
 | Total Directories | 16 |
 | Total Indexed Files | 75 |
 | Skipped Files | 1 |
-| Indexed Size | 176.42 KB |
+| Indexed Size | 197.66 KB |
 | Max File Size Limit | 2 MB |
 
 ## 📚 Table of Contents
@@ -2287,8 +2287,8 @@ function highlightFilter(filter) {
                   
 
                   // parsing and collecting nodes and edges from the python
-                  nodes = new vis.DataSet([{"color": "#cccccc", "id": "A", "label": "A", "shape": "dot", "size": 25.36, "title": "Agent A\nTopic: T_Original\nStance: 0.00"}, {"color": "#0080ff", "id": "B", "label": "B", "shape": "dot", "size": 29.920000000000005, "title": "Agent B\nTopic: T_Original\nStance: 0.72"}, {"color": "#0080ff", "id": "C (Source)", "label": "C (Source)", "shape": "dot", "size": 35.0, "title": "Agent C (Source)\nTopic: T_Original\nStance: 1.00"}, {"color": "#cccccc", "id": "D (Lurker)", "label": "D (Lurker)", "shape": "dot", "size": 25.6, "title": "Agent D (Lurker)\nTopic: T_Original\nStance: 0.00"}, {"color": "#00cc66", "id": "news1", "label": "news1", "shape": "square", "size": 25, "title": "Stimulus: news1\nSource: NewsOutlet\nContent: A major scientific breakthrough has been announced."}, {"color": "#00cc66", "id": "news2", "label": "news2", "shape": "square", "size": 25, "title": "Stimulus: news2\nSource: RivalNews\nContent: A competing report raises doubts about the recent breakthrough."}, {"color": "#00cc66", "id": "meme1", "label": "meme1", "shape": "square", "size": 25, "title": "Stimulus: meme1\nSource: UserA\nContent: That feeling when you realize it\u0027s Friday, lol"}]);
-                  edges = new vis.DataSet([{"arrows": "to", "color": "#cccccc", "from": "A", "to": "B", "width": 1}, {"arrows": "to", "color": "#cccccc", "from": "B", "to": "C (Source)", "width": 1}, {"arrows": "to", "color": "#cccccc", "from": "D (Lurker)", "to": "A", "width": 1}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 61 time(s)", "to": "news1", "width": 10.0}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 27 time(s)", "to": "news1", "width": 4.983606557377049}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 17 time(s)", "to": "news1", "width": 3.5081967213114753}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 23 time(s)", "to": "news1", "width": 4.393442622950819}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 23 time(s)", "to": "news2", "width": 4.393442622950819}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 23 time(s)", "to": "news2", "width": 4.393442622950819}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 1 time(s)", "to": "news2", "width": 1.1475409836065573}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 1 time(s)", "to": "news2", "width": 1.1475409836065573}, {"arrows": "to", "color": "#ff0000", "from": "C (Source)", "title": "Influenced 1 time(s)", "to": "B", "width": 2}]);
+                  nodes = new vis.DataSet([{"color": "#cccccc", "id": "A", "label": "A", "shape": "dot", "size": 26.720000000000002, "title": "Agent A\nTopic: T_Culture\nStance: 0.00"}, {"color": "#0080ff", "id": "B", "label": "B", "shape": "dot", "size": 27.32, "title": "Agent B\nTopic: T_Original\nStance: 0.23"}, {"color": "#0080ff", "id": "C (Source)", "label": "C (Source)", "shape": "dot", "size": 35.0, "title": "Agent C (Source)\nTopic: T_Original\nStance: 0.77"}, {"color": "#cccccc", "id": "D (Lurker)", "label": "D (Lurker)", "shape": "dot", "size": 27.0, "title": "Agent D (Lurker)\nTopic: T_Science\nStance: 0.00"}, {"color": "#00cc66", "id": "news1", "label": "news1", "shape": "square", "size": 25, "title": "Stimulus: news1\nSource: NewsOutlet\nContent: A major scientific breakthrough has been announced."}, {"color": "#00cc66", "id": "sci1", "label": "sci1", "shape": "square", "size": 25, "title": "Stimulus: sci1\nSource: ScienceDaily\nContent: Peer review highlights key limitations in the breakthrough study."}, {"color": "#00cc66", "id": "sci2", "label": "sci2", "shape": "square", "size": 25, "title": "Stimulus: sci2\nSource: UniLab\nContent: Researchers publish replication results with mixed outcomes."}, {"color": "#00cc66", "id": "sci3", "label": "sci3", "shape": "square", "size": 25, "title": "Stimulus: sci3\nSource: ScienceDaily\nContent: Explainer: what the breakthrough actually claims and what it does not."}, {"color": "#00cc66", "id": "sci4", "label": "sci4", "shape": "square", "size": 25, "title": "Stimulus: sci4\nSource: UniLab\nContent: New dataset released to validate claims independently."}, {"color": "#00cc66", "id": "sci5", "label": "sci5", "shape": "square", "size": 25, "title": "Stimulus: sci5\nSource: ScienceDaily\nContent: Interview: lead author responds to criticism."}, {"color": "#00cc66", "id": "pol1", "label": "pol1", "shape": "square", "size": 25, "title": "Stimulus: pol1\nSource: NewsOutlet\nContent: Lawmakers call for hearings on research funding priorities."}, {"color": "#00cc66", "id": "pol2", "label": "pol2", "shape": "square", "size": 25, "title": "Stimulus: pol2\nSource: RivalNews\nContent: Opposition says the hearings are political theater."}, {"color": "#00cc66", "id": "news2", "label": "news2", "shape": "square", "size": 25, "title": "Stimulus: news2\nSource: RivalNews\nContent: A competing report raises doubts about the recent breakthrough."}, {"color": "#00cc66", "id": "pol3", "label": "pol3", "shape": "square", "size": 25, "title": "Stimulus: pol3\nSource: CapitolWatch\nContent: Bill introduced to increase transparency in grants."}, {"color": "#00cc66", "id": "pol4", "label": "pol4", "shape": "square", "size": 25, "title": "Stimulus: pol4\nSource: CapitolWatch\nContent: Committee schedules public testimony next week."}, {"color": "#00cc66", "id": "pol5", "label": "pol5", "shape": "square", "size": 25, "title": "Stimulus: pol5\nSource: NewsOutlet\nContent: Debate escalates over who benefits from the new policy."}, {"color": "#00cc66", "id": "eco1", "label": "eco1", "shape": "square", "size": 25, "title": "Stimulus: eco1\nSource: MarketWire\nContent: Markets react to the news with modest volatility."}, {"color": "#00cc66", "id": "eco2", "label": "eco2", "shape": "square", "size": 25, "title": "Stimulus: eco2\nSource: MarketWire\nContent: Analysts: impact may be overstated in the short term."}, {"color": "#00cc66", "id": "eco3", "label": "eco3", "shape": "square", "size": 25, "title": "Stimulus: eco3\nSource: FinBlog\nContent: Thread: how hype cycles distort investment decisions."}, {"color": "#00cc66", "id": "eco4", "label": "eco4", "shape": "square", "size": 25, "title": "Stimulus: eco4\nSource: MarketWire\nContent: Report: funding reallocations could reshape the sector."}, {"color": "#00cc66", "id": "eco5", "label": "eco5", "shape": "square", "size": 25, "title": "Stimulus: eco5\nSource: FinBlog\nContent: Opinion: focus on fundamentals not narratives."}, {"color": "#00cc66", "id": "cult1", "label": "cult1", "shape": "square", "size": 25, "title": "Stimulus: cult1\nSource: TrendFeed\nContent: Influencers argue the story proves \"experts are out of touch.\""}, {"color": "#00cc66", "id": "meme1", "label": "meme1", "shape": "square", "size": 25, "title": "Stimulus: meme1\nSource: UserA\nContent: That feeling when you realize it\u0027s Friday, lol"}, {"color": "#00cc66", "id": "cult2", "label": "cult2", "shape": "square", "size": 25, "title": "Stimulus: cult2\nSource: TrendFeed\nContent: Viral clip sparks debate about scientific literacy."}, {"color": "#00cc66", "id": "cult3", "label": "cult3", "shape": "square", "size": 25, "title": "Stimulus: cult3\nSource: PodcasterX\nContent: Hot take: institutions cannot be trusted anymore."}, {"color": "#00cc66", "id": "cult4", "label": "cult4", "shape": "square", "size": 25, "title": "Stimulus: cult4\nSource: PodcasterX\nContent: Counterpoint: skepticism is healthy but facts matter."}, {"color": "#00cc66", "id": "cult5", "label": "cult5", "shape": "square", "size": 25, "title": "Stimulus: cult5\nSource: TrendFeed\nContent: Community notes provide corrections and sources."}, {"color": "#00cc66", "id": "meme2", "label": "meme2", "shape": "square", "size": 25, "title": "Stimulus: meme2\nSource: UserB\nContent: Me reading the comments: \u0027I will not engage\u0027 (engages anyway)."}, {"color": "#00cc66", "id": "meme3", "label": "meme3", "shape": "square", "size": 25, "title": "Stimulus: meme3\nSource: UserC\nContent: Breaking: my confidence is 1.0 and my evidence is vibes."}, {"color": "#00cc66", "id": "meme4", "label": "meme4", "shape": "square", "size": 25, "title": "Stimulus: meme4\nSource: UserD\nContent: When your model overfits and you call it \u0027intuition\u0027."}, {"color": "#00cc66", "id": "meme5", "label": "meme5", "shape": "square", "size": 25, "title": "Stimulus: meme5\nSource: UserE\nContent: Trust me bro, I ran it once."}, {"color": "#00cc66", "id": "sports1", "label": "sports1", "shape": "square", "size": 25, "title": "Stimulus: sports1\nSource: SportsDesk\nContent: Upset win sparks celebration and trash talk."}, {"color": "#00cc66", "id": "sports2", "label": "sports2", "shape": "square", "size": 25, "title": "Stimulus: sports2\nSource: SportsDesk\nContent: Analysts debate whether the win was luck or skill."}, {"color": "#00cc66", "id": "sports3", "label": "sports3", "shape": "square", "size": 25, "title": "Stimulus: sports3\nSource: FanAccount\nContent: Hot take: refs decided the game."}, {"color": "#00cc66", "id": "sports4", "label": "sports4", "shape": "square", "size": 25, "title": "Stimulus: sports4\nSource: FanAccount\nContent: Replay breakdown thread goes viral."}, {"color": "#00cc66", "id": "sports5", "label": "sports5", "shape": "square", "size": 25, "title": "Stimulus: sports5\nSource: SportsDesk\nContent: Coach addresses controversy in press conference."}, {"color": "#00cc66", "id": "sec1", "label": "sec1", "shape": "square", "size": 25, "title": "Stimulus: sec1\nSource: InfosecNews\nContent: Security researchers disclose a new vulnerability class."}, {"color": "#00cc66", "id": "sec2", "label": "sec2", "shape": "square", "size": 25, "title": "Stimulus: sec2\nSource: InfosecNews\nContent: Patch guidance issued with mitigations and timelines."}, {"color": "#00cc66", "id": "sec3", "label": "sec3", "shape": "square", "size": 25, "title": "Stimulus: sec3\nSource: ForumUser\nContent: This will be exploited in the wild within 72 hours."}, {"color": "#00cc66", "id": "sec4", "label": "sec4", "shape": "square", "size": 25, "title": "Stimulus: sec4\nSource: InfosecNews\nContent: Early telemetry suggests opportunistic scanning."}, {"color": "#00cc66", "id": "sec5", "label": "sec5", "shape": "square", "size": 25, "title": "Stimulus: sec5\nSource: ForumUser\nContent: If you are unpatched you are already compromised."}, {"color": "#00cc66", "id": "mix1", "label": "mix1", "shape": "square", "size": 25, "title": "Stimulus: mix1\nSource: NewsOutlet\nContent: Summary: what we know so far and what is still uncertain."}, {"color": "#00cc66", "id": "mix2", "label": "mix2", "shape": "square", "size": 25, "title": "Stimulus: mix2\nSource: RivalNews\nContent: Opinion: the story is being misframed by both sides."}, {"color": "#00cc66", "id": "mix3", "label": "mix3", "shape": "square", "size": 25, "title": "Stimulus: mix3\nSource: NewsOutlet\nContent: Fact check: common claims circulating are inaccurate."}, {"color": "#00cc66", "id": "mix4", "label": "mix4", "shape": "square", "size": 25, "title": "Stimulus: mix4\nSource: TrendFeed\nContent: Compilation: reactions across platforms and communities."}, {"color": "#00cc66", "id": "mix5", "label": "mix5", "shape": "square", "size": 25, "title": "Stimulus: mix5\nSource: ScienceDaily\nContent: Update: new evidence clarifies earlier ambiguities."}]);
+                  edges = new vis.DataSet([{"arrows": "to", "color": "#cccccc", "from": "A", "to": "B", "width": 1}, {"arrows": "to", "color": "#cccccc", "from": "B", "to": "C (Source)", "width": 1}, {"arrows": "to", "color": "#cccccc", "from": "D (Lurker)", "to": "A", "width": 1}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 129 time(s)", "to": "news1", "width": 10.0}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 1 time(s)", "to": "news1", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 1 time(s)", "to": "sci1", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 10 time(s)", "to": "news1", "width": 1.697674418604651}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 11 time(s)", "to": "pol1", "width": 1.7674418604651163}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 24 time(s)", "to": "sci4", "width": 2.6744186046511627}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 11 time(s)", "to": "news2", "width": 1.7674418604651163}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 11 time(s)", "to": "sci2", "width": 1.7674418604651163}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 11 time(s)", "to": "sci5", "width": 1.7674418604651163}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 2 time(s)", "to": "sci1", "width": 1.1395348837209303}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 10 time(s)", "to": "sci3", "width": 1.697674418604651}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 10 time(s)", "to": "sci4", "width": 1.697674418604651}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 2 time(s)", "to": "pol4", "width": 1.1395348837209303}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 1 time(s)", "to": "pol4", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 22 time(s)", "to": "sci5", "width": 2.5348837209302326}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 1 time(s)", "to": "eco1", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 2 time(s)", "to": "eco1", "width": 1.1395348837209303}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 1 time(s)", "to": "sci1", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 3 time(s)", "to": "pol5", "width": 1.2093023255813953}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 11 time(s)", "to": "sci5", "width": 1.7674418604651163}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 2 time(s)", "to": "eco5", "width": 1.1395348837209303}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 11 time(s)", "to": "eco5", "width": 1.7674418604651163}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 2 time(s)", "to": "meme1", "width": 1.1395348837209303}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 11 time(s)", "to": "eco4", "width": 1.7674418604651163}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 11 time(s)", "to": "pol2", "width": 1.7674418604651163}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 4 time(s)", "to": "sci3", "width": 1.2790697674418605}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 2 time(s)", "to": "eco3", "width": 1.1395348837209303}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 11 time(s)", "to": "pol3", "width": 1.7674418604651163}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 9 time(s)", "to": "pol3", "width": 1.627906976744186}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 1 time(s)", "to": "cult1", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 3 time(s)", "to": "eco4", "width": 1.2093023255813953}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 10 time(s)", "to": "sci2", "width": 1.697674418604651}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 2 time(s)", "to": "pol2", "width": 1.1395348837209303}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 8 time(s)", "to": "cult2", "width": 1.558139534883721}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 1 time(s)", "to": "cult5", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 2 time(s)", "to": "pol1", "width": 1.1395348837209303}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 2 time(s)", "to": "meme4", "width": 1.1395348837209303}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 1 time(s)", "to": "sports3", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 10 time(s)", "to": "news1", "width": 1.697674418604651}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 10 time(s)", "to": "news2", "width": 1.697674418604651}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 1 time(s)", "to": "sports3", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 2 time(s)", "to": "pol5", "width": 1.1395348837209303}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 2 time(s)", "to": "sports2", "width": 1.1395348837209303}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 10 time(s)", "to": "sci3", "width": 1.697674418604651}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 2 time(s)", "to": "sports4", "width": 1.1395348837209303}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 10 time(s)", "to": "cult4", "width": 1.697674418604651}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 10 time(s)", "to": "eco5", "width": 1.697674418604651}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 1 time(s)", "to": "meme4", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 11 time(s)", "to": "sci2", "width": 1.7674418604651163}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 1 time(s)", "to": "meme5", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 1 time(s)", "to": "sec5", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 1 time(s)", "to": "meme5", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 1 time(s)", "to": "sec2", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 1 time(s)", "to": "meme3", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 1 time(s)", "to": "cult3", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 10 time(s)", "to": "eco2", "width": 1.697674418604651}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 1 time(s)", "to": "sci2", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 1 time(s)", "to": "mix3", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 4 time(s)", "to": "meme4", "width": 1.2790697674418605}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 10 time(s)", "to": "sci3", "width": 1.697674418604651}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 1 time(s)", "to": "cult1", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 1 time(s)", "to": "sports5", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 1 time(s)", "to": "meme1", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 2 time(s)", "to": "mix3", "width": 1.1395348837209303}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 2 time(s)", "to": "pol3", "width": 1.1395348837209303}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "A", "title": "Interacted 1 time(s)", "to": "cult2", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 2 time(s)", "to": "meme2", "width": 1.1395348837209303}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 1 time(s)", "to": "meme4", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 1 time(s)", "to": "meme2", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "B", "title": "Interacted 8 time(s)", "to": "eco4", "width": 1.558139534883721}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 1 time(s)", "to": "meme2", "width": 1.069767441860465}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "D (Lurker)", "title": "Interacted 6 time(s)", "to": "pol1", "width": 1.4186046511627906}, {"arrows": "to", "color": "#99ff99", "dashes": true, "from": "C (Source)", "title": "Interacted 1 time(s)", "to": "mix2", "width": 1.069767441860465}, {"arrows": "to", "color": "#ff0000", "from": "C (Source)", "title": "Influenced 1 time(s)", "to": "B", "width": 2}]);
 
                   nodeColors = {};
                   allNodes = nodes.get({ returnType: "Object" });
@@ -2738,57 +2738,67 @@ from gsocialsim.visualization.exporter import generate_influence_graph_html
 from gsocialsim.social.relationship_vector import RelationshipVector
 from gsocialsim.stimuli.data_source import CsvDataSource
 
+
 def setup_simulation_scenario(kernel: WorldKernel):
-    """
-    Sets up a scenario with agents and external stimuli for the simulation.
-    """
     print("Setting up simulation scenario...")
-    
-    # --- Create Agents and Network ---
+
     agent_A = Agent(id=AgentId("A"), seed=1)
     agent_B = Agent(id=AgentId("B"), seed=2)
     agent_C = Agent(id=AgentId("C (Source)"), seed=3)
     agent_D = Agent(id=AgentId("D (Lurker)"), seed=4)
-    
+
     agents = [agent_A, agent_B, agent_C, agent_D]
+
+    # Topics we expect to see in stimuli.csv
+    topics = [
+        TopicId("T_Original"),
+        TopicId("T_Science"),
+        TopicId("T_Politics"),
+        TopicId("T_Economy"),
+        TopicId("T_Culture"),
+        TopicId("T_Memes"),
+        TopicId("T_Sports"),
+        TopicId("T_Security"),
+    ]
+
     for a in agents:
-        a.budgets.action_budget = 100 # Give plenty of budget for actions
-        a.beliefs.update(TopicId("T_Original"), stance=0.0, confidence=0.5, salience=0.1, knowledge=0.1)
+        # Robust budgets for longer runs and lots of stimuli
+        a.budgets.action_budget = 5000
+
+        # Seed beliefs for all topics so perception is never "topic-orphaned"
+        for t in topics:
+            a.beliefs.update(t, stance=0.0, confidence=0.5, salience=0.1, knowledge=0.1)
+
         kernel.agents.add_agent(a)
 
     graph = kernel.world_context.network.graph
     graph.add_edge(follower=agent_A.id, followed=agent_B.id)
     graph.add_edge(follower=agent_B.id, followed=agent_C.id)
-    graph.add_edge(follower=agent_D.id, followed=agent_A.id) # D follows A
+    graph.add_edge(follower=agent_D.id, followed=agent_A.id)
 
-    # --- Setup Trust ---
     gsr = kernel.world_context.gsr
     gsr.set_relationship(agent_A.id, agent_B.id, RelationshipVector(trust=0.9))
     gsr.set_relationship(agent_B.id, agent_C.id, RelationshipVector(trust=0.6))
 
-    # --- Seed Initial Belief for Source Agent ---
-    topic_original = TopicId("T_Original")
-    agent_C.beliefs.update(topic_original, stance=1.0, confidence=1.0, salience=1.0, knowledge=1.0)
-    
-    # --- Register External Data Source ---
+    # Source agent starts strongly opinionated on T_Original
+    agent_C.beliefs.update(TopicId("T_Original"), stance=1.0, confidence=1.0, salience=1.0, knowledge=1.0)
+
+    # External stimuli
     csv_source = CsvDataSource(file_path="stimuli.csv")
     kernel.world_context.stimulus_engine.register_data_source(csv_source)
+
     print("Scenario setup complete.")
 
 
 if __name__ == "__main__":
-    # --- 1. Initialize Kernel and Setup Scenario ---
     sim_kernel = WorldKernel(seed=101)
     setup_simulation_scenario(sim_kernel)
 
-    # --- 2. Start Event-Driven Simulation ---
-    sim_kernel.start() # Seed the initial events (ingestion, agent actions, day boundaries)
+    sim_kernel.start()
     print("\nRunning simulation...")
-    # Run for enough ticks to allow stimuli to be ingested, perceived, and acted upon
-    sim_kernel.step(200) # Run for 200 ticks
+    sim_kernel.step(250)
     print("Simulation finished.\n")
 
-    # --- 3. Generate Visualization ---
     generate_influence_graph_html(sim_kernel)
 
 ```
@@ -3576,6 +3586,7 @@ class EventScheduler:
 
 ```python
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
@@ -3593,14 +3604,45 @@ if TYPE_CHECKING:
 
 _event_counter = itertools.count()
 
+
+def _stimulus_topic_id(stimulus: "Stimulus") -> TopicId:
+    """
+    Map a stimulus to a TopicId that agents can actually reason about.
+
+    IMPORTANT:
+      In this codebase TopicId may be a typing alias / NewType and not a runtime
+      type suitable for isinstance(..., TopicId). So we do NOT type-check it.
+
+    Rules:
+      - If stimulus.metadata["topic"] is a non-empty string: use it.
+      - If missing/empty: fall back to "T_Original" to preserve phase behavior.
+      - If non-string: coerce to string (defensive).
+    """
+    raw = getattr(stimulus, "metadata", None) or {}
+    t = raw.get("topic")
+
+    if t is None:
+        return TopicId("T_Original")
+
+    if isinstance(t, str):
+        t = t.strip()
+        return TopicId(t if t else "T_Original")
+
+    return TopicId(str(t))
+
+
 @dataclass(order=True)
 class Event(ABC):
     timestamp: int = field(compare=True)
     tie_breaker: int = field(init=False, compare=True)
-    def __post_init__(self): self.tie_breaker = next(_event_counter)
+
+    def __post_init__(self):
+        self.tie_breaker = next(_event_counter)
+
     @abstractmethod
     def apply(self, context: "WorldContext"):
         pass
+
 
 @dataclass(order=True)
 class StimulusIngestionEvent(Event):
@@ -3608,32 +3650,55 @@ class StimulusIngestionEvent(Event):
         new_stimuli = context.stimulus_engine.tick(self.timestamp)
         if new_stimuli:
             for stimulus in new_stimuli:
-                context.scheduler.schedule(StimulusPerceptionEvent(timestamp=self.timestamp, stimulus_id=stimulus.id))
+                context.scheduler.schedule(
+                    StimulusPerceptionEvent(
+                        timestamp=self.timestamp,
+                        stimulus_id=stimulus.id,
+                    )
+                )
         context.scheduler.schedule(StimulusIngestionEvent(timestamp=self.timestamp + 1))
+
 
 @dataclass(order=True)
 class StimulusPerceptionEvent(Event):
     stimulus_id: str = field(compare=False)
+
     def apply(self, context: "WorldContext"):
         stimulus = context.stimulus_engine.get_stimulus(self.stimulus_id)
-        if not stimulus: return
-        
-        temp_content = ContentItem(id=stimulus.id, author_id=stimulus.source, topic=TopicId(f"stim_{stimulus.id}"), stance=0.0)
+        if not stimulus:
+            return
+
+        topic = _stimulus_topic_id(stimulus)
+
+        temp_content = ContentItem(
+            id=stimulus.id,
+            author_id=stimulus.source,
+            topic=topic,
+            stance=0.0,
+        )
         for agent in context.agents.agents.values():
             agent.perceive(temp_content, context, stimulus_id=stimulus.id)
+
 
 @dataclass(order=True)
 class AgentActionEvent(Event):
     agent_id: str = field(compare=False)
+
     def apply(self, context: "WorldContext"):
         agent = context.agents.get(self.agent_id)
-        if not agent: return
+        if not agent:
+            return
 
         interaction = agent.act(tick=self.timestamp)
         if interaction:
             context.analytics.log_interaction(self.timestamp, interaction)
-            context.scheduler.schedule(InteractionPerceptionEvent(timestamp=self.timestamp, interaction=interaction))
-        context.scheduler.schedule(AgentActionEvent(timestamp=self.timestamp + 1, agent_id=self.agent_id))
+            context.scheduler.schedule(
+                InteractionPerceptionEvent(timestamp=self.timestamp, interaction=interaction)
+            )
+        context.scheduler.schedule(
+            AgentActionEvent(timestamp=self.timestamp + 1, agent_id=self.agent_id)
+        )
+
 
 @dataclass(order=True)
 class InteractionPerceptionEvent(Event):
@@ -3642,15 +3707,17 @@ class InteractionPerceptionEvent(Event):
     def apply(self, context: "WorldContext"):
         from gsocialsim.policy.bandit_learner import RewardVector
         from gsocialsim.stimuli.interaction import InteractionVerb
-        
+
         author = context.agents.get(self.interaction.agent_id)
-        if not author: return
+        if not author:
+            return
 
         followers = context.network.graph.get_followers(author.id)
-        if not followers: return
-        
+        if not followers:
+            return
+
         reward = RewardVector()
-        topic = None
+        topic: TopicId | None = None
 
         if self.interaction.verb == InteractionVerb.CREATE:
             content = self.interaction.original_content
@@ -3658,94 +3725,121 @@ class InteractionPerceptionEvent(Event):
             reward.affiliation = 0.1 * len(followers)
             for follower_id in followers:
                 follower = context.agents.get(follower_id)
-                if follower: follower.perceive(content, context)
-        
+                if follower:
+                    follower.perceive(content, context)
+
         elif self.interaction.verb == InteractionVerb.LIKE:
             stimulus = context.stimulus_engine.get_stimulus(self.interaction.target_stimulus_id)
             if stimulus:
-                topic = f"stim_{stimulus.id}"
+                topic = _stimulus_topic_id(stimulus)
                 reward.affiliation = 0.2
-        
+
         elif self.interaction.verb == InteractionVerb.FORWARD:
             stimulus = context.stimulus_engine.get_stimulus(self.interaction.target_stimulus_id)
             if stimulus:
-                topic = f"stim_{stimulus.id}"
+                topic = _stimulus_topic_id(stimulus)
                 reward.status = 0.3
 
         if topic and author:
             action_key = f"{self.interaction.verb.value}_{topic}"
             author.learn(action_key, reward)
 
+
 @dataclass(order=True)
 class DeepFocusEvent(Event):
     agent_id: str = field(compare=False)
     content_id: str = field(compare=False)
-    original_impression: Impression = field(compare=False) # Store the impression that led to deep focus
+    original_impression: Impression = field(compare=False)  # Store the impression that led to deep focus
 
     def apply(self, context: "WorldContext"):
         agent = context.agents.get(self.agent_id)
-        if not agent: return
+        if not agent:
+            return
 
-        if agent.budgets.spend(BudgetKind.ATTENTION, 10) and agent.budgets.spend(BudgetKind.DEEP_FOCUS, 1):
-            print(f"DEBUG:[T={self.timestamp}] Agent['{self.agent_id}'] engaged in Deep Focus on '{self.content_id}'")
+        if agent.budgets.spend(BudgetKind.ATTENTION, 10) and agent.budgets.spend(
+            BudgetKind.DEEP_FOCUS, 1
+        ):
+            print(
+                f"DEBUG:[T={self.timestamp}] Agent['{self.agent_id}'] engaged in Deep Focus on '{self.content_id}'"
+            )
 
             # Re-process the original impression with amplified effect
             amplified_impression = Impression(
-                intake_mode=IntakeMode.DEEP_FOCUS, content_id=self.content_id, topic=self.original_impression.topic,
-                stance_signal=self.original_impression.stance_signal, # Use original stance
-                emotional_valence=self.original_impression.emotional_valence + 0.3, # More emotional
+                intake_mode=IntakeMode.DEEP_FOCUS,
+                content_id=self.content_id,
+                topic=self.original_impression.topic,
+                stance_signal=self.original_impression.stance_signal,
+                emotional_valence=self.original_impression.emotional_valence + 0.3,
                 arousal=self.original_impression.arousal + 0.3,
-                credibility_signal=min(1.0, self.original_impression.credibility_signal + 0.2), # More credible
-                identity_threat=self.original_impression.identity_threat, # No change to threat on deep focus itself
-                social_proof=self.original_impression.social_proof, # No change
-                relationship_strength_source=self.original_impression.relationship_strength_source
+                credibility_signal=min(1.0, self.original_impression.credibility_signal + 0.2),
+                identity_threat=self.original_impression.identity_threat,
+                social_proof=self.original_impression.social_proof,
+                relationship_strength_source=self.original_impression.relationship_strength_source,
             )
 
             # Apply the deep impression directly to the agent's belief
-            # The belief update engine will handle the actual change with its rules
-            # We need the original content's author for trust calculation
-            content_source_id = self.original_impression.content_id # Using content_id as source for simplicity
-            
+            content_source_id = self.original_impression.content_id  # Using content_id as source for simplicity
+
             belief_delta = agent.belief_update_engine.update(
-                viewer=agent, 
-                content_author_id=content_source_id, 
-                impression=amplified_impression, 
-                gsr=context.gsr
+                viewer=agent,
+                content_author_id=content_source_id,
+                impression=amplified_impression,
+                gsr=context.gsr,
             )
 
             agent.beliefs.apply_delta(belief_delta)
-            context.analytics.log_belief_update(timestamp=self.timestamp, agent_id=self.agent_id, delta=belief_delta)
+            context.analytics.log_belief_update(
+                timestamp=self.timestamp, agent_id=self.agent_id, delta=belief_delta
+            )
         else:
-            print(f"DEBUG:[T={self.timestamp}] Agent['{self.agent_id}'] failed Deep Focus due to insufficient budget.")
+            print(
+                f"DEBUG:[T={self.timestamp}] Agent['{self.agent_id}'] failed Deep Focus due to insufficient budget."
+            )
+
 
 @dataclass(order=True)
 class AllocateAttentionEvent(Event):
     agent_id: str = field(compare=False)
+
     def apply(self, context: "WorldContext"):
         agent = context.agents.get(self.agent_id)
-        if not agent: return
+        if not agent:
+            return
 
-        # PRD: Triggered by salience thresholds. Consumes deep_focus_budget.
-        # For this phase: if a recent impression has high salience, trigger deep focus.
         high_salience_impressions = []
         for impression in agent.recent_impressions.values():
-            if agent.beliefs.get(impression.topic) and agent.beliefs.get(impression.topic).salience > 0.5: # Example threshold
+            if agent.beliefs.get(impression.topic) and agent.beliefs.get(impression.topic).salience > 0.5:
                 high_salience_impressions.append(impression)
-        
-        if high_salience_impressions and agent.budgets.deep_focus_budget >= 1 and agent.budgets.attention_minutes >= 10:
-            # Choose one high-salience impression to deep focus on
+
+        if (
+            high_salience_impressions
+            and agent.budgets.deep_focus_budget >= 1
+            and agent.budgets.attention_minutes >= 10
+        ):
             impression_to_focus = agent.rng.choice(high_salience_impressions)
-            context.scheduler.schedule(DeepFocusEvent(timestamp=self.timestamp, agent_id=self.agent_id, content_id=impression_to_focus.content_id, original_impression=impression_to_focus))
-        
-        # Schedule next attention allocation event (e.g., for next tick)
-        context.scheduler.schedule(AllocateAttentionEvent(timestamp=self.timestamp + 1, agent_id=self.agent_id))
+            context.scheduler.schedule(
+                DeepFocusEvent(
+                    timestamp=self.timestamp,
+                    agent_id=self.agent_id,
+                    content_id=impression_to_focus.content_id,
+                    original_impression=impression_to_focus,
+                )
+            )
+
+        context.scheduler.schedule(
+            AllocateAttentionEvent(timestamp=self.timestamp + 1, agent_id=self.agent_id)
+        )
+
 
 @dataclass(order=True)
 class DayBoundaryEvent(Event):
     def apply(self, context: "WorldContext"):
         for agent in context.agents.agents.values():
             agent.consolidate_daily(context)
-        context.scheduler.schedule(DayBoundaryEvent(timestamp=self.timestamp + context.clock.ticks_per_day))
+        context.scheduler.schedule(
+            DayBoundaryEvent(timestamp=self.timestamp + context.clock.ticks_per_day)
+        )
+
 ```
 
 ## `src/gsocialsim/kernel/sim_clock.py`
@@ -4596,33 +4690,60 @@ class ContentItem:
 
 ```python
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Dict, Any
 import csv
+
 from gsocialsim.stimuli.stimulus import Stimulus
 
+
 class DataSource(ABC):
-    """ Abstract base class for any source of external data. """
+    """Abstract base class for any source of external data."""
+
     @abstractmethod
     def get_stimuli(self, tick: int) -> List[Stimulus]:
-        """ Returns a list of all stimuli that should be injected at a given tick. """
-        pass
+        """Returns a list of all stimuli that should be injected at a given tick."""
+        raise NotImplementedError
+
 
 class CsvDataSource(DataSource):
-    """ A concrete data source that reads from a CSV file. """
+    """
+    A concrete data source that reads from a CSV file.
+
+    Expected columns:
+      - id
+      - tick
+      - source
+      - content_text
+    Optional columns:
+      - topic   (if present, will be stored in stimulus.metadata["topic"])
+    """
+
     def __init__(self, file_path: str):
-        self.stimuli_by_tick = {}
-        with open(file_path, mode='r', encoding='utf-8') as infile:
+        self.stimuli_by_tick: Dict[int, List[Stimulus]] = {}
+
+        with open(file_path, mode="r", encoding="utf-8") as infile:
             reader = csv.DictReader(infile)
             for row in reader:
-                tick = int(row['tick'])
+                tick = int(row["tick"])
+
+                # Optional topic support
+                topic = row.get("topic")
+                if isinstance(topic, str):
+                    topic = topic.strip() or None
+
                 stimulus = Stimulus(
-                    id=row['id'],
-                    source=row['source'],
+                    id=row["id"],
+                    source=row["source"],
                     tick=tick,
-                    content_text=row['content_text']
+                    content_text=row["content_text"],
+                    metadata={"topic": topic},
                 )
+
                 self.stimuli_by_tick.setdefault(tick, []).append(stimulus)
-        print(f"Loaded {sum(len(s) for s in self.stimuli_by_tick.values())} stimuli from {file_path}")
+
+        print(
+            f"Loaded {sum(len(s) for s in self.stimuli_by_tick.values())} stimuli from {file_path}"
+        )
 
     def get_stimuli(self, tick: int) -> List[Stimulus]:
         return self.stimuli_by_tick.get(tick, [])
@@ -4766,10 +4887,57 @@ def generate_influence_graph_html(kernel: WorldKernel, output_path: str = "influ
 ## `stimuli.csv`
 
 ```text
-id,tick,source,content_text
-news1,10,NewsOutlet,A major scientific breakthrough has been announced.
-news2,50,RivalNews,A competing report raises doubts about the recent breakthrough.
-meme1,100,UserA,"That feeling when you realize it's Friday, lol"
+id,tick,source,topic,content_text
+news1,10,NewsOutlet,T_Science,A major scientific breakthrough has been announced.
+news2,50,RivalNews,T_Science,A competing report raises doubts about the recent breakthrough.
+meme1,100,UserA,T_Memes,"That feeling when you realize it's Friday, lol"
+
+sci1,15,ScienceDaily,T_Science,Peer review highlights key limitations in the breakthrough study.
+sci2,20,UniLab,T_Science,Researchers publish replication results with mixed outcomes.
+sci3,25,ScienceDaily,T_Science,Explainer: what the breakthrough actually claims and what it does not.
+sci4,30,UniLab,T_Science,New dataset released to validate claims independently.
+sci5,35,ScienceDaily,T_Science,Interview: lead author responds to criticism.
+
+pol1,40,NewsOutlet,T_Politics,Lawmakers call for hearings on research funding priorities.
+pol2,45,RivalNews,T_Politics,Opposition says the hearings are political theater.
+pol3,55,CapitolWatch,T_Politics,Bill introduced to increase transparency in grants.
+pol4,60,CapitolWatch,T_Politics,Committee schedules public testimony next week.
+pol5,65,NewsOutlet,T_Politics,Debate escalates over who benefits from the new policy.
+
+eco1,70,MarketWire,T_Economy,Markets react to the news with modest volatility.
+eco2,75,MarketWire,T_Economy,Analysts: impact may be overstated in the short term.
+eco3,80,FinBlog,T_Economy,Thread: how hype cycles distort investment decisions.
+eco4,85,MarketWire,T_Economy,Report: funding reallocations could reshape the sector.
+eco5,90,FinBlog,T_Economy,Opinion: focus on fundamentals not narratives.
+
+cult1,95,TrendFeed,T_Culture,Influencers argue the story proves "experts are out of touch."
+cult2,105,TrendFeed,T_Culture,Viral clip sparks debate about scientific literacy.
+cult3,110,PodcasterX,T_Culture,Hot take: institutions cannot be trusted anymore.
+cult4,115,PodcasterX,T_Culture,Counterpoint: skepticism is healthy but facts matter.
+cult5,120,TrendFeed,T_Culture,Community notes provide corrections and sources.
+
+meme2,125,UserB,T_Memes,"Me reading the comments: 'I will not engage' (engages anyway)."
+meme3,130,UserC,T_Memes,"Breaking: my confidence is 1.0 and my evidence is vibes."
+meme4,135,UserD,T_Memes,"When your model overfits and you call it 'intuition'."
+meme5,140,UserE,T_Memes,"Trust me bro, I ran it once."
+
+sports1,145,SportsDesk,T_Sports,Upset win sparks celebration and trash talk.
+sports2,150,SportsDesk,T_Sports,Analysts debate whether the win was luck or skill.
+sports3,155,FanAccount,T_Sports,"Hot take: refs decided the game."
+sports4,160,FanAccount,T_Sports,Replay breakdown thread goes viral.
+sports5,165,SportsDesk,T_Sports,Coach addresses controversy in press conference.
+
+sec1,170,InfosecNews,T_Security,Security researchers disclose a new vulnerability class.
+sec2,175,InfosecNews,T_Security,Patch guidance issued with mitigations and timelines.
+sec3,180,ForumUser,T_Security,"This will be exploited in the wild within 72 hours."
+sec4,185,InfosecNews,T_Security,Early telemetry suggests opportunistic scanning.
+sec5,190,ForumUser,T_Security,"If you are unpatched you are already compromised."
+
+mix1,195,NewsOutlet,T_Original,Summary: what we know so far and what is still uncertain.
+mix2,200,RivalNews,T_Original,Opinion: the story is being misframed by both sides.
+mix3,205,NewsOutlet,T_Original,Fact check: common claims circulating are inaccurate.
+mix4,210,TrendFeed,T_Original,Compilation: reactions across platforms and communities.
+mix5,215,ScienceDaily,T_Original,Update: new evidence clarifies earlier ambiguities.
 
 ```
 
