@@ -5,10 +5,10 @@
 | Metric | Value |
 |:--|:--|
 | Root Directory | `/home/gompert/data/workspace/gsocialsim` |
-| Total Directories | 16 |
-| Total Indexed Files | 85 |
+| Total Directories | 17 |
+| Total Indexed Files | 87 |
 | Skipped Files | 1 |
-| Indexed Size | 379.45 KB |
+| Indexed Size | 392.97 KB |
 | Max File Size Limit | 2 MB |
 
 ## 📚 Table of Contents
@@ -23,6 +23,7 @@
 - [diagrams/class_diagram.uml](#diagrams-class-diagram-uml)
 - [diagrams/component_diagram.uml](#diagrams-component-diagram-uml)
 - [diagrams/sequence_diagram.uml](#diagrams-sequence-diagram-uml)
+- [docs/phase_contract.md](#docs-phase-contract-md)
 - [fix_event_phase_init.patch](#fix-event-phase-init-patch)
 - [influence_graph.html](#influence-graph-html)
 - [phase_patch.py](#phase-patch-py)
@@ -97,6 +98,7 @@
 - [tests/test_phase6.py](#tests-test-phase6-py)
 - [tests/test_phase7.py](#tests-test-phase7-py)
 - [tests/test_phase8.py](#tests-test-phase8-py)
+- [tests/test_phase_contract.py](#tests-test-phase-contract-py)
 - [threshold.html](#threshold-html)
 
 ## 📂 Project Structure
@@ -107,6 +109,8 @@
     📄 class_diagram.uml
     📄 component_diagram.uml
     📄 sequence_diagram.uml
+📁 docs/
+    📄 phase_contract.md
 📁 requirements/
 📁 src/
     📁 gsocialsim/
@@ -187,6 +191,7 @@
     📄 test_phase6.py
     📄 test_phase7.py
     📄 test_phase8.py
+    📄 test_phase_contract.py
 📄 agents_only.html
 📄 bipartite.html
 📄 fix_event_phase_init.patch
@@ -779,7 +784,6 @@ The system is designed to answer:
 </p>
 
 <p align="center">
-
 <img alt="License" src="https://img.shields.io/github/license/ginkorea/gsocialsim">
 <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-blue">
 <img alt="Repo Size" src="https://img.shields.io/github/repo-size/ginkorea/gsocialsim">
@@ -788,171 +792,183 @@ The system is designed to answer:
 <img alt="Forks" src="https://img.shields.io/github/forks/ginkorea/gsocialsim?style=social">
 <img alt="Status" src="https://img.shields.io/badge/status-research--active-purple">
 <img alt="Domain" src="https://img.shields.io/badge/domain-social--simulation-orange">
-
 </p>
 
 ---
 
-**gsocialsim** is a Python research framework for simulating belief formation, influence propagation, and behavioral evolution across synthetic social ecosystems.
+## Overview
 
-It models how beliefs **spread, survive, mutate, and dominate** through:
+**gsocialsim** is a research framework for modeling **belief formation, influence propagation, attention dynamics, and evolutionary selection** in synthetic social ecosystems.
 
-- network influence
-- physical proximity interactions
-- personality-driven learning
-- resource-bounded attention
-- evolutionary selection
+It is not a diffusion toy or a static agent-based model.
 
-Built for computational social science, influence research, and agent-based modeling experiments.
+It is an **event-driven, multi-layer influence environment** designed to make belief change:
 
----
-
-# 🧠 What This Simulator Is For
-
-gsocialsim is designed to answer questions like:
-
-- Why do some beliefs spread and others die?
-- How does influence actually propagate through a network?
-- What role does personality play in persuasion?
-- How do offline interactions amplify online influence?
-- Which agents become long-term belief winners under selection pressure?
-- Who *actually* caused a belief shift?
-
-This is not a toy diffusion model. It is a **multi-layer influence ecology**.
+- rare
+- attributable
+- causal
+- reproducible
 
 ---
 
-# ⚙️ Core Model Concepts
+## What This Simulator Is For
 
-## 👤 Persistent Agents
-Agents are long-lived entities with:
+gsocialsim is built to answer questions like:
 
-- belief vectors
-- personality traits
-- trust relationships
-- finite daily budgets
-- adaptive action policies
+- Why do some beliefs spread while others die?
+- How does influence *actually* propagate across networks and physical space?
+- What role does attention scarcity play in persuasion?
+- How do online and offline interactions interact?
+- Which personalities survive under platform incentives?
+- Who caused a belief crossing and through what pathway?
 
-They learn what works for *them*, not what works globally.
-
----
-
-## 💰 Budget-Constrained Behavior
-
-Each agent has limited:
-
-- attention budget
-- action budget
-
-This forces tradeoffs:
-
-- scroll vs seek
-- post vs engage
-- online vs physical
-- influence vs reinforce
-
-Constraint drives realism.
+The output is not just adoption curves, but **causal influence graphs**.
 
 ---
 
-## 🌐 Dual Influence Channels
+## Core Architecture
 
-### Online Layer
-- Directed social graph
-- Follower / trust weighted edges
-- Content exposure + engagement
-- Repeated exposure effects
+### Event-Driven World Kernel
 
-### Physical Layer
-- Location + schedule overlap
-- High-impact interactions
-- Amplified persuasion weight
-- Small-world shortcuts
+The simulation is driven by a centralized **WorldKernel**:
+
+- discrete simulation clock
+- deterministic phase ordering
+- explicit event scheduling
+- reproducible runs under fixed seeds
+
+All social, physical, and cognitive processes are coordinated through the kernel.
 
 ---
 
-## 🎯 Personality-Driven Learning
+### Persistent Agents
 
-Agents use contextual bandit learning to decide:
+Agents are long-lived and stateful:
 
-- what actions to take
+- belief vectors per topic
+- attention and action budgets
+- emotional and identity state
+- personality-weighted reward preferences
+- adaptive policies learned over time
+
+Agents optimize locally based on personality and experience, not global truth.
+
+---
+
+### Attention & Intake Modes
+
+Agents consume information via explicit **intake modes**:
+
+- **scroll** (passive feed exposure)
+- **seek** (active information search)
+- **physical** (in-person interaction)
+
+Attention is finite. Every exposure is a tradeoff.
+
+---
+
+### Stimuli & Content Pipeline
+
+External data enters the world as **Stimuli**:
+
+- typed media (news, post, meme, video, longform, forum)
+- source, creator, outlet, or community identifiers
+- optional topic hints
+- provenance tracking
+
+Stimuli are transformed into internal content items and logged as exposure events.
+
+---
+
+### Belief Update & Crossing Detection
+
+Beliefs evolve incrementally through exposure and interaction.
+
+When a belief crosses a configured threshold:
+
+- the event is detected
+- prior and post states are recorded
+- attribution is triggered
+- causal credit is assigned
+
+Belief change is not assumed. It must be *earned*.
+
+---
+
+### Attribution Engine
+
+Attribution reconstructs influence causality:
+
+- configurable temporal windows
+- exposure histories across channels
+- tie strength and intake mode weighting
+- multi-source credit assignment
+
+The result is **who influenced whom, how, and when**.
+
+---
+
+### Dual Influence Layers
+
+#### Online Layer
+- directed social graph
+- weighted relationships
+- broadcast and direct interactions
+- repeated exposure effects
+
+#### Physical Layer
+- places, schedules, and co-presence
+- high-impact interactions
+- small-world shortcuts
+- amplified persuasion
+
+Physical influence is explicitly modeled, not approximated.
+
+---
+
+### Learning & Adaptation
+
+Agents use contextual bandits to learn:
+
+- which actions to take
 - which channels to use
-- which strategies yield reward
+- how to allocate scarce attention
 
-Reward is personality-weighted:
-
-- affiliation
-- status
-- certainty
-- novelty
-- reinforcement
+Reward is personality-weighted (status, affiliation, certainty, novelty, reinforcement).
 
 ---
 
-## 🧬 Evolutionary Dynamics
+### Evolutionary Dynamics
 
-Population turnover is built in:
+The population evolves:
 
-- low-fitness agents removed
-- high-fitness agents reproduced
-- offspring receive mutations
-- long-term selective pressure emerges
+- low-fitness agents are removed
+- high-fitness agents reproduce
+- offspring inherit traits with mutation
+- diversity is preserved
 
-You get **belief ecosystems**, not snapshots.
-
----
-
-## 📌 Attributable Belief Crossings
-
-Primary research output:
-
-When an agent belief crosses a defined threshold:
-
-- event is logged
-- influence sources are traced
-- credit is attributed
-- propagation chains are recorded
-
-This produces **causal influence graphs**, not just diffusion traces.
+You get belief **ecosystems**, not snapshots.
 
 ---
 
-# 📊 Visualization
+## Visualization
 
-The framework includes an HTML exporter that produces an interactive graph:
+Multiple HTML exporters are included:
 
-- nodes = agents
-- color = belief stance
-- gray edges = network potential
-- red edges = realized influence
-- edge weight = influence count
+- **agents-only** (agent states, no platforms)
+- **platform view** (agent-platform interactions)
+- **bipartite** (agents ↔ content)
+- **threshold view** (belief crossings only)
+- **full graph** (everything)
 
-Run:
-
-```bash
-python3 run_and_visualize.py
-````
-
-Open:
-
-```
-influence_graph.html
-```
-
-in your browser.
+Nodes represent agents or content.
+Edges represent realized influence, not just potential.
 
 ---
 
-# 🚀 Quick Start
+## Running the Simulator
 
-## Requirements
-
-* Python 3.10+
-* pip
-
----
-
-## Install
+### Install
 
 ```bash
 git clone https://github.com/ginkorea/gsocialsim.git
@@ -960,78 +976,79 @@ cd gsocialsim
 
 python3 -m venv .venv
 source .venv/bin/activate
-
 pip install -r requirements.txt
-```
+````
 
----
-
-## Run Demo Simulation
+### Run a Demo
 
 ```bash
 python3 run_and_visualize.py
 ```
 
-Outputs:
+Outputs one or more HTML files (depending on exporter selection), e.g.:
 
-```
+```text
 influence_graph.html
+agents_only.html
+bipartite.html
+platform.html
+threshold.html
+```
+
+Open them in a browser.
+
+---
+
+## Research Metrics
+
+The system is designed to measure:
+
+* belief conversion pathways
+* influence efficiency
+* influence concentration
+* cascade shapes
+* polarization drift
+* personality survival rates
+* platform selection effects
+* physical vs online influence ratios
+
+---
+
+## Research Framing
+
+gsocialsim is an **evolutionary attention-and-influence environment**:
+
+* platforms define incentives
+* personalities define reward
+* learning defines adaptation
+* evolution defines selection
+
+The guiding question:
+
+> Under which social and technical conditions do certain beliefs and behaviors survive, spread, and thrive, and what are the measurable mechanisms of influence that drive those outcomes?
+
+---
+
+## Project Structure
+
+```
+src/gsocialsim/
+├── agents/          # agent state, beliefs, attention, personality
+├── analytics/       # metrics and attribution
+├── evolution/       # evolutionary system
+├── kernel/          # event scheduling and world coordination
+├── networks/        # social graph layers
+├── physical/        # places, schedules, physical interaction
+├── policy/          # learning and action selection
+├── social/          # global social reality model
+├── stimuli/         # external stimuli and content ingestion
+├── visualization/   # HTML exporters
+└── types.py
 ```
 
 ---
 
-# 🧪 Example Use Cases
-
-* influence campaign modeling
-* belief resilience testing
-* narrative spread experiments
-* network intervention simulation
-* algorithmic feed impact studies
-* social reinforcement analysis
-* evolutionary persuasion dynamics
-
----
-
-# 🗂 Project Structure
-
-```
-gsocialsim/
-├── PRD.md
-├── README.md
-├── requirements.txt
-├── run_and_visualize.py
-├── src/gsocialsim/
-│   ├── agents/
-│   ├── analytics/
-│   ├── evolution/
-│   ├── kernel/
-│   ├── networks/
-│   ├── physical/
-│   ├── policy/
-│   ├── social/
-│   ├── stimuli/
-│   └── visualization/
-└── tests/
-```
-
----
-
-# 🔬 Research Orientation
-
-This system is built around:
-
-* reproducible simulation
-* explicit event logging
-* causal attribution
-* configurable policies
-* parameterized environments
-* testable hypotheses
-
-It is intended as a **research instrument**, not just a demo simulator.
-
----
-
-# 🐒 Design Philosophy
+## Design Philosophy
 
 > All models are wrong.
 > Some monkeys are influential.
@@ -1040,35 +1057,17 @@ Minimal magic. Explicit mechanics. Measurable outcomes.
 
 ---
 
-# 📜 License
+## License
 
-MIT License
-
-See `LICENSE` file.
+MIT License. See `LICENSE`.
 
 ---
 
-# 🤝 Contributions
+## Disclaimer
 
-Pull requests welcome for:
-
-* new influence models
-* policy learners
-* attribution methods
-* visualization layers
-* experiment packs
-* benchmark scenarios
-
-Open an issue first for major design changes.
-
----
-
-# ⚠️ Disclaimer
-
-This framework models influence dynamics.
-It does not endorse or support manipulation campaigns.
-Use responsibly for research and defensive analysis.
-
+This framework models influence dynamics for research and defensive analysis.
+It does not endorse manipulation campaigns.
+Use responsibly.
 
 ```
 
@@ -2718,6 +2717,187 @@ end
 WK -> AL: reportMetrics()  'optional periodic
 
 @enduml
+
+```
+
+## `docs/phase_contract.md`
+
+```markdown
+# gsocialsim Phase Contract (Tick Semantics)
+
+This document defines the **non-negotiable execution contract** for `WorldKernel.step()`.
+
+It is written to prevent “phase drift”, accidental within-tick ping-pong loops, and ambiguity about
+when content becomes visible, when actions can respond, and when beliefs may update.
+
+---
+
+## 0) Core Definitions
+
+- **Tick (`t`)**: a fixed wall-clock window of **900 seconds (15 minutes)**.
+- **Two batch calls per tick**:
+  1) **ACT_BATCH(t)** — execute actions selected previously
+  2) **PERCEIVE_BATCH(t)** — gather new perceptions for next tick planning
+
+- **Consolidation** happens at the end of the tick and is where belief updates are applied.
+
+---
+
+## 1) Required Phase Order (Per Tick)
+
+A tick MUST run in this exact order:
+
+1. **INGEST(t)**
+2. **ACT_BATCH(t)**
+3. **PERCEIVE_BATCH(t)**
+4. **CONSOLIDATE(t)**
+
+There MUST NOT be additional agent decision loops inside the tick.
+
+---
+
+## 2) Reaction Lag Rule (No Ping-Pong)
+
+### Hard invariant
+**An agent may NOT execute an action in tick `t` that was selected because of something perceived in `PERCEIVE_BATCH(t)`.**
+
+Equivalently:
+- **Perceive(t) → Plan(t+1) → Act(t+1)**
+
+This forbids infinite back-and-forth inside a tick and ensures cascades propagate in discrete 15-minute waves.
+
+---
+
+## 3) Same-Tick Visibility (Immediate Posting is Allowed)
+
+Content **published** during **ACT_BATCH(t)** MAY be eligible to appear in other agents’ **PERCEIVE_BATCH(t)**,
+subject to platform feed rules.
+
+This enables:
+- “post immediately” personalities
+- fast same-tick audience exposure
+
+But reactions to that exposure must still obey the **Reaction Lag Rule** and occur no earlier than **ACT_BATCH(t+1)**.
+
+---
+
+## 4) Generation vs Posting
+
+During **ACT_BATCH(t)** an agent can produce three kinds of “generated content”:
+
+### A) Posted content (public, visible)
+- Becomes a `ContentItem` and is **published immediately** to the world/platform.
+- MAY be perceivable by others during `PERCEIVE_BATCH(t)`.
+
+### B) Draft content (private outbox)
+- Stored as `OutboxDraft` (not visible to others).
+- MAY be published later (preferably in a future ACT batch; publishing at CONSOLIDATE is allowed only if explicitly defined).
+
+### C) Internal artifacts (private cognition)
+- Stored as `InternalArtifact` (e.g., monologue, rehearsal, private notes).
+- Never visible to others unless later transformed into a draft/post by policy.
+
+This supports “read + think + do nothing” agents (silent majority), and separates cognition from expression.
+
+---
+
+## 5) Belief Update Timing
+
+Belief state changes MUST be applied only in **CONSOLIDATE(t)**.
+
+- During PERCEIVE and ACT, agents may compute deltas, traces, and drafts,
+  but the canonical belief vector must remain unchanged until CONSOLIDATE runs.
+
+---
+
+## 6) Budget Semantics
+
+Each agent has per-tick resource constraints:
+
+- `attention_seconds_per_tick` (cognitive time / perception budget)
+- optional `action_seconds_per_tick` (if separated), otherwise actions consume attention time as well
+
+Costs must be time-based (seconds), not just “counts”.
+
+### Budget rules
+- Budgets reset at the start of tick `t`.
+- Unused attention is not banked unless explicitly designed.
+
+Opportunity cost is required:
+- spending time drafting/posting reduces time available for perception in the same tick.
+
+---
+
+## 7) Minimal Data Structures (Contract Surface)
+
+These names are conceptual; code may differ, but semantics must hold.
+
+### Agent-side
+- `ActionPlan[t]`: a list of scheduled actions to execute in `ACT_BATCH(t)`.
+- `PerceptionSummary[t]`: exposures and selected cognitive traces produced in `PERCEIVE_BATCH(t)`.
+- `outbox_drafts`: private drafts awaiting publication.
+- `internal_artifacts`: private monologue/rehearsal artifacts.
+
+### World-side
+- `stimuli_by_tick[t]`: exogenous stimuli (e.g., GDELT batch) for tick `t`.
+- `posted_by_tick[t]`: content published during `ACT_BATCH(t)`.
+
+---
+
+## 8) Platform Feed Eligibility Rules (Recommended)
+
+To keep realism without complexity:
+
+- **Direct actions** (DMs, direct replies, mentions): eligible for same-tick delivery to the target.
+- **Broadcast feed**: eligible for same-tick inclusion probabilistically / by ranking,
+  capped by the perceiving agent’s remaining attention budget.
+
+---
+
+## 9) Test Contract (Must Exist)
+
+The following tests should be present and passing:
+
+1. **Same-tick visibility, next-tick reaction**
+   - A posts in ACT(t)
+   - B can perceive it in PERCEIVE(t)
+   - B cannot react until ACT(t+1)
+
+2. **Silent thinker**
+   - B perceives persuasive content in PERCEIVE(t)
+   - B creates internal monologue in ACT(t+1)
+   - B shifts belief in CONSOLIDATE(t+1) without posting
+
+3. **Budget tradeoff**
+   - Heavy creation in ACT(t) reduces perception in PERCEIVE(t)
+
+4. **Belief updates only in CONSOLIDATE**
+   - Belief vector unchanged during ACT/PERCEIVE; changes only after CONSOLIDATE
+
+---
+
+## 10) Reference Diagrams
+
+### Tick lifecycle (high level)
+
+```
+INGEST(t) → ACT_BATCH(t) → PERCEIVE_BATCH(t) → CONSOLIDATE(t)
+                    |                 |
+                    |                 └─ produces PerceptionSummary[t]
+                    └─ may publish content immediately (posted_by_tick[t])
+```
+
+### Causality and lag
+
+```
+PERCEIVE(t) → (plan at end of tick) → ActionPlan[t+1] → ACT(t+1)
+```
+
+If you ever see code that allows:
+- `PERCEIVE(t)` to directly trigger `ACT(t)` behavior, or
+- multiple act/perceive loops inside the tick,
+
+then the phase contract has been violated.
 
 ```
 
@@ -8615,6 +8795,178 @@ if __name__ == '__main__':
 
 ```
 
+## `tests/test_phase_contract.py`
+
+```python
+"""Tests for the phase contract.
+
+These tests are intended to prevent regression back into within-tick ping-pong loops and to keep
+tick semantics consistent as features are added.
+
+They are written as a scaffold because repo implementations differ. Replace the `TODO:` hooks with
+the actual APIs in your codebase.
+"""
+
+from __future__ import annotations
+
+import pytest
+
+
+# ----------------------------
+# Helpers (adapt to your repo)
+# ----------------------------
+
+def _make_kernel(seed: int = 123):
+    """Return a configured WorldKernel with deterministic seed.
+
+    TODO: replace with:
+        from gsocialsim.kernel.world_kernel import WorldKernel
+        return WorldKernel(seed=seed)
+    """
+    raise NotImplementedError("TODO: implement _make_kernel() for your repo APIs")
+
+
+def _add_two_agents(kernel):
+    """Create two agents A and B with a simple relationship and budgets.
+
+    TODO: create agents and add to kernel population
+    Ensure they have sufficient attention to perceive at least one item per tick.
+    """
+    raise NotImplementedError("TODO: implement _add_two_agents()")
+
+
+def _force_action_plan_post(kernel, agent_id: str, tick: int, content_text: str, topic: str = "T_Test"):
+    """Force agent's ActionPlan[tick] to include an immediate post action.
+
+    The action must be executed in ACT_BATCH(tick) and produce world-visible content
+    (posted_by_tick[tick] / platform feed).
+    """
+    raise NotImplementedError("TODO: implement _force_action_plan_post()")
+
+
+def _get_perceived_content_ids(kernel, agent_id: str, tick: int) -> set[str]:
+    """Return the set of content IDs perceived by agent_id during PERCEIVE_BATCH(tick)."""
+    raise NotImplementedError("TODO: implement _get_perceived_content_ids()")
+
+
+def _force_reaction_reply_next_tick(kernel, agent_id: str, tick: int, target_content_id: str):
+    """Force agent's ActionPlan[tick] to include a reply/react action targeting target_content_id."""
+    raise NotImplementedError("TODO: implement _force_reaction_reply_next_tick()")
+
+
+def _get_posts_created_by_agent(kernel, agent_id: str, tick: int) -> list[str]:
+    """Return content IDs created/published by agent during ACT_BATCH(tick)."""
+    raise NotImplementedError("TODO: implement _get_posts_created_by_agent()")
+
+
+def _get_belief_snapshot(kernel, agent_id: str):
+    """Return a serializable belief snapshot to compare equality across phases."""
+    raise NotImplementedError("TODO: implement _get_belief_snapshot()")
+
+
+def _step_one_tick(kernel):
+    """Advance the kernel by exactly one tick.
+
+    TODO: If your kernel uses sub-ticks, ensure this steps one tick boundary, not multiple.
+    """
+    raise NotImplementedError("TODO: implement _step_one_tick()")
+
+
+# ----------------------------
+# Contract tests
+# ----------------------------
+
+@pytest.mark.phase_contract
+def test_same_tick_visibility_next_tick_reaction():
+    """A posts in ACT(t); B can perceive it in PERCEIVE(t); B cannot react until ACT(t+1)."""
+    kernel = _make_kernel(seed=202)
+    _add_two_agents(kernel)
+
+    t = 0
+    _force_action_plan_post(kernel, agent_id="A", tick=t, content_text="Hello world", topic="T_Test")
+
+    # Step tick 0 (should run INGEST->ACT->PERCEIVE->CONSOLIDATE)
+    _step_one_tick(kernel)
+
+    # A's post should be perceivable by B during PERCEIVE(0) (eligibility depends on feed rules, but test assumes enabled)
+    perceived = _get_perceived_content_ids(kernel, agent_id="B", tick=t)
+    assert perceived, "B should perceive at least one content item during PERCEIVE(t)"
+    posted_by_a = _get_posts_created_by_agent(kernel, agent_id="A", tick=t)
+    assert posted_by_a, "A should have created at least one post during ACT(t)"
+    assert posted_by_a[0] in perceived, "B should be able to perceive A's post in the same tick"
+
+    # Enforce reaction lag: any reply to that content must happen no earlier than ACT(t+1).
+    target_id = posted_by_a[0]
+    _force_reaction_reply_next_tick(kernel, agent_id="B", tick=t, target_content_id=target_id)
+
+    # B attempting to react in ACT(t) would violate contract. Ensure nothing reacted in tick 0.
+    # This helper should confirm no reply was created in tick 0.
+    b_posts_t0 = _get_posts_created_by_agent(kernel, agent_id="B", tick=t)
+    assert not b_posts_t0, "B must not publish a reaction in the same tick it perceived the trigger (lag rule)"
+
+    # Now schedule reaction properly for tick 1 and step again
+    _force_reaction_reply_next_tick(kernel, agent_id="B", tick=t + 1, target_content_id=target_id)
+    _step_one_tick(kernel)
+
+    b_posts_t1 = _get_posts_created_by_agent(kernel, agent_id="B", tick=t + 1)
+    assert b_posts_t1, "B should be able to react in ACT(t+1)"
+
+
+@pytest.mark.phase_contract
+def test_silent_thinker_internal_monologue_can_shift_belief_without_post():
+    """An agent can perceive, internally process (monologue), and shift belief without any outward posting."""
+    kernel = _make_kernel(seed=303)
+    _add_two_agents(kernel)
+
+    # TODO: inject a persuasive stimulus visible to B during PERCEIVE(0)
+    # Example: kernel.world_context.stimulus_store.add(...)
+    # Ensure B perceives it in tick 0.
+
+    # Step tick 0: B perceives
+    _step_one_tick(kernel)
+
+    # Step tick 1: B may create internal monologue in ACT(1), then belief updates in CONSOLIDATE(1)
+    b_belief_before = _get_belief_snapshot(kernel, agent_id="B")
+    _step_one_tick(kernel)
+    b_belief_after = _get_belief_snapshot(kernel, agent_id="B")
+
+    assert b_belief_after != b_belief_before, "B belief should be able to change due to internal processing"
+    b_posts = _get_posts_created_by_agent(kernel, agent_id="B", tick=1)
+    assert not b_posts, "Silent thinker should not be required to post for belief change"
+
+
+@pytest.mark.phase_contract
+def test_budget_tradeoff_creation_reduces_perception_volume():
+    """Spending time creating content in ACT(t) should reduce how much can be perceived in PERCEIVE(t)."""
+    kernel = _make_kernel(seed=404)
+    _add_two_agents(kernel)
+
+    # TODO: configure A with low attention budget and force a high-cost creation action in ACT(0)
+    # so A has little remaining budget for PERCEIVE(0).
+    _force_action_plan_post(kernel, agent_id="A", tick=0, content_text="Long post", topic="T_Test")
+
+    _step_one_tick(kernel)
+
+    perceived = _get_perceived_content_ids(kernel, agent_id="A", tick=0)
+    # This assertion is intentionally weak; replace with a numeric threshold once your feed/perception is deterministic.
+    assert len(perceived) <= 5, "After heavy creation, A should perceive fewer items (budget tradeoff)"
+
+
+@pytest.mark.phase_contract
+def test_belief_updates_only_in_consolidate():
+    """Beliefs must not change mid-phase; only at CONSOLIDATE(t)."""
+    kernel = _make_kernel(seed=505)
+    _add_two_agents(kernel)
+
+    # TODO: If you expose hooks for stepping phases, validate belief snapshot unchanged during ACT/PERCEIVE.
+    # If not, use event logs to ensure belief update events only occur in CONSOLIDATE.
+
+    raise NotImplementedError(
+        "TODO: implement using your kernel's phase stepping hooks or event log invariants."
+    )
+
+```
+
 ## `threshold.html`
 
 ```html
@@ -8950,6 +9302,8 @@ function highlightFilter(filter) {
     📄 class_diagram.uml
     📄 component_diagram.uml
     📄 sequence_diagram.uml
+📁 docs/
+    📄 phase_contract.md
 📁 requirements/
 📁 src/
     📁 gsocialsim/
@@ -9030,6 +9384,7 @@ function highlightFilter(filter) {
     📄 test_phase6.py
     📄 test_phase7.py
     📄 test_phase8.py
+    📄 test_phase_contract.py
 📄 agents_only.html
 📄 bipartite.html
 📄 fix_event_phase_init.patch
