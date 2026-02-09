@@ -8,7 +8,7 @@
 | Total Directories | 16 |
 | Total Indexed Files | 75 |
 | Skipped Files | 1 |
-| Indexed Size | 197.66 KB |
+| Indexed Size | 201.65 KB |
 | Max File Size Limit | 2 MB |
 
 ## 📚 Table of Contents
@@ -1241,7 +1241,7 @@ state Replace {
 
 ```text
 @startuml
-title SSES - Core Class Diagram
+title SSES - Core Class Diagram (Full Capability - Subscriptions + Media Weights)
 
 skinparam classAttributeIconSize 0
 
@@ -1283,6 +1283,8 @@ class WorldContext {
   +agents: AgentPopulation
   +gsr: GlobalSocialReality
   +networks: NetworkManager
+  +subscriptions: SubscriptionService
+  +content: ContentStore
   +physical: PhysicalWorld
   +stimuli: StimulusStore
   +analytics: Analytics
@@ -1375,11 +1377,12 @@ Agent *-- BudgetState
 Agent *-- RewardWeights
 
 '========================
-' Attention
+' Attention: Consumption vs Interaction (Media-weighted)
 '========================
 class AttentionSystem {
   +scout: ScrollOrSeekner
   +deep: DeepFocusEngine
+  +mediaParams: MediaBehaviorModel
   +evaluate(percepts: List<Percept>): List<Impression>
   +shouldDeepFocus(imps: List<Impression>): bool
   +deepFocus(target: ContentItem): DeepResult
@@ -1394,19 +1397,31 @@ class DeepFocusEngine {
 }
 
 enum IntakeMode {
-
   scroll
-
   seek
-
   physical
-
 }
 
+enum MediaType {
+  news
+  social_post
+  video
+  meme
+  longform
+  forum_thread
+}
+
+class MediaBehaviorModel {
+  +consume_bias: Map<MediaType,float>        '[0,1] baseline read/see/watch
+  +interact_bias: Map<MediaType,float>       '[0,1] baseline like/comment/share
+  +deep_focus_bias: Map<MediaType,float>     '[0,1] baseline deep focus likelihood
+  +action_type_priors: Map<MediaType,Map<InteractionType,float>>
+}
 
 class Impression {
   +intake_mode: IntakeMode
   +contentId: ContentId
+  +media_type: MediaType
   +topic: TopicId?
   +valence: float
   +arousal: float
@@ -1415,6 +1430,8 @@ class Impression {
   +identity_threat: float
   +social_proof: float
   +source_strength: float
+  +consumed_prob: float     '[0,1]
+  +interact_prob: float     '[0,1]
   +decay()
 }
 
@@ -1427,6 +1444,7 @@ class DeepResult {
 Agent --> AttentionSystem
 AttentionSystem --> ScrollOrSeekner
 AttentionSystem --> DeepFocusEngine
+AttentionSystem --> MediaBehaviorModel
 
 '========================
 ' Policy + Learning
@@ -1435,6 +1453,7 @@ class ActionPolicy {
   +selectIntent(a: Agent, ctx: WorldContext): Intent
   +selectActionTemplate(intent: Intent): ActionTemplate
   +instantiate(tpl: ActionTemplate, ctx: WorldContext): Action
+  +chooseInteractionType(imp: Impression): InteractionType
 }
 
 class BanditLearner {
@@ -1458,7 +1477,7 @@ Agent --> BanditLearner
 BanditLearner --> RewardVector
 
 '========================
-' Social Reality + Graph Layers
+' Social Reality + Online Networks
 '========================
 class GlobalSocialReality {
   +R: Map<Pair<AgentId,AgentId>, RelationshipVector>
@@ -1476,29 +1495,73 @@ class RelationshipVector {
   +topic_alignment: Map<TopicId,float>
 }
 
+'---- Subscriptions (opt-in feed semantics)
+enum SubscriptionType {
+  creator
+  topic
+  outlet
+  community
+}
+
+class Subscription {
+  +subscriber: AgentId
+  +type: SubscriptionType
+  +targetId: String      'CreatorId / TopicId / OutletId / CommunityId
+  +strength: float       '[0,1] how strongly opted-in
+  +created_tick: long
+}
+
+class SubscriptionService {
+  +subs_by_agent: Map<AgentId,List<Subscription>>
+  +subscribers_by_target: Map<Pair<SubscriptionType,String>,Set<AgentId>>
+  +getSubs(a: AgentId): List<Subscription>
+  +isSubscribed(a: AgentId, type: SubscriptionType, targetId: String): bool
+  +subscribe(a: AgentId, type: SubscriptionType, targetId: String, strength: float)
+  +unsubscribe(a: AgentId, type: SubscriptionType, targetId: String)
+}
+
+'---- Content + delivery pipeline
+class ContentStore {
+  +content_by_id: Map<ContentId,ContentItem>
+  +recent_by_author: Map<AgentId,Deque<ContentId>>
+  +recent_by_topic: Map<TopicId,Deque<ContentId>>
+  +recent_by_outlet: Map<OutletId,Deque<ContentId>>
+  +add(item: ContentItem)
+  +get(id: ContentId): ContentItem
+  +queryByAuthor(a: AgentId, sinceTick: long): List<ContentId>
+  +queryByTopic(t: TopicId, sinceTick: long): List<ContentId>
+}
+
+class DeliveryRecord {
+  +tick: long
+  +viewer: AgentId
+  +layer_id: NetworkId
+  +intake_mode: IntakeMode
+  +eligible: List<ContentId>
+  +shown: List<ContentId>
+  +seen: List<ContentId>
+  +media_breakdown: Map<MediaType,int>
+}
+
 abstract class NetworkLayer {
   +id: NetworkId
-  +graph: NetworkGraph
   +mechanics: PlatformMechanics
-  +projectEdge(u: Agent, v: Agent, gsr: GlobalSocialReality): Edge
-  +rankFeed(viewer: Agent, candidates: List<ContentItem>): List<ContentItem>
-  +enforceModeration(item: ContentItem): ModerationDecision
+  +publish(interaction: Interaction, ctx: WorldContext)
+  +deliver(viewer: AgentId, intake: IntakeMode, ctx: WorldContext): List<ContentItem>
 }
 
-class BroadcastFeedNetwork
-class DirectMessageNetwork
-
-class NetworkGraph {
-  +nodes: Set<AgentId>
-  +edges: Set<Edge>
-  +neighbors(u: AgentId): List<AgentId>
+class BroadcastFeedNetwork {
+  +candidateWindowTicks: long
+  +maxCandidates: int
+  +maxShown: int
+  +buildCandidates(viewer: AgentId, subs: List<Subscription>, ctx: WorldContext): List<ContentId>
+  +rank(viewer: AgentId, candidates: List<ContentId>, ctx: WorldContext): List<ContentId>
 }
 
-class Edge {
-  +u: AgentId
-  +v: AgentId
-  +weight: float
-  +features: float[*]  'relationship projection vector
+class DirectMessageNetwork {
+  +inboxes: Map<AgentId,Deque<ContentId>>
+  +send(from: AgentId, to: AgentId, item: ContentItem)
+  +deliver(viewer: AgentId, intake: IntakeMode, ctx: WorldContext): List<ContentItem>
 }
 
 class PlatformMechanics {
@@ -1506,21 +1569,33 @@ class PlatformMechanics {
   +rankingModel: RankingModel
   +riskProfile: RiskProfile
   +rewardMapping: RewardMapping
+  +mediaPolicy: MediaPolicy
+}
+
+class MediaPolicy {
+  +media_behavior: MediaBehaviorModel
+  +format_costs: Map<MediaType,float>    'effort to produce
+  +friction: Map<InteractionType,Map<MediaType,float>>  'UI friction
 }
 
 class NetworkManager {
-  +layers: List<NetworkLayer>
+  +layers: Map<NetworkId,NetworkLayer>
   +getLayer(id: NetworkId): NetworkLayer
 }
 
 NetworkLayer <|-- BroadcastFeedNetwork
 NetworkLayer <|-- DirectMessageNetwork
-NetworkLayer *-- NetworkGraph
 NetworkLayer *-- PlatformMechanics
 NetworkManager o-- NetworkLayer
 
+WorldContext --> SubscriptionService
+WorldContext --> ContentStore
+BroadcastFeedNetwork --> SubscriptionService : expand subscriptions into candidates
+BroadcastFeedNetwork --> ContentStore : retrieve content
+BroadcastFeedNetwork --> GlobalSocialReality : trust/affinity signals
+DirectMessageNetwork --> ContentStore
+
 Agent --> GlobalSocialReality : updates via interactions
-NetworkLayer --> GlobalSocialReality : projects edges
 
 '========================
 ' Physical Layer
@@ -1586,11 +1661,23 @@ class ProvenanceTransformer {
 class ContentItem {
   +id: ContentId
   +timestamp: long
-  +publisher: ActorId
-  +topic: TopicId?
+  +author: AgentId?
+  +outlet: OutletId?
+  +community: CommunityId?
+  +media_type: MediaType
+  +topics: List<TopicId>
   +stance: float?
   +emotionDerivative: float?
   +provenance: ProvenanceRecord
+  +engagement: EngagementCounters
+}
+
+class EngagementCounters {
+  +views: int
+  +likes: int
+  +reshares: int
+  +replies: int
+  +bookmarks: int
 }
 
 class ProvenanceRecord {
@@ -1601,9 +1688,11 @@ class ProvenanceRecord {
 StimulusStore o-- ExternalStimulus
 ProvenanceTransformer --> ContentItem
 ContentItem *-- ProvenanceRecord
+ContentItem *-- EngagementCounters
+WorldContext --> StimulusStore
 
 '========================
-' Belief Update + Crossing + Attribution
+' Belief Update + Crossing + Attribution (unchanged)
 '========================
 class BeliefUpdateEngine {
   +update(a: Agent, imp: Impression, ctx: WorldContext): BeliefDelta
@@ -1617,7 +1706,7 @@ class BeliefCrossingDetector {
 class AttributionEngine {
   +windowDaysMin: int
   +windowDaysMax: int
-  +assignCredit(e: BeliefCrossingEvent, history: ExposureHistory): AttributionSet  'uses ExposureEvent.intake_mode
+  +assignCredit(e: BeliefCrossingEvent, history: ExposureHistory): AttributionSet
 }
 
 class ExposureHistory {
@@ -1630,34 +1719,10 @@ class ExposureEvent {
   +agent: AgentId
   +contentId: ContentId
   +sourceActor: ActorId
-  +channel: ChannelType  'online/physical
-  +tieStrength: float
-}
-
-class InfluenceEvent {
-  +timestamp: long
-  +source: ActorId
-  +target: AgentId
-  +topic: TopicId?
   +channel: ChannelType
+  +tieStrength: float
   +intake_mode: IntakeMode
-  +attemptType: String  'persuade, coordinate, intimidate, reassure, etc.
-  +outcome: String      'success, failure, backfire, noop
-  +deltaBelief: float?
-  +deltaAction: float?
-  +deltaRelationship: float?
-  +evidence: List<String>  'contentIds, interactionIds, etc.
-}
-
-class InfluencePath {
-  +id: string
-  +agent: AgentId
-  +topic: TopicId?
-  +windowStart: long
-  +windowEnd: long
-  +exposures: List<ExposureEvent>
-  +influenceEvents: List<InfluenceEvent>
-  +result: String  'belief_crossing, action_change, relationship_shift
+  +media_type: MediaType
 }
 
 class BeliefCrossingEvent {
@@ -1670,9 +1735,7 @@ class BeliefCrossingEvent {
   +attribution: AttributionSet
 }
 
-class AttributionSet {
-  +credits: List<AttributionCredit>
-}
+class AttributionSet { +credits: List<AttributionCredit> }
 
 class AttributionCredit {
   +source: ActorId
@@ -1690,67 +1753,10 @@ BeliefCrossingEvent *-- AttributionSet
 AttributionSet o-- AttributionCredit
 
 '========================
-' Daily identity consolidation
-'========================
-class IdentityConsolidator {
-  +compressBeliefs(a: Agent)
-  +reAnchorIdentity(a: Agent)
-  +capAnchorDrift(a: Agent)
-}
-
-Agent --> IdentityConsolidator
-
-'========================
-' Moderation & Institutions
-'========================
-class InstitutionalActor {
-  +id: ActorId
-  +role: ActorRole
-  +post(ctx: WorldContext): ContentItem
-}
-
-class ModerationEngine {
-  +enforce(item: ContentItem, layer: NetworkLayer): ModerationDecision
-}
-
-class ModerationDecision {
-  +action: ModerationAction
-  +probability: float
-}
-
-'========================
-' Evolutionary System
-'========================
-class EvolutionarySystem {
-  +evaluateFitness(a: Agent): Fitness
-  +maybeExit(a: Agent): bool
-  +replace(a: Agent): Agent
-}
-
-class Fitness {
-  +reward: float
-  +connectedness: float
-  +reputation: float
-  +noise: float
-}
-
-EvolutionarySystem --> Fitness
-EvolutionarySystem --> AgentPopulation
-
-'========================
-' Analytics + Logging
+' Analytics + Logging (add delivery + media metrics)
 '========================
 class Analytics {
-  +logInfluenceEvent(e: InfluenceEvent)
-  +logInfluencePath(p: InfluencePath)
-  +scroll_exposures: int
-
-  +seek_exposures: int
-
-  +physical_exposures: int
-
-  +scroll_seek_ratio(): float
-
+  +logDelivery(r: DeliveryRecord)
   +logExposure(e: ExposureEvent)
   +logImpression(i: Impression)
   +logAction(a: Action)
@@ -1760,28 +1766,9 @@ class Analytics {
   +reportMetrics(): MetricsReport
 }
 
-class MetricsReport {
-  +influenceGraph: Map<String,float>  'who→whom weights (by topic/channel)
-  +influenceEfficiency: float
-  +influenceConcentration: float
-  +scrollInfluenceShare: float
-  +seekInfluenceShare: float
-  +physicalInfluenceShare: float
-  +scrollExposures: int
-
-  +seekExposures: int
-
-  +physicalExposures: int
-
-  +scrollSeekRatio: float
-
-  +polarization: float
-  +conversionRate: float
-  +physicalVsOnlineRatio: float
-  +cascadeStats: Map<String,float>
-}
-
-Analytics --> MetricsReport
+Analytics --> DeliveryRecord
+Analytics --> ExposureEvent
+Analytics --> Impression
 
 @enduml
 
@@ -1791,7 +1778,7 @@ Analytics --> MetricsReport
 
 ```text
 @startuml
-title SSES - Component Diagram
+title SSES - Component Diagram (Full Capability - Subscriptions + Media Weights)
 
 skinparam componentStyle rectangle
 
@@ -1802,21 +1789,33 @@ component "Deterministic Replay" as DR
 component "Agent Engine" as AE
 component "Agent Runtime Loop" as ARL
 component "Memory System" as MS
-component "Attention System\n(Scroll + Seek + Deep Focus)" as ATTN
-component "Policy + Learning\n(Contextual Bandits)" as LEARN
+component "Attention System
+(Consume + Interact + Deep Focus)
+(Media-weighted)" as ATTN
+component "Policy + Learning
+(Intent + Action Selection)" as LEARN
 
-component "Global Social Reality\n(Latent R_uv)" as GSR
+component "Global Social Reality
+(Latent R_uv)" as GSR
 
-component "Online Network Layers" as ONL
-component "Broadcast Feed Network" as BF
-component "Private Messaging Network" as DM
+component "Online Network System" as ONS
+component "Network Manager" as NM
+component "Subscription Service" as SUBS
+component "Content Store" as CS
+component "Broadcast Feed Network
+(Subscription-driven)" as BF
+component "Direct Message Network" as DM
+component "Platform Mechanics
+(Visibility + Ranking + Media Policy)" as PM
 
 component "Physical Layer" as PHY
 component "Places + Schedules" as PS
 component "Proximity Interaction Generator" as PIG
 
-component "Stimulus Ingestion\n(Read-only Exogenous)" as SI
-component "Provenance Transformer\n(Publisher/Influencer framing)" as PT
+component "Stimulus Ingestion
+(Read-only Exogenous)" as SI
+component "Provenance Transformer
+(Publisher/Influencer framing)" as PT
 
 component "Belief & Identity System" as BIS
 component "Belief Update Engine" as BUE
@@ -1825,7 +1824,8 @@ component "Belief Crossing + Attribution" as BCA
 
 component "Moderation & Institutions" as MI
 component "Moderation Engine" as MOD
-component "Institutional Actors\n(Publishers/Influencers)" as IA
+component "Institutional Actors
+(Publishers/Influencers)" as IA
 
 component "Evolutionary System (GA)" as GA
 component "Exit + Replacement" as ER
@@ -1833,12 +1833,13 @@ component "Mutation + Inheritance" as MU
 
 component "Analytics + Logging" as AL
 component "Event Logs" as LOGS
-component "Metrics + Reports" as MET
+component "Metrics + Reports
+(Delivery + Media KPIs)" as MET
 
 WK --> ES
 WK --> DR
 WK --> AE
-WK --> ONL
+WK --> ONS
 WK --> PHY
 WK --> SI
 WK --> MI
@@ -1851,9 +1852,19 @@ AE --> ATTN
 AE --> LEARN
 AE --> BIS
 
-ONL --> BF
-ONL --> DM
-ONL --> GSR
+ONS --> NM
+ONS --> SUBS
+ONS --> CS
+NM --> BF
+NM --> DM
+BF --> PM
+DM --> PM
+BF --> GSR
+
+SUBS --> BF
+CS --> BF
+CS --> DM
+PT --> CS
 
 PHY --> PS
 PHY --> PIG
@@ -1865,8 +1876,9 @@ PT --> IA
 
 MI --> MOD
 MI --> IA
-MOD --> BF
-MOD --> DM
+MOD --> PM
+PM --> BF
+PM --> DM
 
 BIS --> BUE
 BIS --> IC
@@ -1880,6 +1892,8 @@ ER --> AE
 
 AL --> LOGS
 AL --> MET
+BF --> AL : delivery records
+ATTN --> AL : impressions + consume/interact
 
 @enduml
 
@@ -1889,62 +1903,147 @@ AL --> MET
 
 ```text
 @startuml
-title SSES - Sequence: Tick, Attention, Belief Update, Attribution
+title SSES - Per-Tick Sequence (Full Capability: Subscriptions + Media-weighted Consume/Interact)
 
-actor "WorldKernel" as WK
-participant "AgentEngine" as AE
+autonumber
+hide footbox
+
+actor "Scenario/Stimuli" as SCN
+
+participant "WorldKernel" as WK
+participant "EventScheduler" as ES
+participant "WorldContext" as CTX
+participant "StimulusStore" as SS
+participant "ProvenanceTransformer" as PT
+participant "ContentStore" as CS
+participant "SubscriptionService" as SUBS
+participant "NetworkManager" as NM
+participant "BroadcastFeedNetwork" as BF
+participant "DirectMessageNetwork" as DM
+participant "AgentPopulation" as POP
 participant "Agent" as A
-participant "NetworkLayer" as NL
-participant "PhysicalWorld" as PW
-participant "AttentionSystem" as AT
+participant "AttentionSystem" as ATTN
+participant "MediaBehaviorModel" as MBM
 participant "BeliefUpdateEngine" as BUE
-participant "CrossingDetector" as CD
-participant "AttributionEngine" as ATR
-participant "Analytics" as AN
+participant "ActionPolicy" as POL
+participant "GlobalSocialReality" as GSR
+participant "Analytics" as AL
 
-WK -> AE: step(dt)
-AE -> NL: generateCandidateContent(A)
-AE -> PW: generatePhysicalInteractions(A)
-
-NL --> AE: percepts_online(List<Percept>, intake_mode=scroll|seek)
-PW --> AE: percepts_physical(List<Percept>, intake_mode=physical)
-
-AE -> A: tick(ctx, percepts)
-A -> AT: evaluate(percepts)
-AT --> A: impressions
-
-loop For each impression
-  A -> BUE: update(A, impression, ctx)
-  BUE --> A: beliefDelta (bounded)
-  A -> AN: logImpression(impression)
-  A -> AN: logBeliefUpdate(beliefDelta)
+== Tick Start / Scheduled Events ==
+WK -> ES: nextEvents(tick)
+ES --> WK: [events]
+loop for each event
+  WK -> ES: apply(e, CTX)
 end
 
-alt Deep focus triggered
-  A -> AT: deepFocus(targetContent)
-  AT --> A: deepResult
-  A -> AN: logAction(deepFocus)
-end
-
-A -> A: maybeAct(ctx)
-alt Action chosen
-  A -> NL: post/send(action) or engage()
-  NL --> A: exposureResults + costs
-  A -> AN: logAction(action)
-  alt action has influence intent
-    A -> AN: logInfluenceEvent(InfluenceEvent)
+== Exogenous Stimuli Ingestion (Read-only) ==
+WK -> SS: getAt(tick)
+SS --> WK: [stimuli]
+loop for each stimulus
+  WK -> PT: transform(stimulus)
+  PT --> WK: [ContentItem*] (with MediaType, Topics, Provenance)
+  loop for each content
+    WK -> CS: add(content)
   end
-
 end
 
-A -> CD: checkCrossing(before, after, topic)
-CD --> A: crossingEvent? (optional)
+== Agents Act (Create / Reply / Like / Reshare / DM) ==
+WK -> POP: agents()
+POP --> WK: [agents]
 
-alt crossingEvent exists
-  A -> ATR: assignCredit(crossingEvent, exposureHistory)
-  ATR --> A: attributionSet
-  A -> AN: logCrossing(crossingEvent+attribution)
+loop for each agent (actor)
+  WK -> A: tick(CTX)
+  note right of A
+    Agent tick includes:
+    - perceive() from last deliveries (cached)
+    - maybeAct() to produce an Action/Interaction
+  end note
+  A -> POL: selectIntent(A, CTX)
+  POL --> A: intent
+  A -> POL: instantiate(intent -> Action)
+  POL --> A: action
+  alt action produced
+    A -> AL: logAction(action)
+    A -> GSR: update(u,v) (relationship deltas from action)
+    A -> NM: publish(action.interaction, CTX)
+  else no action
+  end
 end
+
+== Network Publish: materialize into ContentStore and Layer State ==
+NM -> BF: publish(interaction, CTX)
+alt interaction contains new content (CREATE/REPLY)
+  BF -> CS: add(ContentItem)
+else engagement action (LIKE/RESHARE)
+  BF -> CS: update engagement counters
+end
+
+NM -> DM: publish(interaction, CTX)
+alt DM message
+  DM -> CS: add(ContentItem)
+  DM -> DM: enqueue(inbox[to], contentId)
+end
+
+== Online Delivery: Subscription-driven Broadcast Feed ==
+loop for each viewer agent (consumer)
+  WK -> SUBS: getSubs(viewer)
+  SUBS --> WK: [Subscription*]
+
+  WK -> BF: deliver(viewer, intake=scroll, CTX)
+  activate BF
+  BF -> SUBS: getSubs(viewer)  'optional internal call
+  BF -> CS: queryByAuthor(subscribed_creators, sinceTick)
+  BF -> CS: queryByTopic(subscribed_topics, sinceTick)
+  BF -> CS: queryByOutlet(subscribed_outlets, sinceTick)
+  BF -> GSR: get(viewer, author) (trust/affinity signals)
+  BF -> MBM: consume_bias(mediaType), interact_bias(mediaType)
+  BF --> WK: [ranked ContentItem*] + DeliveryRecord(eligible/shown)
+  deactivate BF
+
+  WK -> AL: logDelivery(DeliveryRecord)
+
+  == Perception: Consume vs Interact (Media-weighted) ==
+  loop for each delivered content
+    WK -> A: perceive(Percept{contentId, layer=BF, intake=scroll})
+    A -> ATTN: evaluate(percepts)
+    activate ATTN
+    ATTN -> MBM: lookup media biases + action priors
+    ATTN --> A: [Impression*] (consumed_prob, interact_prob, intake_mode)
+    deactivate ATTN
+
+    A -> AL: logImpression(Impression)
+    alt consumed
+      A -> BUE: update(A, Impression, CTX)
+      BUE --> A: BeliefDelta
+      A -> AL: logBeliefUpdate(BeliefDelta)
+    else not consumed
+      note right of A: exposure logged but no belief update
+    end
+  end
+end
+
+== Online Delivery: Direct Messages ==
+loop for each viewer agent
+  WK -> DM: deliver(viewer, intake=seek, CTX)
+  DM --> WK: [DM ContentItem*] + DeliveryRecord
+  WK -> AL: logDelivery(DeliveryRecord)
+
+  loop for each DM content
+    WK -> A: perceive(Percept{contentId, layer=DM, intake=seek})
+    A -> ATTN: evaluate(percepts)
+    ATTN -> MBM: lookup biases
+    ATTN --> A: Impression
+    A -> AL: logImpression(Impression)
+    alt consumed
+      A -> BUE: update(A, Impression, CTX)
+      BUE --> A: BeliefDelta
+      A -> AL: logBeliefUpdate(BeliefDelta)
+    end
+  end
+end
+
+== Tick End ==
+WK -> AL: reportMetrics()  'optional periodic
 
 @enduml
 

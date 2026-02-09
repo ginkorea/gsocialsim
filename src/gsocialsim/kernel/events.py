@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable, Optional, Set
 import itertools
 
 from gsocialsim.agents.budget_state import BudgetKind
@@ -22,10 +22,6 @@ def _stimulus_topic_id(stimulus: "Stimulus") -> TopicId:
     """
     Map a stimulus to a TopicId that agents can actually reason about.
 
-    IMPORTANT:
-      In this codebase TopicId may be a typing alias / NewType and not a runtime
-      type suitable for isinstance(..., TopicId). So we do NOT type-check it.
-
     Rules:
       - If stimulus.metadata["topic"] is a non-empty string: use it.
       - If missing/empty: fall back to "T_Original" to preserve phase behavior.
@@ -42,6 +38,97 @@ def _stimulus_topic_id(stimulus: "Stimulus") -> TopicId:
         return TopicId(t if t else "T_Original")
 
     return TopicId(str(t))
+
+
+def _get_followers(context: "WorldContext", author_id: str) -> Set[str]:
+    """
+    Backward compatible helper: return followers if the follow graph exists.
+    """
+    try:
+        return set(context.network.graph.get_followers(author_id))
+    except Exception:
+        return set()
+
+
+def _subs_recipients(context: "WorldContext", stimulus: "Stimulus", topic: TopicId) -> Set[str]:
+    """
+    Best-effort recipient selection from a subscription system, if present.
+
+    We intentionally support multiple possible subscription service shapes to stay robust
+    while we implement the real SubscriptionService next.
+
+    Expected future shapes (any one of these):
+      - context.subscriptions.get_subscribers(sub_type: str, target_id: str) -> Iterable[str]
+      - context.subscriptions.subscribers_by_target[(sub_type, target_id)] -> set(agent_id)
+      - context.subscriptions.subscribers_by_target[(sub_type.value, target_id)] -> set(agent_id)
+    """
+    subs = getattr(context, "subscriptions", None)
+    if subs is None:
+        return set()
+
+    def _try_get(sub_type: str, target_id: Optional[str]) -> Set[str]:
+        if not target_id:
+            return set()
+
+        # Method-based API
+        fn = getattr(subs, "get_subscribers", None)
+        if callable(fn):
+            try:
+                return set(fn(sub_type, target_id))
+            except Exception:
+                pass
+
+        # Dict-based API
+        m = getattr(subs, "subscribers_by_target", None)
+        if isinstance(m, dict):
+            # try common key shapes
+            for key in ((sub_type, target_id), (str(sub_type), target_id)):
+                try:
+                    v = m.get(key)
+                    if v:
+                        return set(v)
+                except Exception:
+                    continue
+
+        return set()
+
+    recipients: Set[str] = set()
+
+    # Topic subscriptions
+    recipients |= _try_get("topic", str(topic))
+
+    # Creator/outlet/community subscriptions (if present on stimulus)
+    recipients |= _try_get("creator", getattr(stimulus, "creator_id", None))
+    recipients |= _try_get("outlet", getattr(stimulus, "outlet_id", None))
+    recipients |= _try_get("community", getattr(stimulus, "community_id", None))
+
+    return recipients
+
+
+def _select_stimulus_recipients(context: "WorldContext", stimulus: "Stimulus", topic: TopicId) -> Set[str]:
+    """
+    Full-capability intent: subscription-driven delivery, with follows as an additional source of eligibility.
+
+    Backward compatibility:
+      - If no subscription system exists yet, deliver to all agents (original behavior).
+      - If subscription system exists but yields nobody, deliver to nobody (true gating).
+    """
+    has_subs = getattr(context, "subscriptions", None) is not None
+
+    recipients: Set[str] = set()
+
+    # Subscriptions if available
+    if has_subs:
+        recipients |= _subs_recipients(context, stimulus, topic)
+
+    # Followers as a bridge / additional eligibility
+    recipients |= _get_followers(context, getattr(stimulus, "source", ""))
+
+    if not has_subs:
+        # Legacy behavior: broadcast to all if we don't have subscriptions implemented yet.
+        return set(context.agents.agents.keys())
+
+    return recipients
 
 
 @dataclass(order=True)
@@ -88,9 +175,21 @@ class StimulusPerceptionEvent(Event):
             author_id=stimulus.source,
             topic=topic,
             stance=0.0,
+            media_type=getattr(stimulus, "media_type", None),
+            outlet_id=getattr(stimulus, "outlet_id", None),
+            community_id=getattr(stimulus, "community_id", None),
+            provenance={
+                "stimulus_id": stimulus.id,
+                "source": stimulus.source,
+            },
         )
-        for agent in context.agents.agents.values():
-            agent.perceive(temp_content, context, stimulus_id=stimulus.id)
+
+        recipients = _select_stimulus_recipients(context, stimulus, topic)
+        for agent_id in recipients:
+            agent = context.agents.get(agent_id)
+            if agent:
+                # Keep Agent.perceive signature unchanged for now.
+                agent.perceive(temp_content, context, stimulus_id=stimulus.id)
 
 
 @dataclass(order=True)
@@ -125,10 +224,7 @@ class InteractionPerceptionEvent(Event):
         if not author:
             return
 
-        followers = context.network.graph.get_followers(author.id)
-        if not followers:
-            return
-
+        followers = _get_followers(context, author.id)
         reward = RewardVector()
         topic: TopicId | None = None
 
@@ -176,7 +272,6 @@ class DeepFocusEvent(Event):
                 f"DEBUG:[T={self.timestamp}] Agent['{self.agent_id}'] engaged in Deep Focus on '{self.content_id}'"
             )
 
-            # Re-process the original impression with amplified effect
             amplified_impression = Impression(
                 intake_mode=IntakeMode.DEEP_FOCUS,
                 content_id=self.content_id,
@@ -190,8 +285,7 @@ class DeepFocusEvent(Event):
                 relationship_strength_source=self.original_impression.relationship_strength_source,
             )
 
-            # Apply the deep impression directly to the agent's belief
-            content_source_id = self.original_impression.content_id  # Using content_id as source for simplicity
+            content_source_id = self.original_impression.content_id
 
             belief_delta = agent.belief_update_engine.update(
                 viewer=agent,

@@ -32,3 +32,6 @@ class WorldContext:
     evolutionary_system: Optional[Any] = None
     analytics: Optional[Any] = None
     gsr: GlobalSocialReality | None = None
+
+    # Future: subscriptions, content store, etc.
+    subscriptions: Optional[Any] = None
