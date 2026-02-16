@@ -7,7 +7,8 @@ from gsocialsim.stimuli.content_item import ContentItem
 
 
 def _seed_agent_with_topic(agent: Agent, topic: str):
-    agent.budgets.action_budget = 9999
+    agent.budgets.action_bank = 9999.0
+    agent.budgets.action_budget = 9999.0
     agent.beliefs.update(TopicId(topic), stance=0.0, confidence=0.5, salience=0.2, knowledge=0.2)
 
 
@@ -16,6 +17,12 @@ def test_day_boundary_triggers_dream():
     a = Agent(id=AgentId("A"), seed=1)
     _seed_agent_with_topic(a, "T_Test")
     k.agents.add_agent(a)
+
+    # Ensure at least one consumed impression before the day boundary
+    a.budgets.attention_bank_minutes = 1000.0
+    a.budgets.reset_for_tick()
+    c = ContentItem(id="C_seed", author_id="SRC", topic=TopicId("T_Test"), stance=0.0)
+    a.perceive(c, k.world_context, is_physical=False)
 
     # Start and run past one day boundary.
     k.start()
@@ -29,6 +36,8 @@ def test_exposure_vs_consumption_split_is_recorded():
     k = WorldKernel(seed=123)
     a = Agent(id=AgentId("A"), seed=7)
     _seed_agent_with_topic(a, "T_Test")
+    a.budgets.attention_minutes = 1000.0
+    a.budgets.attention_bank_minutes = 1000.0
     k.agents.add_agent(a)
 
     # No need to run the whole scheduler; call perceive directly through the agent,
@@ -42,7 +51,7 @@ def test_exposure_vs_consumption_split_is_recorded():
             id=f"C{i}",
             author_id="SOURCE",
             topic=TopicId("T_Test"),
-            text="hello world",
+            stance=0.0,
         )
         a.perceive(c, k.world_context, is_physical=False)
 

@@ -34,7 +34,10 @@ def setup_simulation_scenario(kernel: WorldKernel, *, stimuli_csv: str = "stimul
     ]
 
     for a in agents:
-        a.budgets.action_budget = 5000
+        a.budgets.action_bank = 5000.0
+        a.budgets.attention_bank_minutes = 10000.0
+        a.budgets.deep_focus_bank = 100.0
+        a.budgets.reset_for_tick()
         for t in topics:
             a.beliefs.update(t, stance=0.0, confidence=0.5, salience=0.1, knowledge=0.1)
         kernel.agents.add_agent(a)

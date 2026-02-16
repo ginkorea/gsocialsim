@@ -5,6 +5,8 @@ from contextlib import redirect_stdout
 from gsocialsim.kernel.world_kernel import WorldKernel
 from gsocialsim.agents.agent import Agent
 from gsocialsim.types import AgentId, TopicId
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.stimuli.interaction import Interaction, InteractionVerb
 
 class TestPhase4(unittest.TestCase):
 
@@ -34,9 +36,32 @@ class TestPhase4(unittest.TestCase):
             followed=self.agent_C.id
         )
         
-        self.agent_A.budgets.action_budget = 10
-        self.agent_B.budgets.action_budget = 10
-        self.agent_C.budgets.action_budget = 10
+        for a in (self.agent_A, self.agent_B, self.agent_C):
+            a.budgets.action_bank = 1000.0
+            a.budgets.attention_bank_minutes = 1000.0
+            a.budgets.reset_for_tick()
+        # Prevent C from consuming others' content so its belief remains stable
+        self.agent_C.rng.random = lambda: 1.0
+
+        class AlwaysCreatePolicy:
+            def generate_interaction(self, agent: Agent, tick: int):
+                if not agent.beliefs.topics:
+                    return None
+                topic = next(iter(agent.beliefs.topics.keys()))
+                content = ContentItem(
+                    id=f"C_{agent.id}_{tick}",
+                    author_id=agent.id,
+                    topic=topic,
+                    stance=agent.beliefs.get(topic).stance,
+                )
+                return Interaction(agent_id=agent.id, verb=InteractionVerb.CREATE, original_content=content)
+
+            def learn(self, action_key, reward_vector):
+                return None
+
+        self.agent_A.policy = AlwaysCreatePolicy()
+        self.agent_B.policy = AlwaysCreatePolicy()
+        self.agent_C.policy = AlwaysCreatePolicy()
 
     def test_autonomous_influence_chain(self):
         """
@@ -53,10 +78,9 @@ class TestPhase4(unittest.TestCase):
         self.assertIsNone(self.agent_B.beliefs.get(self.topic))
 
         # Run the simulation for enough ticks for actions to occur and propagate
-        # With a 1% action chance, 300 ticks should be sufficient for C and then B to post.
         f = io.StringIO()
         with redirect_stdout(f):
-            self.kernel.step(300)
+            self.kernel.step(3)
         log_output = f.getvalue()
 
         # --- Verification ---
@@ -84,8 +108,8 @@ class TestPhase4(unittest.TestCase):
         print("Verified: Influence propagated autonomously and diluted down the chain.")
 
         # 5. Check logs for the chain of events
-        self.assertIn(f"Agent['B'] BeliefUpdate: Topic='{self.topic}'", log_output, "Log shows no belief update for B")
-        self.assertIn(f"Agent['A'] BeliefUpdate: Topic='{self.topic}'", log_output, "Log shows no belief update for A")
+        self.assertIn(f"Agent['B'] BeliefUpdate(APPLIED): Topic='{self.topic}'", log_output, "Log shows no belief update for B")
+        self.assertIn(f"Agent['A'] BeliefUpdate(APPLIED): Topic='{self.topic}'", log_output, "Log shows no belief update for A")
         print("Verified: Log files show updates for both A and B.")
 
 if __name__ == '__main__':

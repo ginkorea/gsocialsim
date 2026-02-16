@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 from gsocialsim.stimuli.data_source import DataSource
 from gsocialsim.stimuli.stimulus import Stimulus
 

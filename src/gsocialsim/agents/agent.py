@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Optional, TYPE_CHECKING, List
+from collections import OrderedDict
 import random
 
 from gsocialsim.agents.identity_state import IdentityState
@@ -10,7 +11,7 @@ from gsocialsim.agents.emotion_state import EmotionState
 from gsocialsim.agents.budget_state import BudgetState, BudgetKind
 from gsocialsim.agents.reward_weights import RewardWeights
 from gsocialsim.agents.attention_system import AttentionSystem
-from gsocialsim.agents.belief_update_engine import BeliefUpdateEngine
+from gsocialsim.agents.belief_update_engine import BeliefUpdateEngine, BeliefDelta
 from gsocialsim.stimuli.content_item import ContentItem
 from gsocialsim.policy.bandit_learner import BanditLearner, RewardVector
 from gsocialsim.stimuli.interaction import Interaction, InteractionVerb
@@ -40,7 +41,8 @@ class Agent:
     policy: BanditLearner = field(default_factory=BanditLearner)
 
     # Working memory
-    recent_impressions: dict[str, Impression] = field(default_factory=dict)
+    max_recent_impressions: int = 200
+    recent_impressions: OrderedDict[str, Impression] = field(default_factory=OrderedDict)
 
     # Daily buffers (for dream / consolidation)
     daily_impressions_consumed: List[Impression] = field(default_factory=list)
@@ -54,6 +56,43 @@ class Agent:
     def _clamp01(x: float) -> float:
         return max(0.0, min(1.0, x))
 
+    def _remember_impression(self, impression: Impression) -> None:
+        content_id = getattr(impression, "content_id", None)
+        if not content_id:
+            return
+        try:
+            # Refresh recency if already present
+            if content_id in self.recent_impressions:
+                self.recent_impressions.move_to_end(content_id)
+            self.recent_impressions[content_id] = impression
+            # Bound memory growth (attention span)
+            while len(self.recent_impressions) > max(1, int(self.max_recent_impressions)):
+                self.recent_impressions.popitem(last=False)
+        except Exception:
+            # Fallback: do nothing on unexpected mapping issues
+            pass
+
+    def _should_defer_belief_updates(self, context: "WorldContext") -> bool:
+        """
+        Phase-contract hook:
+        - If context supports deferral and we're not in consolidation, queue deltas.
+        """
+        in_consolidation = bool(getattr(context, "in_consolidation", False))
+        has_queue = callable(getattr(context, "queue_belief_delta", None))
+        return has_queue and (not in_consolidation)
+
+    def _apply_or_queue_belief_delta(self, context: "WorldContext", delta: BeliefDelta) -> bool:
+        """
+        Returns True if the delta was queued (deferred), False if applied immediately.
+        """
+        if self._should_defer_belief_updates(context):
+            context.queue_belief_delta(self.id, delta)
+            return True
+
+        # Legal to apply only during CONSOLIDATE if contract is enabled.
+        self.beliefs.apply_delta(delta)
+        return False
+
     def perceive(
         self,
         content: ContentItem,
@@ -62,18 +101,26 @@ class Agent:
         stimulus_id: Optional[str] = None,
     ):
         """
-        Perception pipeline:
+        Perception pipeline (contract-aware):
           1) Evaluate content -> Impression
           2) Store impression (working memory)
           3) Log exposure (always)
           4) Sample consumption
              - if not consumed: stop
-             - if consumed: log consumption, update beliefs, crossings
+             - if consumed: log consumption, compute belief delta
+          5) Phase contract:
+             - belief deltas are queued unless CONSOLIDATE is active
         """
         impression = self.attention.evaluate(content, is_physical=is_physical)
 
-        if impression.content_id:
-            self.recent_impressions[impression.content_id] = impression
+        # mark self-source for downstream logic
+        try:
+            if content.author_id == self.id:
+                setattr(impression, "is_self_source", True)
+        except Exception:
+            pass
+
+        self._remember_impression(impression)
 
         # --- Exposure (always) ---
         context.analytics.log_exposure(
@@ -91,7 +138,19 @@ class Agent:
         if self.rng.random() >= consumed_prob:
             return  # exposed but not consumed
 
-        # --- Consumption (NEW, explicit) ---
+        # Spend attention minutes for actual consumption
+        try:
+            cost = float(getattr(impression, "attention_cost_minutes", 0.0))
+        except Exception:
+            cost = 0.0
+        if cost > 0.0:
+            try:
+                if not self.budgets.spend(BudgetKind.ATTENTION, cost):
+                    return
+            except Exception:
+                pass
+
+        # --- Consumption (explicit) ---
         context.analytics.log_consumption(
             viewer_id=self.id,
             content_id=content.id,
@@ -104,7 +163,11 @@ class Agent:
         # Record for daily dream
         self.daily_impressions_consumed.append(impression)
 
-        # --- Belief update ---
+        # Self-source recognition: do not update beliefs from own content
+        if bool(getattr(impression, "is_self_source", False)):
+            return
+
+        # --- Belief delta compute (no direct mutation here under contract) ---
         prior = self.beliefs.get(content.topic)
         old_stance = prior.stance if prior else 0.0
 
@@ -115,8 +178,14 @@ class Agent:
             gsr=context.gsr,
         )
 
-        self.beliefs.apply_delta(belief_delta)
+        deferred = self._apply_or_queue_belief_delta(context, belief_delta)
 
+        # If deferred, we cannot legally compute crossings/new stance yet (state unchanged).
+        # Kernel CONSOLIDATE will apply and log belief updates.
+        if deferred:
+            return
+
+        # Immediate-apply path (only when contract deferral is disabled or we are consolidating)
         after = self.beliefs.get(content.topic)
         new_stance = after.stance if after else old_stance
 
@@ -153,7 +222,22 @@ class Agent:
 
         interaction = self.policy.generate_interaction(self, tick)
         if interaction:
-            self.budgets.spend(BudgetKind.ACTION, 1.0)
+            attention_costs = {
+                InteractionVerb.CREATE: 5.0,
+                InteractionVerb.LIKE: 1.0,
+                InteractionVerb.FORWARD: 1.0,
+                InteractionVerb.COMMENT: 3.0,
+                InteractionVerb.REPLY: 3.0,
+            }
+            cost = attention_costs.get(interaction.verb, 1.0)
+            try:
+                if cost > 0.0 and not self.budgets.spend(BudgetKind.ATTENTION, cost):
+                    return None
+            except Exception:
+                pass
+
+            if not self.budgets.spend(BudgetKind.ACTION, 1.0):
+                return None
             self.daily_actions.append(interaction)
 
             reward = RewardVector()

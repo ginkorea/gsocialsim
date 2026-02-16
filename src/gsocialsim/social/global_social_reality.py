@@ -49,19 +49,30 @@ class GlobalSocialReality:
     # Relationships API (unchanged)
     # ----------------------------
     def _get_key(self, u: AgentId, v: AgentId) -> Tuple[AgentId, AgentId]:
-        """Creates a canonical key for a pair of agents."""
+        """Creates a canonical key for a pair of agents (self-relationships allowed)."""
         if u == v:
-            raise ValueError("Cannot have a relationship with oneself.")
+            return (u, v)
         return tuple(sorted((u, v)))
 
     def get_relationship(self, u: AgentId, v: AgentId) -> RelationshipVector:
         """
         Gets the relationship between two agents.
         If no relationship exists, it creates and returns a default one.
+        Self-relationships are treated as maximally trusted by default.
         """
         key = self._get_key(u, v)
         if key not in self._relations:
-            self._relations[key] = RelationshipVector()
+            if u == v:
+                self._relations[key] = RelationshipVector(
+                    affinity=1.0,
+                    trust=1.0,
+                    intimacy=1.0,
+                    conflict=0.0,
+                    reciprocity=1.0,
+                    status_delta=0.0,
+                )
+            else:
+                self._relations[key] = RelationshipVector()
         return self._relations[key]
 
     def set_relationship(self, u: AgentId, v: AgentId, vector: RelationshipVector) -> None:

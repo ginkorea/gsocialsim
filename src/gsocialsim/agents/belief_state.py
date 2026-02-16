@@ -9,6 +9,10 @@ if TYPE_CHECKING:
 TopicId = str
 
 
+def _clamp(x: float, lo: float, hi: float) -> float:
+    return max(lo, min(hi, float(x)))
+
+
 @dataclass
 class TopicBelief:
     topic: TopicId
@@ -20,51 +24,60 @@ class TopicBelief:
 
 @dataclass
 class BeliefStore:
+    """
+    Canonical belief vector store.
+
+    Contract note:
+    - apply_delta() must be pure state mutation (no logging, no side effects).
+    - WorldKernel CONSOLIDATE(t) is responsible for calling apply_delta() for queued deltas.
+    """
     topics: Dict[TopicId, TopicBelief] = field(default_factory=dict)
 
     def get(self, topic_id: TopicId) -> Optional[TopicBelief]:
         return self.topics.get(topic_id)
 
-    def update(self, topic_id: TopicId, stance: float, confidence: float, salience: float, knowledge: float):
+    def update(self, topic_id: TopicId, stance: float, confidence: float, salience: float, knowledge: float) -> None:
         belief = self.topics.get(topic_id)
-        if belief:
-            belief.stance = stance
-            belief.confidence = confidence
-            belief.salience = salience
-            belief.knowledge = knowledge
-        else:
-            self.topics[topic_id] = TopicBelief(
-                topic=topic_id,
-                stance=stance,
-                confidence=confidence,
-                salience=salience,
-                knowledge=knowledge,
-            )
-
-    def apply_delta(self, delta: "BeliefDelta"):
-        """Applies a belief delta to the current store."""
-        belief = self.get(delta.topic_id)
-        if belief is None:
-            self.topics[delta.topic_id] = TopicBelief(
-                topic=delta.topic_id,
-                stance=delta.stance_delta,
-                confidence=delta.confidence_delta,
-            )
-        else:
-            belief.stance = max(-1.0, min(1.0, belief.stance + delta.stance_delta))
-            belief.confidence = max(0.0, min(1.0, belief.confidence + delta.confidence_delta))
-
-    # ---- New: safe consolidation helpers ----
-    def nudge_salience(self, topic_id: TopicId, delta: float):
-        belief = self.get(topic_id)
         if belief is None:
             belief = TopicBelief(topic=topic_id)
             self.topics[topic_id] = belief
-        belief.salience = max(0.0, min(1.0, belief.salience + float(delta)))
 
-    def nudge_knowledge(self, topic_id: TopicId, delta: float):
-        belief = self.get(topic_id)
+        belief.stance = _clamp(stance, -1.0, 1.0)
+        belief.confidence = _clamp(confidence, 0.0, 1.0)
+        belief.salience = _clamp(salience, 0.0, 1.0)
+        belief.knowledge = _clamp(knowledge, 0.0, 1.0)
+
+    def apply_delta(self, delta: "BeliefDelta") -> None:
+        """
+        Applies a belief delta to the current store.
+
+        Important:
+        - Initializes all fields so later consolidation steps (salience/knowledge nudges) are safe.
+        - Clamps stance/confidence.
+        """
+        topic_id = delta.topic_id
+        belief = self.topics.get(topic_id)
+
         if belief is None:
             belief = TopicBelief(topic=topic_id)
             self.topics[topic_id] = belief
-        belief.knowledge = max(0.0, min(1.0, belief.knowledge + float(delta)))
+
+        belief.stance = _clamp(belief.stance + float(delta.stance_delta), -1.0, 1.0)
+        belief.confidence = _clamp(belief.confidence + float(delta.confidence_delta), 0.0, 1.0)
+
+        # Leave salience/knowledge unchanged here (separate mechanisms control them)
+
+    # ---- Consolidation helpers ----
+    def nudge_salience(self, topic_id: TopicId, delta: float) -> None:
+        belief = self.topics.get(topic_id)
+        if belief is None:
+            belief = TopicBelief(topic=topic_id)
+            self.topics[topic_id] = belief
+        belief.salience = _clamp(belief.salience + float(delta), 0.0, 1.0)
+
+    def nudge_knowledge(self, topic_id: TopicId, delta: float) -> None:
+        belief = self.topics.get(topic_id)
+        if belief is None:
+            belief = TopicBelief(topic=topic_id)
+            self.topics[topic_id] = belief
+        belief.knowledge = _clamp(belief.knowledge + float(delta), 0.0, 1.0)

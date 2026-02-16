@@ -17,7 +17,12 @@ class EvolutionarySystem:
     def should_exit(self, agent: Agent) -> bool:
         """Determines if an agent's fitness is too low."""
         # A simple model: if total reward drops too low, exit
-        total_reward = sum(agent.policy.action_rewards.values())
+        total_reward = 0.0
+        for rv in agent.policy.action_rewards.values():
+            try:
+                total_reward += rv.weighted_sum(agent.personality)
+            except Exception:
+                continue
         return total_reward < self.exit_threshold
 
     def reproduce(self, parent: Agent, newborn_id: str, seed: int) -> Agent:

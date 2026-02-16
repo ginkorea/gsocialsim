@@ -12,7 +12,9 @@ def setup_stimulus_scenario(kernel: WorldKernel):
     
     agents = [agent_A, agent_B, agent_C]
     for a in agents:
-        a.budgets.action_budget = 100
+        a.budgets.action_bank = 100.0
+        a.budgets.attention_bank_minutes = 1000.0
+        a.budgets.reset_for_tick()
         kernel.agents.add_agent(a)
 
     graph = kernel.world_context.network.graph
@@ -29,18 +31,19 @@ if __name__ == "__main__":
     sim_kernel = WorldKernel(seed=202)
     setup_stimulus_scenario(sim_kernel)
 
-    print("
-Running simulation with external stimuli...")
+    sim_kernel.start()
+    print("\nRunning simulation with external stimuli...")
     sim_kernel.step(150)
-    print("Simulation finished.
-")
-    
+    print("Simulation finished.\n")
+
     print("--- Final Agent States ---")
     for agent in sim_kernel.agents.agents.values():
         print(f"Agent: {agent.id}")
-        # Find exposures to stimuli
-        exposed_stimuli = [exp_id for exp_id in agent.recent_exposures if "news" in exp_id or "meme" in exp_id]
-        if exposed_stimuli:
-            print(f"  Exposed to stimuli: {exposed_stimuli}")
+        hist = sim_kernel.analytics.exposure_history.get_history_for_agent(agent.id)
+        content_ids = [e.content_id for e in hist if e.content_id]
+        if content_ids:
+            preview = ", ".join(content_ids[:5])
+            suffix = "..." if len(content_ids) > 5 else ""
+            print(f"  Exposed to stimuli: {preview}{suffix}")
         else:
             print("  No stimuli exposures.")

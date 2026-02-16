@@ -1,6 +1,7 @@
 import unittest
 import io
 from contextlib import redirect_stdout
+import random
 
 from gsocialsim.kernel.world_kernel import WorldKernel
 from gsocialsim.agents.agent import Agent
@@ -17,6 +18,11 @@ class TestPhase2(unittest.TestCase):
         self.agent = Agent(id=AgentId("agent_001"), seed=self.seed + 1)
         self.kernel.agents.add_agent(self.agent)
         self.topic = TopicId("T1")
+        # Ensure deterministic consumption and sufficient attention budget
+        self.agent.rng = random.Random(0)
+        self.agent.rng.random = lambda: 0.0
+        self.agent.budgets.attention_bank_minutes = 1000.0
+        self.agent.budgets.reset_for_tick()
 
     def test_agent_forms_new_belief(self):
         """
@@ -41,6 +47,9 @@ class TestPhase2(unittest.TestCase):
         f = io.StringIO()
         with redirect_stdout(f):
             self.agent.perceive(content, self.kernel.world_context)
+            t = self.kernel.clock.t
+            self.kernel.world_context.begin_phase(t, "CONSOLIDATE")
+            self.kernel._consolidate(t)
         log_output = f.getvalue()
 
         # Check the agent's belief state
@@ -54,7 +63,7 @@ class TestPhase2(unittest.TestCase):
         self.assertIn("DEBUG:", log_output)
         self.assertIn(f"Agent['{self.agent.id}']", log_output)
         self.assertIn(f"Topic='{self.topic}'", log_output)
-        self.assertIn("BeliefUpdate:", log_output)
+        self.assertIn("BeliefUpdate(APPLIED):", log_output)
         self.assertIn("StanceΔ=0.4000", log_output)
         print("Belief formation was logged successfully.")
 
@@ -91,6 +100,9 @@ class TestPhase2(unittest.TestCase):
         f = io.StringIO()
         with redirect_stdout(f):
             self.agent.perceive(content, self.kernel.world_context)
+            t = self.kernel.clock.t
+            self.kernel.world_context.begin_phase(t, "CONSOLIDATE")
+            self.kernel._consolidate(t)
         log_output = f.getvalue()
 
         # Check the agent's belief state
@@ -106,7 +118,7 @@ class TestPhase2(unittest.TestCase):
 
         # Check if the event was logged correctly (updated to current logging format)
         self.assertIn("DEBUG:", log_output)
-        self.assertIn("BeliefUpdate:", log_output)
+        self.assertIn("BeliefUpdate(APPLIED):", log_output)
         self.assertIn(f"StanceΔ={0.075:.4f}", log_output)
         self.assertIn(f"ConfΔ={0.01:.4f}", log_output)
         print("Belief update was logged successfully.")

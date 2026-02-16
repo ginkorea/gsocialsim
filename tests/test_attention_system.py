@@ -20,6 +20,7 @@ class TestAttentionSystem(unittest.TestCase):
         agent = Agent(id=AgentId("test_agent"), seed=1002)
         agent.budgets.deep_focus_budget = 5
         agent.budgets.attention_minutes = 100
+        agent.budgets.attention_bank_minutes = 100
         kernel.agents.add_agent(agent)
 
         # 1. Create a belief with high salience
@@ -34,6 +35,7 @@ class TestAttentionSystem(unittest.TestCase):
             stance_signal=0.6
         )
         agent.recent_impressions["important_stimulus"] = impression
+        agent.last_perception_tick = 1
         
         # --- Execution ---
         # Directly call the apply method of the event

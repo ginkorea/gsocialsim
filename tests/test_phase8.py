@@ -24,12 +24,12 @@ class TestPhase8(unittest.TestCase):
         bad_topic = TopicId("T_bad")
         agent.beliefs.update(good_topic, 1, 1, 1, 1)
         agent.beliefs.update(bad_topic, 1, 1, 1, 1)
-        agent.budgets.action_budget = 1000  # Give plenty of budget
+        agent.budgets.action_bank = 1000.0  # Give plenty of budget
+        agent.budgets.action_budget = 1000.0
+        agent.budgets.attention_bank_minutes = 1000.0
+        agent.budgets.attention_minutes = 1000.0
 
         kernel.agents.add_agent(agent)
-
-        # Mock the decision to act to make the test deterministic
-        agent.policy.should_act = lambda agent: True
 
         # Mock the reward generation to give affiliation reward only for the good topic
         original_learn = agent.learn

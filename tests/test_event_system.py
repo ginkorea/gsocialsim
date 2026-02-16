@@ -28,15 +28,14 @@ class TestEventSystem(unittest.TestCase):
         scheduler.schedule(e2)
         scheduler.schedule(e3)
 
-        # Retrieve the events. They should come out in the order they were added
-        # because the tie-breaker maintains insertion order for same-timestamp events.
+        # Retrieve the events. They should come out ordered by phase, then tie-breaker.
         out1 = scheduler.get_next_event()
         out2 = scheduler.get_next_event()
         out3 = scheduler.get_next_event()
 
         self.assertIsInstance(out1, StimulusIngestionEvent, "First event should be StimulusIngestionEvent")
-        self.assertIsInstance(out2, DayBoundaryEvent, "Second event should be DayBoundaryEvent")
-        self.assertIsInstance(out3, AgentActionEvent, "Third event should be AgentActionEvent")
+        self.assertIsInstance(out2, AgentActionEvent, "Second event should be AgentActionEvent")
+        self.assertIsInstance(out3, DayBoundaryEvent, "Third event should be DayBoundaryEvent")
         print("Verified: Events with the same timestamp are dispatched in a stable, predictable order.")
 
     def test_event_apply_calls(self):

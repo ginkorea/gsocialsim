@@ -1,6 +1,7 @@
 import io
 import unittest
 from contextlib import redirect_stdout
+import random
 
 from gsocialsim.kernel.world_kernel import WorldKernel
 from gsocialsim.agents.agent import Agent
@@ -21,6 +22,15 @@ class TestPhase6(unittest.TestCase):
 
         self.kernel.agents.add_agent(self.agent_A)
         self.kernel.agents.add_agent(self.agent_B)
+        self.agent_A.budgets.action_bank = 0.0
+        self.agent_A.budgets.action_budget = 0.0
+        self.agent_B.budgets.action_bank = 0.0
+        self.agent_B.budgets.action_budget = 0.0
+        self.agent_B.budgets.attention_bank_minutes = 1.0
+        self.agent_A.rng = random.Random(0)
+        self.agent_A.rng.random = lambda: 0.0
+        self.agent_A.budgets.attention_bank_minutes = 1000.0
+        self.agent_A.budgets.reset_for_tick()
 
     def test_physical_influence(self):
         """
@@ -31,7 +41,7 @@ class TestPhase6(unittest.TestCase):
         print("\n--- Test: Physical Layer Influence ---")
 
         # --- Run 1: No proximity / no delivery ---
-        self.kernel.step(100)
+        self.kernel.step(1)
         self.assertIsNone(self.agent_A.beliefs.get(self.topic), "Agent A should not have been influenced yet.")
         print("Verified: No influence without an interaction delivery event.")
 
@@ -47,6 +57,9 @@ class TestPhase6(unittest.TestCase):
         with redirect_stdout(f):
             # Key point: is_physical=True triggers the physical amplification path (if implemented).
             self.agent_A.perceive(content, self.kernel.world_context, is_physical=True)
+            t = self.kernel.clock.t
+            self.kernel.world_context.begin_phase(t, "CONSOLIDATE")
+            self.kernel._consolidate(t)
 
         belief_A = self.agent_A.beliefs.get(self.topic)
         self.assertIsNotNone(belief_A, "Agent A should have been influenced by physical proximity.")

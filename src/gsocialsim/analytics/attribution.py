@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
-from collections import defaultdict
+from typing import Deque, Dict, List, Optional
+from collections import defaultdict, deque
 
 from gsocialsim.types import AgentId, TopicId, ActorId
 
@@ -22,14 +22,21 @@ class ExposureEvent:
 
 class ExposureHistory:
     """Logs every piece of content an agent is exposed to (and optionally whether it was consumed)."""
-    def __init__(self):
-        self._history: Dict[AgentId, List[ExposureEvent]] = defaultdict(list)
+    def __init__(self, max_history_per_agent: int = 2000):
+        self._max = max(1, int(max_history_per_agent))
+        self._history: Dict[AgentId, Deque[ExposureEvent]] = defaultdict(self._new_deque)
+
+    def _new_deque(self) -> Deque[ExposureEvent]:
+        return deque(maxlen=self._max)
 
     def log_exposure(self, viewer_id: AgentId, event: ExposureEvent):
         self._history[viewer_id].append(event)
 
     def get_history_for_agent(self, agent_id: AgentId) -> List[ExposureEvent]:
-        return self._history.get(agent_id, [])
+        hist = self._history.get(agent_id)
+        if not hist:
+            return []
+        return list(hist)
 
 
 @dataclass

@@ -1,6 +1,7 @@
 import unittest
 import io
 from contextlib import redirect_stdout
+import random
 
 from gsocialsim.kernel.world_kernel import WorldKernel
 from gsocialsim.agents.agent import Agent
@@ -21,6 +22,11 @@ class TestPhase3(unittest.TestCase):
         self.kernel.agents.add_agent(self.viewer)
         self.kernel.agents.add_agent(self.trusted_author)
         self.kernel.agents.add_agent(self.untrusted_author)
+        # Ensure deterministic consumption and sufficient attention budget
+        self.viewer.rng = random.Random(0)
+        self.viewer.rng.random = lambda: 0.0
+        self.viewer.budgets.attention_bank_minutes = 1000.0
+        self.viewer.budgets.reset_for_tick()
 
         # Establish trust relationships
         # Viewer -> Trusted Author: High trust
@@ -47,6 +53,9 @@ class TestPhase3(unittest.TestCase):
         trusted_content = ContentItem(id=ContentId("C_trust"), author_id=self.trusted_author.id, topic=self.topic, stance=1.0)
         
         self.viewer.perceive(trusted_content, self.kernel.world_context)
+        t = self.kernel.clock.t
+        self.kernel.world_context.begin_phase(t, "CONSOLIDATE")
+        self.kernel._consolidate(t)
         belief_after_trusted = self.viewer.beliefs.get(self.topic)
         
         print(f"After trusted content, viewer belief is: Stance={belief_after_trusted.stance:.4f}")
@@ -60,6 +69,9 @@ class TestPhase3(unittest.TestCase):
         untrusted_content = ContentItem(id=ContentId("C_untrust"), author_id=self.untrusted_author.id, topic=self.topic, stance=1.0)
         
         self.viewer.perceive(untrusted_content, self.kernel.world_context)
+        t = self.kernel.clock.t
+        self.kernel.world_context.begin_phase(t, "CONSOLIDATE")
+        self.kernel._consolidate(t)
         belief_after_untrusted = self.viewer.beliefs.get(self.topic)
 
         print(f"After untrusted content, viewer belief is: Stance={belief_after_untrusted.stance:.4f}")
@@ -82,6 +94,9 @@ class TestPhase3(unittest.TestCase):
         # --- Case 1: Exposure to content from a TRUSTED author ---
         trusted_content = ContentItem(id=ContentId("C_trust"), author_id=self.trusted_author.id, topic=self.topic, stance=0.7)
         self.viewer.perceive(trusted_content, self.kernel.world_context)
+        t = self.kernel.clock.t
+        self.kernel.world_context.begin_phase(t, "CONSOLIDATE")
+        self.kernel._consolidate(t)
         belief_from_trusted = self.viewer.beliefs.get(self.topic)
         
         print(f"New belief from trusted source: Confidence={belief_from_trusted.confidence:.4f}")
@@ -93,6 +108,9 @@ class TestPhase3(unittest.TestCase):
         self.assertIsNone(self.viewer.beliefs.get(self.topic))
         untrusted_content = ContentItem(id=ContentId("C_untrust"), author_id=self.untrusted_author.id, topic=self.topic, stance=0.7)
         self.viewer.perceive(untrusted_content, self.kernel.world_context)
+        t = self.kernel.clock.t
+        self.kernel.world_context.begin_phase(t, "CONSOLIDATE")
+        self.kernel._consolidate(t)
         belief_from_untrusted = self.viewer.beliefs.get(self.topic)
 
         print(f"New belief from untrusted source: Confidence={belief_from_untrusted.confidence:.4f}")

@@ -25,12 +25,16 @@ class TestPhase1(unittest.TestCase):
         kernel.step(ticks_to_advance)
 
         self.assertEqual(kernel.clock.t, ticks_to_advance)
-        self.assertEqual(kernel.clock.day, 0) # 100 minutes is less than a day (1440 min)
-        self.assertEqual(kernel.clock.tick_of_day, 100)
+        # 1 tick = 15 minutes, so 100 ticks = 1500 minutes = 1 day + 60 minutes
+        self.assertEqual(kernel.clock.day, 1)
+        self.assertEqual(kernel.clock.tick_of_day, 4)
 
         advanced_datetime = kernel.clock.get_datetime(datetime.datetime(2026, 1, 1))
         print(f"Simulation datetime after {ticks_to_advance} ticks: {advanced_datetime}")
-        self.assertEqual(advanced_datetime, initial_datetime + datetime.timedelta(minutes=ticks_to_advance))
+        self.assertEqual(
+            advanced_datetime,
+            initial_datetime + datetime.timedelta(minutes=ticks_to_advance * 15),
+        )
         print("Clock advanced successfully.")
 
     def test_agent_creation_and_population_management(self):
@@ -62,14 +66,10 @@ class TestPhase1(unittest.TestCase):
         self.assertIsInstance(agent1.personality, type(Agent(id='temp', seed=0).personality))
         print("Agent states (identity, beliefs, emotion, budgets, personality) are initialized.")
 
-        # Run a few steps and ensure agent state doesn't change (as no logic implemented)
-        initial_agent1_identity_vector = list(agent1.identity.identity_vector)
-        initial_agent2_belief_topics = dict(agent2.beliefs.topics)
-
+        # Run a few steps and ensure the kernel advances without error
         kernel.step(50)
-        self.assertEqual(agent1.identity.identity_vector, initial_agent1_identity_vector)
-        self.assertEqual(agent2.beliefs.topics, initial_agent2_belief_topics)
-        print("Agent states remained unchanged after simulation steps (as expected for Phase 1).")
+        self.assertEqual(kernel.clock.t, 50)
+        print("Kernel advanced successfully with initialized agents.")
 
     def test_daily_budget_regeneration_initialization(self):
         print("""

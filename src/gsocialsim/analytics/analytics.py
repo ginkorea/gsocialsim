@@ -18,9 +18,6 @@ from gsocialsim.stimuli.interaction import Interaction
 class DeliveryRecord:
     """
     Optional structured delivery logging for future phases.
-
-    You don't have to use this yet; events can call Analytics.log_delivery()
-    when ready (Broadcast feed, DM, etc.).
     """
     tick: int
     viewer_id: str
@@ -34,13 +31,11 @@ class DeliveryRecord:
 
 class Analytics:
     """
-    Manages all logging for the simulation, including verbose debugging
-    and storing data for visualization.
+    Manages all logging for the simulation.
 
-    Upgrades:
-      - Exposed vs Consumed split
-      - Daily "dream" logging (consolidation summaries)
-      - Optional DeliveryRecord logging for online layers
+    Contract support:
+      - Belief deltas may be queued during ACT/PERCEIVE and applied only in CONSOLIDATE.
+      - We support a separate log for queued deltas to prevent “it looks applied” confusion.
     """
     def __init__(self):
         self.exposure_history = ExposureHistory()
@@ -49,22 +44,57 @@ class Analytics:
         self.crossings: list[BeliefCrossingEvent] = []
         self.interactions: list[Interaction] = []
 
-        # --- new: light metrics ---
+        # light metrics
         self.exposure_counts = defaultdict(int)          # (agent_id) -> count
         self.consumed_counts = defaultdict(int)          # (agent_id) -> count
         self.consumed_by_media = defaultdict(int)        # (media_type) -> count
         self.dream_runs = []                             # list of dream summaries dicts
         self.delivery_records: list[DeliveryRecord] = [] # optional
 
+        # contract-specific counters
+        self.queued_belief_deltas = defaultdict(int)     # (agent_id) -> count queued
+
     # -----------------
-    # Existing methods
+    # Belief logging
     # -----------------
     def log_belief_update(self, timestamp: int, agent_id: str, delta: Any):
+        """
+        Use this only when a delta has been APPLIED to the canonical belief vector
+        (typically in CONSOLIDATE(t) per contract).
+        """
+        try:
+            stance_d = float(getattr(delta, "stance_delta", 0.0))
+            conf_d = float(getattr(delta, "confidence_delta", 0.0))
+            topic = getattr(delta, "topic_id", getattr(delta, "topic", "unknown"))
+        except Exception:
+            stance_d, conf_d, topic = 0.0, 0.0, "unknown"
+
         print(
-            f"DEBUG:[T={timestamp}] Agent['{agent_id}'] BeliefUpdate: "
-            f"Topic='{delta.topic_id}', StanceΔ={delta.stance_delta:.4f}, ConfΔ={delta.confidence_delta:.4f}"
+            f"DEBUG:[T={timestamp}] Agent['{agent_id}'] BeliefUpdate(APPLIED): "
+            f"Topic='{topic}', StanceΔ={stance_d:.4f}, ConfΔ={conf_d:.4f}"
         )
 
+    def log_belief_delta_queued(self, timestamp: int, agent_id: str, delta: Any):
+        """
+        Log that a delta was computed and queued for CONSOLIDATE(t).
+        """
+        self.queued_belief_deltas[agent_id] += 1
+
+        try:
+            stance_d = float(getattr(delta, "stance_delta", 0.0))
+            conf_d = float(getattr(delta, "confidence_delta", 0.0))
+            topic = getattr(delta, "topic_id", getattr(delta, "topic", "unknown"))
+        except Exception:
+            stance_d, conf_d, topic = 0.0, 0.0, "unknown"
+
+        print(
+            f"DEBUG:[T={timestamp}] Agent['{agent_id}'] BeliefDelta(QUEUED): "
+            f"Topic='{topic}', StanceΔ={stance_d:.4f}, ConfΔ={conf_d:.4f}"
+        )
+
+    # -----------------
+    # Exposure / consumption
+    # -----------------
     def log_exposure(
         self,
         viewer_id: str,
@@ -78,7 +108,6 @@ class Analytics:
         intake_mode: Optional[str] = None,
         media_type: Optional[str] = None,
     ):
-        # Backward compatible print
         print(
             f"DEBUG:[T={timestamp}] Agent['{viewer_id}'] Perceived: "
             f"Source='{source_id}', Topic='{topic}', Physical={is_physical}"
@@ -98,25 +127,6 @@ class Analytics:
         self.exposure_history.log_exposure(viewer_id, event)
         self.exposure_counts[viewer_id] += 1
 
-    def log_interaction(self, timestamp: int, interaction: Interaction):
-        target = interaction.target_stimulus_id or (interaction.original_content.id if interaction.original_content else "None")
-        print(
-            f"DEBUG:[T={timestamp}] Agent['{interaction.agent_id}'] Interacted: "
-            f"Verb='{interaction.verb.value}', Target='{target}'"
-        )
-        self.interactions.append(interaction)
-
-    def log_belief_crossing(self, event: BeliefCrossingEvent):
-        print(
-            f"LOG:[T={event.timestamp}] Agent['{event.agent_id}'] BeliefCrossing: "
-            f"Topic='{event.topic}', Stance={event.old_stance:.2f}->{event.new_stance:.2f}, "
-            f"Attribution={event.attribution}"
-        )
-        self.crossings.append(event)
-
-    # -----------------
-    # New methods
-    # -----------------
     def log_consumption(
         self,
         viewer_id: str,
@@ -127,11 +137,6 @@ class Analytics:
         media_type: Optional[str] = None,
         intake_mode: Optional[str] = None,
     ):
-        """
-        Mark the most recent matching exposure event as consumed.
-        This supports exposed vs consumed split without changing ExposureHistory structure.
-        """
-        # Find latest matching exposure in history and mark consumed
         hist = self.exposure_history.get_history_for_agent(viewer_id)
         for event in reversed(hist):
             if event.content_id == content_id and event.topic == topic:
@@ -151,6 +156,28 @@ class Analytics:
             f"Content='{content_id}', Topic='{topic}', Media={media_type}, Intake={intake_mode}"
         )
 
+    # -----------------
+    # Interactions / crossings
+    # -----------------
+    def log_interaction(self, timestamp: int, interaction: Interaction):
+        target = interaction.target_stimulus_id or (interaction.original_content.id if interaction.original_content else "None")
+        print(
+            f"DEBUG:[T={timestamp}] Agent['{interaction.agent_id}'] Interacted: "
+            f"Verb='{interaction.verb.value}', Target='{target}'"
+        )
+        self.interactions.append(interaction)
+
+    def log_belief_crossing(self, event: BeliefCrossingEvent):
+        print(
+            f"LOG:[T={event.timestamp}] Agent['{event.agent_id}'] BeliefCrossing: "
+            f"Topic='{event.topic}', Stance={event.old_stance:.2f}->{event.new_stance:.2f}, "
+            f"Attribution={event.attribution}"
+        )
+        self.crossings.append(event)
+
+    # -----------------
+    # Dream + delivery
+    # -----------------
     def log_dream(
         self,
         timestamp: int,
@@ -160,10 +187,6 @@ class Analytics:
         topic_counts: Dict[str, int],
         actions: int = 0,
     ):
-        """
-        Record a daily consolidation run ("dreaming/reflection").
-        Safe to call even if visualization is minimal right now.
-        """
         summary = {
             "timestamp": timestamp,
             "agent_id": agent_id,
@@ -173,7 +196,6 @@ class Analytics:
         }
         self.dream_runs.append(summary)
 
-        # Keep print compact but informative
         top_topics = sorted(topic_counts.items(), key=lambda kv: kv[1], reverse=True)[:3]
         top_str = ", ".join([f"{t}:{c}" for t, c in top_topics]) if top_topics else "none"
         print(
@@ -181,9 +203,6 @@ class Analytics:
         )
 
     def log_delivery(self, record: DeliveryRecord):
-        """
-        Optional future hook for eligible/shown/seen pipelines.
-        """
         self.delivery_records.append(record)
         print(
             f"DEBUG:[T={record.tick}] Delivery viewer='{record.viewer_id}' layer='{record.layer_id}' "
