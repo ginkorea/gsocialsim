@@ -93,8 +93,24 @@ class Agent:
         threat = float(getattr(impression, "identity_threat", 0.0))
         threat = self._clamp01(threat)
 
+        # Political salience can amplify distrust on hostile content.
+        pol_threat = 0.0
+        try:
+            gsr = getattr(context, "gsr", None)
+            if gsr is not None:
+                pol_sal = float(getattr(gsr.ensure_topic(content.topic), "political_salience", 0.0))
+                if pol_sal > 0.0:
+                    lean = float(getattr(self.identity, "political_lean", 0.0))
+                    part = float(getattr(self.identity, "partisanship", 0.0))
+                    alignment = float(impression.stance_signal) * lean
+                    pol_threat = pol_sal * max(0.0, -alignment) * max(0.0, min(1.0, part))
+        except Exception:
+            pol_threat = 0.0
+
         # Small, naturalistic adjustments; credibility and alignment build trust, threat erodes it.
         delta = (0.015 * (alignment - 0.5)) + (0.01 * (credibility - 0.5)) - (0.02 * threat)
+        if pol_threat > 0.0:
+            delta -= 0.02 * pol_threat
 
         if impression.intake_mode == IntakeMode.PHYSICAL:
             delta *= 1.5
@@ -103,6 +119,31 @@ class Agent:
             gsr.update_trust(self.id, content.author_id, delta)
         except Exception:
             pass
+
+    def _apply_political_context(self, context: "WorldContext", impression: Impression) -> None:
+        gsr = getattr(context, "gsr", None)
+        if gsr is None:
+            return
+        try:
+            pol_sal = float(getattr(gsr.ensure_topic(impression.topic), "political_salience", 0.0))
+        except Exception:
+            pol_sal = 0.0
+        if pol_sal <= 0.0:
+            return
+
+        try:
+            lean = float(getattr(self.identity, "political_lean", 0.0))
+            part = float(getattr(self.identity, "partisanship", 0.0))
+        except Exception:
+            return
+
+        alignment = float(impression.stance_signal) * lean
+        pol_threat = pol_sal * max(0.0, -alignment) * max(0.0, min(1.0, part))
+        if pol_threat > 0.0:
+            try:
+                impression.identity_threat = max(float(getattr(impression, "identity_threat", 0.0)), pol_threat)
+            except Exception:
+                pass
 
         # Keep network edge trust in sync when possible (directional: viewer -> author)
         try:
@@ -160,6 +201,9 @@ class Agent:
                 setattr(impression, "is_self_source", True)
         except Exception:
             pass
+
+        # apply political identity context (may raise identity_threat)
+        self._apply_political_context(context, impression)
 
         self._remember_impression(impression)
 

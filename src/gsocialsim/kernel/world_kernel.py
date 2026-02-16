@@ -337,6 +337,18 @@ class WorldKernel:
             stance = rng.uniform(-0.35, 0.35)
         stance = max(-1.0, min(1.0, stance))
 
+        # Update per-topic political salience if provided
+        try:
+            pol = getattr(stimulus, "political_salience", None)
+            if pol is None:
+                pol = meta.get("political_salience")
+            if pol is not None:
+                pol_val = max(0.0, min(1.0, float(pol)))
+                current = float(getattr(self.gsr.ensure_topic(topic), "political_salience", 0.0))
+                self.gsr.set_political_salience(topic, max(current, pol_val))
+        except Exception:
+            pass
+
         temp_content = ContentItem(
             id=stimulus.id,
             author_id=getattr(stimulus, "source", "unknown"),

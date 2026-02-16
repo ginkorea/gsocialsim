@@ -92,6 +92,23 @@ def _identity_rigidity_from_big5(big5: Big5) -> float:
     return max(0.05, min(0.95, rigidity))
 
 
+def _sample_political_lean(rng: random.Random) -> float:
+    # Simple bimodal distribution with a moderate center mass.
+    r = rng.random()
+    if r < 0.45:
+        mean = -0.6
+    elif r < 0.90:
+        mean = 0.6
+    else:
+        mean = 0.0
+    return max(-1.0, min(1.0, rng.gauss(mean, 0.25)))
+
+
+def _partisanship_from_big5(big5: Big5) -> float:
+    base = 0.3 + 0.5 * (1.0 - big5.openness) + 0.2 * big5.neuroticism
+    return _clamp01(base)
+
+
 def generate_agent(
     agent_id: AgentId,
     seed: int,
@@ -110,6 +127,8 @@ def generate_agent(
     agent.identity = IdentityState(
         identity_vector=[local_rng.gauss(0.0, 0.2) for _ in range(8)],
         identity_rigidity=_identity_rigidity_from_big5(big5),
+        political_lean=_sample_political_lean(local_rng),
+        partisanship=_partisanship_from_big5(big5),
     )
 
     # Emotion state

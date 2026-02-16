@@ -21,11 +21,13 @@ class TopicReality:
     salience: visibility / availability in [0, 1]
     institutional_stance: optional stance in [-1, 1] (future use)
     volatility: how fast salience decays (higher = faster)
+    political_salience: how politically charged the topic is [0,1]
     """
     truth: float = 0.5
     salience: float = 0.0
     institutional_stance: float = 0.0
     volatility: float = 0.02
+    political_salience: float = 0.0
 
 
 @dataclass
@@ -121,6 +123,12 @@ class GlobalSocialReality:
         """Decay salience over time (call on DayBoundaryEvent, etc.)."""
         for tr in self.topics.values():
             tr.salience = _clamp01(tr.salience * (1.0 - tr.volatility))
+
+    def political_salience(self, topic: TopicId) -> float:
+        return self.ensure_topic(topic).political_salience
+
+    def set_political_salience(self, topic: TopicId, value: float) -> None:
+        self.ensure_topic(topic).political_salience = _clamp01(value)
 
     def observe_truth(
         self,

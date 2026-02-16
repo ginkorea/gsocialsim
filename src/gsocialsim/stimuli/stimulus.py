@@ -60,6 +60,7 @@ class Stimulus:
     community_id: Optional[str] = None
     topic_hint: Optional[str] = None
     stance_hint: Optional[float] = None
+    political_salience: Optional[float] = None
 
     # freeform extensibility
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -97,6 +98,21 @@ class Stimulus:
                 self.stance_hint = None
         if self.stance_hint is not None:
             self.metadata.setdefault("stance", self.stance_hint)
+
+        if self.political_salience is None:
+            ps = self.metadata.get("political_salience")
+            try:
+                self.political_salience = float(ps) if ps is not None else None
+            except Exception:
+                self.political_salience = None
+        else:
+            try:
+                self.political_salience = float(self.political_salience)
+            except Exception:
+                self.political_salience = None
+        if self.political_salience is not None:
+            self.political_salience = max(0.0, min(1.0, self.political_salience))
+            self.metadata.setdefault("political_salience", self.political_salience)
 
         # Subscription-related IDs can live in metadata too (keeps CSV simple).
         if self.creator_id is None:

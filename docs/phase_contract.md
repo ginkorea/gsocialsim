@@ -87,19 +87,17 @@ Belief state changes MUST be applied only in **CONSOLIDATE(t)**.
 
 ## 6) Budget Semantics
 
-Each agent has per-tick resource constraints:
+Each agent has a per-tick time budget (minutes).
 
-- `attention_seconds_per_tick` (cognitive time / perception budget)
-- optional `action_seconds_per_tick` (if separated), otherwise actions consume attention time as well
+Costs are time-based, not just “counts”.
 
-Costs must be time-based (seconds), not just “counts”.
-
-### Budget rules
-- Budgets reset at the start of tick `t`.
-- Unused attention is not banked unless explicitly designed.
+### Time budget rules
+- Budget resets at the start of tick `t`.
+- Unused time is not banked.
+- Perception and action both spend from the same budget.
 
 Opportunity cost is required:
-- spending time drafting/posting reduces time available for perception in the same tick.
+- spending time on creation reduces time for perception in the same tick.
 
 ---
 

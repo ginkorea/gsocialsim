@@ -13,6 +13,8 @@ class IdentityState:
     identity_rigidity: float = 0.5
     ingroup_labels: Set[str] = field(default_factory=set)
     taboo_boundaries: Set[str] = field(default_factory=set)
+    political_lean: float = 0.0        # [-1,1] left/right axis (0 = neutral)
+    partisanship: float = 0.5          # [0,1] strength of partisan identity
 
     def is_threatening(self, content_text: str) -> bool:
         """A simple check to see if content text contains taboo keywords."""

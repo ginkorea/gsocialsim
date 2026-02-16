@@ -78,6 +78,20 @@ def _stimulus_identity_threat(stimulus: "Stimulus") -> Optional[float]:
     return None
 
 
+def _stimulus_political_salience(stimulus: "Stimulus") -> Optional[float]:
+    raw_val = getattr(stimulus, "political_salience", None)
+    if raw_val is None:
+        raw = getattr(stimulus, "metadata", None) or {}
+        raw_val = raw.get("political_salience")
+    try:
+        v = float(raw_val) if raw_val is not None else None
+    except Exception:
+        v = None
+    if v is None:
+        return None
+    return max(0.0, min(1.0, v))
+
+
 def _get_followers(context: "WorldContext", author_id: str) -> Set[str]:
     try:
         return set(context.network.graph.get_followers(author_id))
@@ -215,6 +229,13 @@ class StimulusPerceptionEvent(Event):
             return
 
         topic = _stimulus_topic_id(stimulus)
+        try:
+            pol = _stimulus_political_salience(stimulus)
+            if pol is not None and context.gsr is not None:
+                current = float(getattr(context.gsr.ensure_topic(topic), "political_salience", 0.0))
+                context.gsr.set_political_salience(topic, max(current, pol))
+        except Exception:
+            pass
 
         temp_content = ContentItem(
             id=stimulus.id,

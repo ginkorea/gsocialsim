@@ -71,10 +71,12 @@ All social, physical, and cognitive processes are coordinated through the kernel
 Agents are long-lived and stateful:
 
 - belief vectors per topic
-- attention and action budgets
+- per-tick time budget (minutes), no banking
 - emotional and identity state
+- political identity (lean + partisanship strength)
 - personality-weighted reward preferences
 - adaptive policies learned over time
+ - dynamic trust on network edges
 
 Agents optimize locally based on personality and experience, not global truth.
 
@@ -87,8 +89,11 @@ Agents consume information via explicit **intake modes**:
 - **scroll** (passive feed exposure)
 - **seek** (active information search)
 - **physical** (in-person interaction)
+- **deep_focus** (rare, expensive processing)
 
 Attention is finite. Every exposure is a tradeoff.
+
+Time is a hard constraint: perceiving and acting both consume minutes in the same tick.
 
 ---
 
@@ -120,6 +125,17 @@ Belief change is not assumed. It must be *earned*.
 
 ---
 
+## Politics & Identity
+
+The model includes a lightweight political identity system:
+
+- each agent has a `political_lean` in [-1, 1] and `partisanship` in [0, 1]
+- topics can be marked with **political salience**
+- politically salient topics can raise **identity threat** and increase resistance
+- non-hostile disagreement can still reduce confidence and enable gradual belief change
+
+---
+
 ### Attribution Engine
 
 Attribution reconstructs influence causality:
@@ -148,6 +164,21 @@ The result is **who influenced whom, how, and when**.
 - amplified persuasion
 
 Physical influence is explicitly modeled, not approximated.
+
+---
+
+## Literature Alignment (Selected)
+
+We align mechanics to established findings. A short mapping and citations live in `docs/literature.md`.
+
+Selected references:
+- Kunda (1990), *Psychological Bulletin*
+- Nickerson (1998), *Review of General Psychology*
+- Hovland & Weiss (1951), *Public Opinion Quarterly*
+- McPherson et al. (2001), *Annual Review of Sociology*
+- Pettigrew & Tropp (2006), *Journal of Personality and Social Psychology*
+- Iyengar et al. (2012), *Public Opinion Quarterly*
+- Wood & Porter (2019), *Political Behavior*
 
 ---
 

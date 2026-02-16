@@ -81,6 +81,8 @@ Most cycles result in **no visible action**, mirroring real human behavior.
 - `identity_rigidity` ∈ [0,1]
 - `ingroup_labels`
 - `taboo_boundaries`
+- `political_lean` ∈ [-1,1]
+- `partisanship` ∈ [0,1]
 
 #### Beliefs (Topic-Based, Fast-Changing)
 For each topic:
@@ -98,15 +100,12 @@ Emotions modulate learning rates and decision thresholds.
 
 ---
 
-### 4.3 Budgets (Unequal by Design)
+### 4.3 Time Budgets (Unequal by Design)
 
-Each agent has daily budgets drawn from heavy-tailed distributions:
-- `attention_minutes`
-- `action_budget`
-- `deep_focus_budget`
-- `risk_budget`
+Each agent has a **per-tick time budget** (minutes) driven by its life schedule
+(sleep / work / leisure). Perception and action draw from the same pool.
 
-Budgets regenerate daily with fatigue and carryover effects.
+Time resets each tick; unused time is not banked.
 
 ---
 
@@ -169,6 +168,15 @@ Belief updates are bounded and depend on:
 - repetition
 - social proof
 - relationship strength
+
+Political salience can amplify identity threat and resistance.
+
+### 6.1.1 Politics & Polarization
+
+- Topics can be marked with `political_salience` ∈ [0,1].
+- Agents carry a `political_lean` and `partisanship` strength.
+- High political salience + high partisanship increases identity threat from opposing content.
+- Non-hostile disagreement can still reduce confidence and allow gradual change.
 
 Beliefs do not random-walk.
 
@@ -493,4 +501,3 @@ SSES is an **evolutionary attention-and-influence environment**:
 
 The system is designed to answer:
 **“Under which social and technical conditions do certain beliefs and behaviors survive, spread, and thrive, and what are the measurable mechanisms of influence that drive those outcomes?”**
-
