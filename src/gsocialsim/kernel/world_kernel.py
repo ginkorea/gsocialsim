@@ -306,11 +306,26 @@ class WorldKernel:
         else:
             topic = "T_Original"
 
+        stance = 0.0
+        raw_stance = getattr(stimulus, "stance_hint", None)
+        if raw_stance is None:
+            raw_stance = meta.get("stance")
+        try:
+            stance = float(raw_stance) if raw_stance is not None else 0.0
+        except Exception:
+            stance = 0.0
+        if raw_stance is None:
+            # Deterministic small bias when stance is unspecified
+            seed = hash(f"{stimulus.id}:{topic}") & 0xFFFFFFFF
+            rng = random.Random(seed)
+            stance = rng.uniform(-0.35, 0.35)
+        stance = max(-1.0, min(1.0, stance))
+
         temp_content = ContentItem(
             id=stimulus.id,
             author_id=getattr(stimulus, "source", "unknown"),
             topic=topic,
-            stance=0.0,
+            stance=stance,
             media_type=getattr(stimulus, "media_type", None),
             outlet_id=getattr(stimulus, "outlet_id", None),
             community_id=getattr(stimulus, "community_id", None),

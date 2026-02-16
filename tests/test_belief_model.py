@@ -34,11 +34,11 @@ class TestBeliefModel(unittest.TestCase):
             self.assertAlmostEqual(delta_base.stance_delta, expected_base_change)
             print(f"Baseline stance change (no bias): {delta_base.stance_delta:.4f}")
 
-        # Confirmation (aligned) - multiplier should be 1.5
+        # Confirmation (aligned) - multiplier should be 1.1
         self.viewer.beliefs.update(self.topic, stance=0.1, confidence=0.5, salience=0, knowledge=0)
         with patch.object(engine, 'update', wraps=engine.update) as spy:
             delta_confirm = spy(self.viewer, self.source.id, impression, self.kernel.world_context.gsr)
-            expected_confirm_change = (0.3 - 0.1) * 0.10 * 1.5 # stance_diff * base_influence * multiplier
+            expected_confirm_change = (0.3 - 0.1) * 0.10 * 1.1 # stance_diff * base_influence * multiplier
             self.assertAlmostEqual(delta_confirm.stance_delta, expected_confirm_change)
             print(f"Confirming stance change (with bias): {delta_confirm.stance_delta:.4f}")
         

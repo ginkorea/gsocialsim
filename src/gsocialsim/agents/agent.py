@@ -162,10 +162,6 @@ class Agent:
         # Record for daily dream
         self.daily_impressions_consumed.append(impression)
 
-        # Self-source recognition: do not update beliefs from own content
-        if bool(getattr(impression, "is_self_source", False)):
-            return
-
         # --- Belief delta compute (no direct mutation here under contract) ---
         prior = self.beliefs.get(content.topic)
         old_stance = prior.stance if prior else 0.0

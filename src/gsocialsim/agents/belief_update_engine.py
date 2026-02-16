@@ -49,34 +49,48 @@ class BeliefUpdateEngine:
 
         multiplier = 10.0 if impression.intake_mode == IntakeMode.PHYSICAL else 1.0
 
-        # Test hook: threateningness can be attached by tests or future perception models
-        is_threatening = bool(getattr(impression, "_is_threatening_hack", False))
+        # Self-source reinforcement (pondering / self-radicalization)
+        is_self_source = bool(getattr(impression, "is_self_source", False))
+        if is_self_source:
+            multiplier *= 1.2
+
+        # Threat signal can come from impression or test hook
+        identity_threat = float(getattr(impression, "identity_threat", 0.0))
+        is_threatening = bool(getattr(impression, "_is_threatening_hack", False)) or identity_threat > 0.5
 
         if current_belief is None:
             # Initialize beliefs conservatively (still scaled by trust)
             return BeliefDelta(
                 topic_id=topic_id,
                 stance_delta=float(impression.stance_signal) * trust * multiplier,
-                confidence_delta=0.1 * trust * multiplier,
+                confidence_delta=(0.1 * trust * multiplier) + (0.03 * trust if is_self_source else 0.0),
             )
 
         stance_difference = float(impression.stance_signal) - float(current_belief.stance)
 
-        # Confirmation bias: move more when confirming
+        # Confirmation bias: aligned content solidifies confidence
         is_confirming = (stance_difference > 0 and current_belief.stance > 0) or (
             stance_difference < 0 and current_belief.stance < 0
         )
-        if is_confirming:
-            multiplier *= 1.5
 
-        # Backfire: if opposed and threatening, reverse influence slightly
+        # Backfire: if opposed and threatening, reverse influence and harden confidence
         is_opposed = abs(stance_difference) > 1.0
-        if is_threatening and is_opposed:
-            multiplier *= -0.5
 
         base_influence = 0.10
         stance_change = stance_difference * base_influence * trust * multiplier
         confidence_change = 0.02 * trust * multiplier
+
+        if is_confirming:
+            stance_change *= 1.1
+            confidence_change += 0.04 * trust * multiplier
+
+        if is_self_source:
+            confidence_change += 0.03 * trust
+
+        if is_threatening and is_opposed:
+            # push away from the threatening content and harden the belief
+            stance_change = -stance_difference * base_influence * trust * multiplier * 0.6
+            confidence_change += 0.05 * trust * multiplier
 
         return BeliefDelta(
             topic_id=topic_id,

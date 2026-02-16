@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import TYPE_CHECKING, Optional, Set
 import itertools
+import random
 
 from gsocialsim.agents.budget_state import BudgetKind
 from gsocialsim.stimuli.content_item import ContentItem
@@ -45,6 +46,24 @@ def _stimulus_topic_id(stimulus: "Stimulus") -> TopicId:
         return TopicId(t if t else "T_Original")
 
     return TopicId(str(t))
+
+
+def _stimulus_stance(stimulus: "Stimulus") -> float:
+    raw = getattr(stimulus, "stance_hint", None)
+    if raw is None:
+        raw = getattr(stimulus, "metadata", None) or {}
+        raw = raw.get("stance")
+    try:
+        v = float(raw) if raw is not None else 0.0
+    except Exception:
+        v = 0.0
+    if raw is None:
+        # Deterministic small bias per stimulus when stance is unspecified
+        topic = _stimulus_topic_id(stimulus)
+        seed = hash(f"{stimulus.id}:{topic}") & 0xFFFFFFFF
+        rng = random.Random(seed)
+        v = rng.uniform(-0.35, 0.35)
+    return max(-1.0, min(1.0, v))
 
 
 def _get_followers(context: "WorldContext", author_id: str) -> Set[str]:
@@ -189,7 +208,7 @@ class StimulusPerceptionEvent(Event):
             id=stimulus.id,
             author_id=stimulus.source,
             topic=topic,
-            stance=0.0,
+            stance=_stimulus_stance(stimulus),
             media_type=getattr(stimulus, "media_type", None),
             outlet_id=getattr(stimulus, "outlet_id", None),
             community_id=getattr(stimulus, "community_id", None),

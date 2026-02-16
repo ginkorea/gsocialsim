@@ -59,6 +59,7 @@ class Stimulus:
     outlet_id: Optional[str] = None
     community_id: Optional[str] = None
     topic_hint: Optional[str] = None
+    stance_hint: Optional[float] = None
 
     # freeform extensibility
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -81,6 +82,21 @@ class Stimulus:
             if isinstance(self.topic_hint, str):
                 self.topic_hint = self.topic_hint.strip() or None
             self.metadata.setdefault("topic", self.topic_hint)
+
+        # If stance_hint wasn't provided, mirror from metadata
+        if self.stance_hint is None:
+            s = self.metadata.get("stance")
+            try:
+                self.stance_hint = float(s) if s is not None else None
+            except Exception:
+                self.stance_hint = None
+        else:
+            try:
+                self.stance_hint = float(self.stance_hint)
+            except Exception:
+                self.stance_hint = None
+        if self.stance_hint is not None:
+            self.metadata.setdefault("stance", self.stance_hint)
 
         # Subscription-related IDs can live in metadata too (keeps CSV simple).
         if self.creator_id is None:
