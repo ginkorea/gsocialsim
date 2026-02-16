@@ -16,6 +16,7 @@ class TestPhase4(unittest.TestCase):
         Agent A follows B, Agent B follows C.
         """
         self.kernel = WorldKernel(seed=202)
+        self.kernel.physical_world.enable_life_cycle = False
         
         self.agent_A = Agent(id=AgentId("A"), seed=203)
         self.agent_B = Agent(id=AgentId("B"), seed=204)

@@ -11,6 +11,7 @@ class TestPhase1(unittest.TestCase):
 --- Test: WorldKernel Initialization and Clock Advance ---""")
         seed = 42
         kernel = WorldKernel(seed=seed)
+        kernel.physical_world.enable_life_cycle = False
 
         self.assertIsInstance(kernel.clock, SimClock)
         self.assertEqual(kernel.clock.t, 0)
@@ -42,6 +43,7 @@ class TestPhase1(unittest.TestCase):
 --- Test: Agent Creation and Population Management ---""")
         seed = 123
         kernel = WorldKernel(seed=seed)
+        kernel.physical_world.enable_life_cycle = False
 
         agent1 = Agent(id="agent_001", seed=seed + 1)
         agent2 = Agent(id="agent_002", seed=seed + 2)

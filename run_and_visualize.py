@@ -33,11 +33,11 @@ def setup_simulation_scenario(kernel: WorldKernel, *, stimuli_csv: str = "stimul
         TopicId("T_Security"),
     ]
 
+    # Enable life-cycle model with a 10x10 grid
+    kernel.physical_world.enable_life_cycle = True
+    kernel.physical_world.grid_size = 10
+
     for a in agents:
-        a.budgets.action_bank = 5000.0
-        a.budgets.attention_bank_minutes = 10000.0
-        a.budgets.deep_focus_bank = 100.0
-        a.budgets.reset_for_tick()
         for t in topics:
             a.beliefs.update(t, stance=0.0, confidence=0.5, salience=0.1, knowledge=0.1)
         kernel.agents.add_agent(a)

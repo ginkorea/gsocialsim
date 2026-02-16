@@ -11,10 +11,9 @@ def setup_stimulus_scenario(kernel: WorldKernel):
     agent_C = Agent(id=AgentId("C"), seed=3)
     
     agents = [agent_A, agent_B, agent_C]
+    kernel.physical_world.enable_life_cycle = True
+    kernel.physical_world.grid_size = 10
     for a in agents:
-        a.budgets.action_bank = 100.0
-        a.budgets.attention_bank_minutes = 1000.0
-        a.budgets.reset_for_tick()
         kernel.agents.add_agent(a)
 
     graph = kernel.world_context.network.graph

@@ -14,6 +14,7 @@ class TestPhase3(unittest.TestCase):
     def setUp(self):
         """Set up a world with three agents: a viewer, a trusted author, and an untrusted author."""
         self.kernel = WorldKernel(seed=101)
+        self.kernel.physical_world.enable_life_cycle = False
         
         self.viewer = Agent(id=AgentId("viewer"), seed=102)
         self.trusted_author = Agent(id=AgentId("trusted_author"), seed=103)

@@ -52,6 +52,9 @@ class WorldContext:
     # Belief deferral queue: list[(agent_id, belief_delta)]
     deferred_belief_deltas: List[Tuple[str, Any]] = field(default_factory=list)
 
+    # Per-tick time budgets (minutes remaining)
+    time_remaining_by_agent: Dict[str, float] = field(default_factory=dict)
+
     def begin_phase(self, tick: int, phase: str) -> None:
         self.current_tick = tick
         self.current_phase = phase
@@ -72,3 +75,20 @@ class WorldContext:
         out = list(self.deferred_belief_deltas)
         self.deferred_belief_deltas.clear()
         return out
+
+    # ----------------------------
+    # Time budget helpers
+    # ----------------------------
+    def set_time_budget(self, agent_id: str, minutes: float) -> None:
+        self.time_remaining_by_agent[agent_id] = max(0.0, float(minutes))
+
+    def spend_time(self, agent_id: str, minutes: float) -> bool:
+        amt = max(0.0, float(minutes))
+        if agent_id not in self.time_remaining_by_agent:
+            # If no budget was set (e.g., direct unit tests), allow spending.
+            return True
+        remaining = float(self.time_remaining_by_agent.get(agent_id, 0.0))
+        if remaining < amt:
+            return False
+        self.time_remaining_by_agent[agent_id] = remaining - amt
+        return True

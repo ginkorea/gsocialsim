@@ -17,6 +17,7 @@ class TestAttentionSystem(unittest.TestCase):
         
         # --- Setup ---
         kernel = WorldKernel(seed=1001)
+        kernel.physical_world.enable_life_cycle = False
         agent = Agent(id=AgentId("test_agent"), seed=1002)
         agent.budgets.deep_focus_budget = 5
         agent.budgets.attention_minutes = 100

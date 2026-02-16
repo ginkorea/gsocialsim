@@ -14,6 +14,7 @@ class TestPhase8(unittest.TestCase):
         """
         print("\n--- Test: Reinforcement Learning (Bandit) ---")
         kernel = WorldKernel(seed=606)
+        kernel.physical_world.enable_life_cycle = False
 
         # Agent with personality that strongly values affiliation
         agent = Agent(id=AgentId("learner"), seed=607)

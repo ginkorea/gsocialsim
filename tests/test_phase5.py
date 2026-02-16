@@ -2,69 +2,56 @@ import unittest
 from gsocialsim.kernel.world_kernel import WorldKernel
 from gsocialsim.agents.agent import Agent
 from gsocialsim.types import AgentId, TopicId
+from gsocialsim.stimuli.content_item import ContentItem
+from gsocialsim.stimuli.interaction import Interaction, InteractionVerb
 
 class TestPhase5(unittest.TestCase):
 
     def setUp(self):
         self.kernel = WorldKernel(seed=303)
+        self.kernel.physical_world.enable_life_cycle = False
         self.agent = Agent(id=AgentId("budget_agent"), seed=304)
         # Give the agent a belief so it has something to post about
         self.agent.beliefs.update(TopicId("T5"), 1.0, 1.0, 1.0, 1.0)
-        self.agent.budgets.action_bank = 2.0
-        self.agent.budgets.attention_bank_minutes = 100.0
-        self.agent.budgets.max_actions_per_tick = 1.0
-        self.agent.budgets.reset_for_tick()
         self.kernel.agents.add_agent(self.agent)
 
-    def test_budget_depletion_and_regeneration(self):
+        class AlwaysCreatePolicy:
+            def generate_interaction(self, agent: Agent, tick: int):
+                topic = next(iter(agent.beliefs.topics.keys()))
+                content = ContentItem(
+                    id=f"C_{agent.id}_{tick}",
+                    author_id=agent.id,
+                    topic=topic,
+                    stance=agent.beliefs.get(topic).stance,
+                )
+                return Interaction(agent_id=agent.id, verb=InteractionVerb.CREATE, original_content=content)
+
+            def learn(self, action_key, reward_vector):
+                return None
+
+        self.agent.policy = AlwaysCreatePolicy()
+
+    def test_time_budget_limits_actions_per_tick(self):
         """
-        Verify that an agent stops acting when its budget is depleted
-        and resumes after the daily budget regeneration.
+        Verify that an agent stops acting once its per-tick time is exhausted,
+        and can act again on the next tick (no banking).
         """
-        print("\n--- Test: Budget Depletion and Regeneration ---")
-        
-        # Give the agent a small, fixed budget
-        self.agent.budgets.action_bank = 2.0
-        self.agent.budgets.attention_bank_minutes = 100.0
-        self.agent.budgets.reset_for_tick()
-        print(f"Agent starts with action_bank = {self.agent.budgets.action_bank}")
+        print("\n--- Test: Time Budget Limits Actions ---")
 
-        # --- Depletion Phase ---
-        # Agent should now post on every tick until budget is gone
-        posts_in_first_day = 0
-        # Tick 0
-        if self.agent.act(self.kernel.clock.t):
-            posts_in_first_day += 1
-        # Tick 1
-        self.agent.budgets.reset_for_tick()
-        if self.agent.act(self.kernel.clock.t + 1):
-            posts_in_first_day += 1
+        t = self.kernel.clock.t
+        self.kernel.world_context.set_time_budget(self.agent.id, 5.0)  # CREATE costs 5 minutes
 
-        self.agent.budgets.reset_for_tick()
-        third = self.agent.act(self.kernel.clock.t + 2)
+        first = self.agent.act(t, context=self.kernel.world_context)
+        second = self.agent.act(t, context=self.kernel.world_context)
 
-        self.assertEqual(posts_in_first_day, 2, "Agent should have posted exactly twice before running out of budget.")
-        self.assertIsNone(third, "Agent should be out of action budget by the third tick.")
-        print("Agent successfully depleted its action budget and stopped posting.")
+        self.assertIsNotNone(first, "Agent should act when time is available.")
+        self.assertIsNone(second, "Agent should be out of time within the same tick.")
 
-        # --- Regeneration Phase ---
-        # Run the kernel long enough to cross a day boundary
-        ticks_to_new_day = self.kernel.clock.ticks_per_day - self.kernel.clock.tick_of_day
-        self.kernel.step(ticks_to_new_day + 1)
-        
-        self.assertGreater(self.agent.budgets.action_bank, 0, "Agent's action bank should have been regenerated.")
-        print(f"After daily cycle, agent budget regenerated to: {self.agent.budgets.action_bank:.2f}")
-
-        # Verify agent can act again
-        can_act_again = False
-        for _ in range(3):
-            self.agent.budgets.reset_for_tick()
-            if self.agent.act(self.kernel.clock.t):
-                can_act_again = True
-                break
-        
-        self.assertTrue(can_act_again, "Agent should be able to act again after budget regeneration.")
-        print("Agent can act again. Budget system is working.")
+        # Next tick: budget resets (no banking, fresh time available)
+        self.kernel.world_context.set_time_budget(self.agent.id, 5.0)
+        third = self.agent.act(t + 1, context=self.kernel.world_context)
+        self.assertIsNotNone(third, "Agent should be able to act again in the next tick.")
+        print("Verified: time is consumed per tick and does not bank.")
 
 if __name__ == '__main__':
     unittest.main()

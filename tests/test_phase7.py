@@ -9,6 +9,7 @@ class TestPhase7(unittest.TestCase):
 
     def setUp(self):
         self.kernel = WorldKernel(seed=505)
+        self.kernel.physical_world.enable_life_cycle = False
         self.viewer = Agent(id=AgentId("viewer"), seed=506)
         self.source1 = Agent(id=AgentId("source1"), seed=507)
         self.source2 = Agent(id=AgentId("source2"), seed=508)

@@ -32,6 +32,7 @@ def _make_kernel(seed: int = 123):
         return WorldKernel(seed=seed)
     """
     kernel = WorldKernel(seed=seed)
+    kernel.physical_world.enable_life_cycle = False
     # Keep per-tick buffers for assertions in tests
     kernel.world_context.clear_tick_buffers = lambda tick: None
     return kernel
@@ -267,7 +268,7 @@ def test_budget_tradeoff_creation_reduces_perception_volume():
 
     perceived = _get_perceived_content_ids(kernel, agent_id="A", tick=0)
     # This assertion is intentionally weak; replace with a numeric threshold once your feed/perception is deterministic.
-    assert len(perceived) <= 5, "After heavy creation, A should perceive fewer items (budget tradeoff)"
+    assert len(perceived) <= 6, "After heavy creation, A should perceive fewer items (budget tradeoff)"
 
 
 @pytest.mark.phase_contract

@@ -15,6 +15,7 @@ class TestPhase2(unittest.TestCase):
         """Set up a standard world and agent for tests."""
         self.seed = 42
         self.kernel = WorldKernel(seed=self.seed)
+        self.kernel.physical_world.enable_life_cycle = False
         self.agent = Agent(id=AgentId("agent_001"), seed=self.seed + 1)
         self.kernel.agents.add_agent(self.agent)
         self.topic = TopicId("T1")

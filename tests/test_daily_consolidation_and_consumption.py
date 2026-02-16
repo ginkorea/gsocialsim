@@ -14,6 +14,7 @@ def _seed_agent_with_topic(agent: Agent, topic: str):
 
 def test_day_boundary_triggers_dream():
     k = WorldKernel(seed=123)
+    k.physical_world.enable_life_cycle = False
     a = Agent(id=AgentId("A"), seed=1)
     _seed_agent_with_topic(a, "T_Test")
     k.agents.add_agent(a)
@@ -34,6 +35,7 @@ def test_day_boundary_triggers_dream():
 
 def test_exposure_vs_consumption_split_is_recorded():
     k = WorldKernel(seed=123)
+    k.physical_world.enable_life_cycle = False
     a = Agent(id=AgentId("A"), seed=7)
     _seed_agent_with_topic(a, "T_Test")
     a.budgets.attention_minutes = 1000.0

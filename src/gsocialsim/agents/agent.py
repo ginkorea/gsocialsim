@@ -138,17 +138,16 @@ class Agent:
         if self.rng.random() >= consumed_prob:
             return  # exposed but not consumed
 
-        # Spend attention minutes for actual consumption
+        # Spend time for actual consumption (opportunity cost)
         try:
             cost = float(getattr(impression, "attention_cost_minutes", 0.0))
         except Exception:
             cost = 0.0
         if cost > 0.0:
-            try:
-                if not self.budgets.spend(BudgetKind.ATTENTION, cost):
+            spend = getattr(context, "spend_time", None)
+            if callable(spend):
+                if not spend(self.id, cost):
                     return
-            except Exception:
-                pass
 
         # --- Consumption (explicit) ---
         context.analytics.log_consumption(
@@ -216,9 +215,9 @@ class Agent:
     def learn(self, action_key: str, reward_vector: RewardVector):
         self.policy.learn(action_key, reward_vector)
 
-    def act(self, tick: int) -> Optional[Interaction]:
-        if self.budgets.action_budget < 1:
-            return None
+    def act(self, tick: int, context: Optional["WorldContext"] = None) -> Optional[Interaction]:
+        # Action is gated by time budget if available
+        spend = getattr(context, "spend_time", None) if context is not None else None
 
         interaction = self.policy.generate_interaction(self, tick)
         if interaction:
@@ -230,14 +229,9 @@ class Agent:
                 InteractionVerb.REPLY: 3.0,
             }
             cost = attention_costs.get(interaction.verb, 1.0)
-            try:
-                if cost > 0.0 and not self.budgets.spend(BudgetKind.ATTENTION, cost):
+            if callable(spend) and cost > 0.0:
+                if not spend(self.id, cost):
                     return None
-            except Exception:
-                pass
-
-            if not self.budgets.spend(BudgetKind.ACTION, 1.0):
-                return None
             self.daily_actions.append(interaction)
 
             reward = RewardVector()

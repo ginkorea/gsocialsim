@@ -12,6 +12,7 @@ from gsocialsim.stimuli.content_item import ContentItem
 class TestPhase6(unittest.TestCase):
     def setUp(self):
         self.kernel = WorldKernel(seed=505)
+        self.kernel.physical_world.enable_life_cycle = False
 
         self.agent_A = Agent(id=AgentId("agent_A"), seed=506)
         self.agent_B = Agent(id=AgentId("agent_B"), seed=507)
@@ -31,6 +32,8 @@ class TestPhase6(unittest.TestCase):
         self.agent_A.rng.random = lambda: 0.0
         self.agent_A.budgets.attention_bank_minutes = 1000.0
         self.agent_A.budgets.reset_for_tick()
+        # Prevent automatic posting by B during the no-interaction phase
+        self.agent_B.policy.generate_interaction = lambda *args, **kwargs: None
 
     def test_physical_influence(self):
         """

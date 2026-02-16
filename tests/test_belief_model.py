@@ -12,6 +12,7 @@ class TestBeliefModel(unittest.TestCase):
 
     def setUp(self):
         self.kernel = WorldKernel(seed=909)
+        self.kernel.physical_world.enable_life_cycle = False
         self.viewer = Agent(id=AgentId("viewer"), seed=910)
         self.source = Agent(id=AgentId("source"), seed=911)
         self.topic = TopicId("T_Bias")

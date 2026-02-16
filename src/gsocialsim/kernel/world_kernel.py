@@ -117,7 +117,16 @@ class WorldKernel:
         if self._started:
             return
         self._started = True
-        self._seed_daily_budgets_if_needed()
+        if getattr(self.physical_world, "enable_life_cycle", False):
+            try:
+                self.physical_world.ensure_grid()
+            except Exception:
+                pass
+            for agent in self.agents.values():
+                try:
+                    self.physical_world.ensure_agent(agent.id, agent.rng, self.clock.ticks_per_day)
+                except Exception:
+                    pass
 
     def step(self, num_ticks: int = 1) -> None:
         """
@@ -182,10 +191,13 @@ class WorldKernel:
         for agent in self.agents.values():
             interaction = None
             try:
-                interaction = agent.act(tick=t)
+                interaction = agent.act(tick=t, context=self.world_context)
             except TypeError:
                 # legacy signature support
-                interaction = agent.act(self.world_context)
+                try:
+                    interaction = agent.act(self.world_context)
+                except TypeError:
+                    interaction = agent.act(t)
 
             if interaction:
                 try:
@@ -352,57 +364,23 @@ class WorldKernel:
 
     def _reset_tick_budgets(self, t: int) -> None:
         """
-        Budgets reset at start of each tick.
-        (We keep compatibility with multiple budget API styles.)
+        Time budgets reset at start of each tick.
         """
+        minutes_per_tick = float(getattr(self.clock, "seconds_per_tick", 900)) / 60.0
         for agent in self.agents.values():
-            budgets = getattr(agent, "budgets", None)
-            if budgets is None:
-                continue
-
-            for method_name in ("reset_for_tick", "reset_tick", "reset"):
-                fn = getattr(budgets, method_name, None)
-                if callable(fn):
-                    try:
-                        fn()
-                        break
-                    except Exception:
-                        continue
-
-    def _seed_daily_budgets_if_needed(self) -> None:
-        """
-        Seed daily budget banks once at startup if they are all empty.
-        This avoids zeroing out per-tick allowances on the first tick.
-        """
-        for agent in self.agents.values():
-            budgets = getattr(agent, "budgets", None)
-            if budgets is None:
-                continue
-
-            # Skip if caller already configured any budgets.
+            available = minutes_per_tick
             try:
-                banks = (
-                    float(getattr(budgets, "attention_bank_minutes", 0.0)),
-                    float(getattr(budgets, "action_bank", 0.0)),
-                    float(getattr(budgets, "deep_focus_bank", 0.0)),
-                    float(getattr(budgets, "risk_bank", 0.0)),
-                )
-                per_tick = (
-                    float(getattr(budgets, "attention_minutes", 0.0)),
-                    float(getattr(budgets, "action_budget", 0.0)),
-                    float(getattr(budgets, "deep_focus_budget", 0.0)),
-                    float(getattr(budgets, "risk_budget", 0.0)),
+                available = self.physical_world.get_available_minutes(
+                    agent_id=agent.id,
+                    tick_of_day=self.clock.tick_of_day,
+                    minutes_per_tick=minutes_per_tick,
+                    rng=agent.rng,
+                    ticks_per_day=self.clock.ticks_per_day,
                 )
             except Exception:
-                banks = (0.0, 0.0, 0.0, 0.0)
-                per_tick = (0.0, 0.0, 0.0, 0.0)
+                available = minutes_per_tick
 
-            if any(v > 0.0 for v in banks) or any(v > 0.0 for v in per_tick):
-                continue
-
-            regen = getattr(budgets, "regen_daily", None)
-            if callable(regen):
-                try:
-                    regen()
-                except Exception:
-                    pass
+            try:
+                self.world_context.set_time_budget(agent.id, available)
+            except Exception:
+                pass
