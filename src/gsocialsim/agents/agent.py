@@ -30,6 +30,7 @@ class MemoryStore:
 class Agent:
     id: str
     seed: int
+    agent_weight: float = 1.0
     identity: IdentityState = field(default_factory=IdentityState)
     beliefs: BeliefStore = field(default_factory=BeliefStore)
     emotion: EmotionState = field(default_factory=EmotionState)

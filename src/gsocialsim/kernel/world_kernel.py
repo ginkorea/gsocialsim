@@ -14,6 +14,7 @@ from gsocialsim.kernel.stimulus_ingestion import StimulusIngestionEngine
 from gsocialsim.networks.network_layer import NetworkLayer
 from gsocialsim.physical.physical_world import PhysicalWorld
 from gsocialsim.social.global_social_reality import GlobalSocialReality
+from gsocialsim.util.perf import PerfTracker
 
 from gsocialsim.stimuli.content_item import ContentItem
 from gsocialsim.stimuli.stimulus import Stimulus
@@ -70,6 +71,9 @@ class WorldKernel:
     seed: int
     clock: SimClock = field(default_factory=SimClock)
     rng: random.Random = field(init=False)
+    enable_timing: bool = False
+    timing_level: str = "basic"
+    perf: PerfTracker = field(default_factory=PerfTracker)
 
     agents: AgentPopulation = field(default_factory=AgentPopulation)
     analytics: Analytics = field(default_factory=Analytics)
@@ -90,6 +94,7 @@ class WorldKernel:
 
     def __post_init__(self) -> None:
         self.rng = random.Random(self.seed)
+        self.perf.set_enabled(self.enable_timing, level=self.timing_level)
         self.world_context = WorldContext(
             kernel=self,
             analytics=self.analytics,
@@ -140,12 +145,19 @@ class WorldKernel:
             pass
         if getattr(self.physical_world, "enable_life_cycle", False):
             try:
-                self.physical_world.ensure_grid()
+                load_fn = getattr(self.physical_world, "load_population_csv", None)
+                if callable(load_fn):
+                    load_fn()
             except Exception:
                 pass
             for agent in self.agents.values():
                 try:
                     self.physical_world.ensure_agent(agent.id, agent.rng, self.clock.ticks_per_day)
+                except Exception:
+                    pass
+                try:
+                    scale = float(getattr(self.physical_world, "agent_scale", 1.0))
+                    agent.agent_weight = max(1.0, scale)
                 except Exception:
                     pass
 
@@ -162,32 +174,39 @@ class WorldKernel:
             self.start()
 
         for _ in range(num_ticks):
-            t = self.clock.t
+            with self.perf.time("tick"):
+                t = self.clock.t
 
-            # Budgets reset at the start of tick t (contract)
-            self._reset_tick_budgets(t)
+                # Budgets reset at the start of tick t (contract)
+                with self.perf.time("tick/reset_budgets"):
+                    self._reset_tick_budgets(t)
 
-            # 1) INGEST(t)
-            self.world_context.begin_phase(t, "INGEST")
-            self._ingest(t)
+                # 1) INGEST(t)
+                self.world_context.begin_phase(t, "INGEST")
+                with self.perf.time("phase/ingest"):
+                    self._ingest(t)
 
-            # 2) ACT_BATCH(t)
-            self.world_context.begin_phase(t, "ACT")
-            self._act_batch(t)
+                # 2) ACT_BATCH(t)
+                self.world_context.begin_phase(t, "ACT")
+                with self.perf.time("phase/act_batch"):
+                    self._act_batch(t)
 
-            # 3) PERCEIVE_BATCH(t)
-            self.world_context.begin_phase(t, "PERCEIVE")
-            self._perceive_batch(t)
+                # 3) PERCEIVE_BATCH(t)
+                self.world_context.begin_phase(t, "PERCEIVE")
+                with self.perf.time("phase/perceive_batch"):
+                    self._perceive_batch(t)
 
-            # 4) CONSOLIDATE(t)
-            self.world_context.begin_phase(t, "CONSOLIDATE")
-            self._consolidate(t)
+                # 4) CONSOLIDATE(t)
+                self.world_context.begin_phase(t, "CONSOLIDATE")
+                with self.perf.time("phase/consolidate"):
+                    self._consolidate(t)
 
-            # Clear buffers for this tick to keep memory bounded
-            self.world_context.clear_tick_buffers(t)
+                # Clear buffers for this tick to keep memory bounded
+                with self.perf.time("tick/clear_buffers"):
+                    self.world_context.clear_tick_buffers(t)
 
-            # Advance to next tick
-            self.clock.advance(1)
+                # Advance to next tick
+                self.clock.advance(1)
 
     # -------------------------
     # Phase implementations
@@ -209,16 +228,28 @@ class WorldKernel:
         """
         posted: List[ContentItem] = []
 
+        detailed = self.perf.enabled and self.perf.level == "detailed"
         for agent in self.agents.values():
             interaction = None
-            try:
-                interaction = agent.act(tick=t, context=self.world_context)
-            except TypeError:
-                # legacy signature support
+            if detailed:
+                with self.perf.time("act/agent"):
+                    try:
+                        interaction = agent.act(tick=t, context=self.world_context)
+                    except TypeError:
+                        # legacy signature support
+                        try:
+                            interaction = agent.act(self.world_context)
+                        except TypeError:
+                            interaction = agent.act(t)
+            else:
                 try:
-                    interaction = agent.act(self.world_context)
+                    interaction = agent.act(tick=t, context=self.world_context)
                 except TypeError:
-                    interaction = agent.act(t)
+                    # legacy signature support
+                    try:
+                        interaction = agent.act(self.world_context)
+                    except TypeError:
+                        interaction = agent.act(t)
 
             if interaction:
                 try:
@@ -241,11 +272,20 @@ class WorldKernel:
           - exogenous stimuli ingested in INGEST(t)
           - posts published in ACT_BATCH(t)
         """
+        detailed = self.perf.enabled and self.perf.level == "detailed"
         for stimulus in self.world_context.stimuli_by_tick.get(t, []):
-            self._deliver_stimulus(stimulus, t)
+            if detailed:
+                with self.perf.time("deliver/stimulus"):
+                    self._deliver_stimulus(stimulus, t)
+            else:
+                self._deliver_stimulus(stimulus, t)
 
         for content in self.world_context.posted_by_tick.get(t, []):
-            self._deliver_post(content, t)
+            if detailed:
+                with self.perf.time("deliver/post"):
+                    self._deliver_post(content, t)
+            else:
+                self._deliver_post(content, t)
 
     def _consolidate(self, t: int) -> None:
         """
@@ -370,21 +410,31 @@ class WorldKernel:
         )
 
         recipients = self._eligible_recipients_for_author(getattr(stimulus, "source", ""))
+        detailed = self.perf.enabled and self.perf.level == "detailed"
         for agent_id in recipients:
             agent = self.agents.get(agent_id)
             if not agent:
                 continue
             self._mark_perceived(agent, t)
-            agent.perceive(temp_content, self.world_context, stimulus_id=stimulus.id)
+            if detailed:
+                with self.perf.time("perceive/agent"):
+                    agent.perceive(temp_content, self.world_context, stimulus_id=stimulus.id)
+            else:
+                agent.perceive(temp_content, self.world_context, stimulus_id=stimulus.id)
 
     def _deliver_post(self, content: ContentItem, t: int) -> None:
         recipients = self._eligible_recipients_for_author(getattr(content, "author_id", ""))
+        detailed = self.perf.enabled and self.perf.level == "detailed"
         for agent_id in recipients:
             agent = self.agents.get(agent_id)
             if not agent:
                 continue
             self._mark_perceived(agent, t)
-            agent.perceive(content, self.world_context)
+            if detailed:
+                with self.perf.time("perceive/agent"):
+                    agent.perceive(content, self.world_context)
+            else:
+                agent.perceive(content, self.world_context)
 
     def _eligible_recipients_for_author(self, author_id: str) -> Set[str]:
         """

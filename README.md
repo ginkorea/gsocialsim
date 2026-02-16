@@ -180,6 +180,28 @@ Physical influence is explicitly modeled, not approximated.
 
 ---
 
+## Geo Data Pipeline
+
+For global placement using real population weights, download WorldPop tiles and aggregate to H3.
+
+Download WorldPop tiles (example 8x8 tiling). If you see HTTP 500 errors, reduce the tile size:
+
+```bash
+python scripts/geo_download_worldpop.py --year 2020 --bbox -60,-180,85,180 --tiles 8 --out data/geo/worldpop.tif
+# Safer fallback for ArcGIS limits:
+python scripts/geo_download_worldpop.py --year 2020 --bbox -60,-180,85,180 --tiles 8 --size 2048,2048 --out data/geo/worldpop.tif
+```
+
+Aggregate to H3:
+
+```bash
+python scripts/build_h3_population.py --tif-dir data/geo --res 6 --out data/geo/h3_population.csv
+# If you see ocean leakage or huge weights, clamp pixel values:
+python scripts/build_h3_population.py --tif-dir data/geo --res 6 --min-pop 1 --max-pop 10000000 --out data/geo/h3_population.csv
+```
+
+Then use `--geo-pop data/geo/h3_population.csv` with visualizers.
+
 ## Literature Alignment (Selected)
 
 We align mechanics to established findings. A short mapping and citations live in `docs/literature.md`.

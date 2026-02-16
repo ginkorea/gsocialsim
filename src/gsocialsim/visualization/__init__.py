@@ -22,3 +22,4 @@ from gsocialsim.visualization import exporter_agents_only  # noqa: F401
 from gsocialsim.visualization import exporter_bipartite  # noqa: F401
 from gsocialsim.visualization import exporter_threshold  # noqa: F401
 from gsocialsim.visualization import exporter_agents_platform  # noqa: F401
+from gsocialsim.visualization import exporter_geo_map  # noqa: F401
