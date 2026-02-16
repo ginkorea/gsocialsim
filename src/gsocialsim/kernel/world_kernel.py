@@ -117,6 +117,22 @@ class WorldKernel:
         if self._started:
             return
         self._started = True
+        # Seed trust values for existing follow edges.
+        try:
+            graph = getattr(self.network, "graph", None)
+            if graph:
+                following = getattr(graph, "_following", {}) or {}
+                for follower, followed_set in following.items():
+                    for followed in followed_set:
+                        trust = getattr(graph, "get_edge_trust", lambda *_: None)(follower, followed)
+                        if trust is not None:
+                            rel = self.gsr.get_relationship(follower, followed)
+                            try:
+                                rel.trust = max(0.0, min(1.0, float(trust)))
+                            except Exception:
+                                rel.trust = max(0.0, min(1.0, rel.trust))
+        except Exception:
+            pass
         if getattr(self.physical_world, "enable_life_cycle", False):
             try:
                 self.physical_world.ensure_grid()

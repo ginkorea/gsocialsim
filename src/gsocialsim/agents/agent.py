@@ -15,7 +15,7 @@ from gsocialsim.agents.belief_update_engine import BeliefUpdateEngine, BeliefDel
 from gsocialsim.stimuli.content_item import ContentItem
 from gsocialsim.policy.bandit_learner import BanditLearner, RewardVector
 from gsocialsim.stimuli.interaction import Interaction, InteractionVerb
-from gsocialsim.agents.impression import Impression
+from gsocialsim.agents.impression import Impression, IntakeMode
 
 if TYPE_CHECKING:
     from gsocialsim.kernel.world_kernel import WorldContext
@@ -70,6 +70,47 @@ class Agent:
                 self.recent_impressions.popitem(last=False)
         except Exception:
             # Fallback: do nothing on unexpected mapping issues
+            pass
+
+    def _update_trust_from_impression(
+        self,
+        context: "WorldContext",
+        content: ContentItem,
+        impression: Impression,
+        prior_stance: float,
+    ) -> None:
+        gsr = getattr(context, "gsr", None)
+        if gsr is None:
+            return
+        if content.author_id == self.id:
+            return
+
+        stance_diff = float(impression.stance_signal) - float(prior_stance)
+        alignment = 1.0 - min(1.0, abs(stance_diff) / 2.0)  # [0,1]
+
+        credibility = float(getattr(impression, "credibility_signal", 0.5))
+        credibility = self._clamp01(credibility)
+        threat = float(getattr(impression, "identity_threat", 0.0))
+        threat = self._clamp01(threat)
+
+        # Small, naturalistic adjustments; credibility and alignment build trust, threat erodes it.
+        delta = (0.015 * (alignment - 0.5)) + (0.01 * (credibility - 0.5)) - (0.02 * threat)
+
+        if impression.intake_mode == IntakeMode.PHYSICAL:
+            delta *= 1.5
+
+        try:
+            gsr.update_trust(self.id, content.author_id, delta)
+        except Exception:
+            pass
+
+        # Keep network edge trust in sync when possible (directional: viewer -> author)
+        try:
+            graph = getattr(context, "network", None)
+            graph = getattr(graph, "graph", None)
+            if graph:
+                graph.update_edge_trust(self.id, content.author_id, delta)
+        except Exception:
             pass
 
     def _should_defer_belief_updates(self, context: "WorldContext") -> bool:
@@ -175,6 +216,9 @@ class Agent:
 
         deferred = self._apply_or_queue_belief_delta(context, belief_delta)
 
+        # Trust update based on consumption (after delta compute to keep influence stable)
+        self._update_trust_from_impression(context, content, impression, old_stance)
+
         # If deferred, we cannot legally compute crossings/new stance yet (state unchanged).
         # Kernel CONSOLIDATE will apply and log belief updates.
         if deferred:
@@ -260,13 +304,27 @@ class Agent:
         )
 
         counts: dict[str, int] = {}
+        sums: dict[str, float] = {}
         for imp in self.daily_impressions_consumed:
             t = str(getattr(imp, "topic", ""))
             counts[t] = counts.get(t, 0) + 1
+            sums[t] = sums.get(t, 0.0) + float(getattr(imp, "stance_signal", 0.0))
 
         for topic, c in counts.items():
             self.beliefs.nudge_salience(topic, 0.02 * min(10, c))
             self.beliefs.nudge_knowledge(topic, 0.01 * min(10, c))
+
+            # Reflection: small stance drift toward the mean of consumed signals.
+            belief = self.beliefs.get(topic)
+            if belief is None:
+                continue
+            mean_signal = sums.get(topic, 0.0) / max(1, c)
+            openness = 1.0 - float(getattr(self.identity, "identity_rigidity", 0.5))
+            openness = max(0.0, min(1.0, openness))
+            step = 0.02 * openness
+            drift = (mean_signal - belief.stance) * step
+            if drift != 0.0:
+                self.beliefs.apply_delta(BeliefDelta(topic_id=topic, stance_delta=drift, confidence_delta=0.0))
 
         try:
             world_context.analytics.log_dream(

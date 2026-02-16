@@ -80,6 +80,17 @@ class GlobalSocialReality:
         key = self._get_key(u, v)
         self._relations[key] = vector
 
+    def update_trust(self, u: AgentId, v: AgentId, delta: float) -> float:
+        """
+        Adjust trust for a pair, clamped to [0,1]. Returns the new trust.
+        """
+        rel = self.get_relationship(u, v)
+        try:
+            rel.trust = _clamp01(float(rel.trust) + float(delta))
+        except Exception:
+            rel.trust = _clamp01(rel.trust)
+        return rel.trust
+
     # ----------------------------
     # Topic reality API (new)
     # ----------------------------

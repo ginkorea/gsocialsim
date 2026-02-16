@@ -48,6 +48,13 @@ class BeliefUpdateEngine:
         trust = self._clamp(trust, 0.0, 1.0)
 
         multiplier = 10.0 if impression.intake_mode == IntakeMode.PHYSICAL else 1.0
+        # In-person interaction tends to raise perceived trust.
+        trust_effect = min(1.0, trust + 0.15) if impression.intake_mode == IntakeMode.PHYSICAL else trust
+
+        # Credibility modulates influence strength but keeps default stable at 1.0.
+        credibility = float(getattr(impression, "credibility_signal", 0.5))
+        credibility = self._clamp(credibility, 0.0, 1.0)
+        credibility_mult = 0.5 + credibility  # 0.5..1.5, default=1.0
 
         # Self-source reinforcement (pondering / self-radicalization)
         is_self_source = bool(getattr(impression, "is_self_source", False))
@@ -62,8 +69,8 @@ class BeliefUpdateEngine:
             # Initialize beliefs conservatively (still scaled by trust)
             return BeliefDelta(
                 topic_id=topic_id,
-                stance_delta=float(impression.stance_signal) * trust * multiplier,
-                confidence_delta=(0.1 * trust * multiplier) + (0.03 * trust if is_self_source else 0.0),
+                stance_delta=float(impression.stance_signal) * trust_effect * multiplier,
+                confidence_delta=(0.1 * trust_effect * multiplier) + (0.03 * trust_effect if is_self_source else 0.0),
             )
 
         stance_difference = float(impression.stance_signal) - float(current_belief.stance)
@@ -77,20 +84,27 @@ class BeliefUpdateEngine:
         is_opposed = abs(stance_difference) > 1.0
 
         base_influence = 0.10
-        stance_change = stance_difference * base_influence * trust * multiplier
-        confidence_change = 0.02 * trust * multiplier
+        stance_change = stance_difference * base_influence * trust_effect * multiplier * credibility_mult
+        confidence_change = 0.02 * trust_effect * multiplier * credibility_mult
 
         if is_confirming:
             stance_change *= 1.1
-            confidence_change += 0.04 * trust * multiplier
+            confidence_change += 0.04 * trust_effect * multiplier
 
         if is_self_source:
-            confidence_change += 0.03 * trust
+            confidence_change += 0.03 * trust_effect
 
         if is_threatening and is_opposed:
             # push away from the threatening content and harden the belief
-            stance_change = -stance_difference * base_influence * trust * multiplier * 0.6
-            confidence_change += 0.05 * trust * multiplier
+            stance_change = -stance_difference * base_influence * trust_effect * multiplier * 0.6
+            confidence_change += 0.05 * trust_effect * multiplier
+        elif is_opposed:
+            # Non-hostile disagreement: allow some change if trust/credibility are high.
+            openness = 1.0 - float(getattr(viewer.identity, "identity_rigidity", 0.5))
+            openness = self._clamp(openness, 0.0, 1.0)
+            persuasive = trust_effect * credibility_mult
+            if persuasive >= 0.7:
+                confidence_change -= 0.01 * (0.3 + 0.7 * openness)
 
         return BeliefDelta(
             topic_id=topic_id,

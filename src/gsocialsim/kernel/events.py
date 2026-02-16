@@ -66,6 +66,18 @@ def _stimulus_stance(stimulus: "Stimulus") -> float:
     return max(-1.0, min(1.0, v))
 
 
+def _stimulus_identity_threat(stimulus: "Stimulus") -> Optional[float]:
+    raw = getattr(stimulus, "metadata", None) or {}
+    for key in ("identity_threat", "threat"):
+        if key in raw:
+            try:
+                v = float(raw.get(key))
+                return max(0.0, min(1.0, v))
+            except Exception:
+                return None
+    return None
+
+
 def _get_followers(context: "WorldContext", author_id: str) -> Set[str]:
     try:
         return set(context.network.graph.get_followers(author_id))
@@ -209,6 +221,8 @@ class StimulusPerceptionEvent(Event):
             author_id=stimulus.source,
             topic=topic,
             stance=_stimulus_stance(stimulus),
+            content_text=getattr(stimulus, "content_text", None),
+            identity_threat=_stimulus_identity_threat(stimulus),
             media_type=getattr(stimulus, "media_type", None),
             outlet_id=getattr(stimulus, "outlet_id", None),
             community_id=getattr(stimulus, "community_id", None),

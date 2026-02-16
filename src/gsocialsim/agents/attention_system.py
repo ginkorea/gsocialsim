@@ -95,6 +95,16 @@ class AttentionSystem:
         consumed_prob = self._clamp01(base_consume * consume_mult)
         interact_prob = self._clamp01(base_interact * interact_mult)
 
+        # Identity threat can be supplied by content or inferred from a simple flag.
+        identity_threat = 0.0
+        try:
+            if content.identity_threat is not None:
+                identity_threat = float(content.identity_threat)
+            elif getattr(content, "is_identity_threatening", False):
+                identity_threat = 1.0
+        except Exception:
+            identity_threat = 0.0
+
         imp = Impression(
             intake_mode=intake_mode,
             content_id=content.id,
@@ -103,7 +113,7 @@ class AttentionSystem:
             emotional_valence=0.0,
             arousal=0.0,
             credibility_signal=0.5,
-            identity_threat=0.0,
+            identity_threat=identity_threat,
             social_proof=0.0,
             relationship_strength_source=0.0,
             media_type=mt,

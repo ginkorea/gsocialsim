@@ -38,6 +38,7 @@ class CsvDataSource(DataSource):
     Optional columns:
       - topic
       - stance           (float in [-1, 1])
+      - identity_threat  (float in [0, 1])
       - media_type       (news, social_post, video, meme, longform, forum_thread)
       - creator_id       (for subscription targeting)
       - outlet_id        (for subscription targeting)
@@ -83,6 +84,13 @@ class CsvDataSource(DataSource):
                         stance_val = float(stance_raw)
                     except Exception:
                         stance_val = None
+                threat_raw = get(row, "identity_threat")
+                threat_val = None
+                if threat_raw is not None and str(threat_raw).strip() != "":
+                    try:
+                        threat_val = float(threat_raw)
+                    except Exception:
+                        threat_val = None
                 creator_id = _clean_opt_str(get(row, "creator_id"))
                 outlet_id = _clean_opt_str(get(row, "outlet_id"))
                 community_id = _clean_opt_str(get(row, "community_id"))
@@ -91,6 +99,8 @@ class CsvDataSource(DataSource):
                 metadata: Dict[str, Any] = {"topic": topic}
                 if stance_val is not None:
                     metadata["stance"] = stance_val
+                if threat_val is not None:
+                    metadata["identity_threat"] = threat_val
                 if media_type_raw is not None:
                     metadata["media_type"] = media_type_raw
                 if creator_id is not None:

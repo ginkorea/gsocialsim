@@ -19,6 +19,8 @@ class ContentItem:
       - media_type: used for consume vs interact weighting
       - outlet_id/community_id: supports subscription targeting in future layers
       - provenance: optional metadata chain (stimulus id, transform chain, etc.)
+      - content_text: optional raw text (for identity threat checks)
+      - identity_threat: optional precomputed threat signal [0,1]
     """
     id: ContentId
     author_id: ActorId
@@ -27,6 +29,8 @@ class ContentItem:
     is_identity_threatening: bool = False
 
     # --- new / optional (safe defaults) ---
+    content_text: Optional[str] = None
+    identity_threat: Optional[float] = None
     media_type: MediaType = MediaType.UNKNOWN
     outlet_id: Optional[str] = None
     community_id: Optional[str] = None
