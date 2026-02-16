@@ -56,6 +56,10 @@ class BeliefUpdateEngine:
         credibility = self._clamp(credibility, 0.0, 1.0)
         credibility_mult = 0.5 + credibility  # 0.5..1.5, default=1.0
 
+        primal_activation = float(getattr(impression, "primal_activation", 0.0))
+        primal_activation = self._clamp(primal_activation, 0.0, 1.0)
+        primal_mult = 1.0 + 0.25 * primal_activation
+
         # Self-source reinforcement (pondering / self-radicalization)
         is_self_source = bool(getattr(impression, "is_self_source", False))
         if is_self_source:
@@ -84,8 +88,8 @@ class BeliefUpdateEngine:
         is_opposed = abs(stance_difference) > 1.0
 
         base_influence = 0.10
-        stance_change = stance_difference * base_influence * trust_effect * multiplier * credibility_mult
-        confidence_change = 0.02 * trust_effect * multiplier * credibility_mult
+        stance_change = stance_difference * base_influence * trust_effect * multiplier * credibility_mult * primal_mult
+        confidence_change = 0.02 * trust_effect * multiplier * credibility_mult * primal_mult
 
         if is_confirming:
             stance_change *= 1.1

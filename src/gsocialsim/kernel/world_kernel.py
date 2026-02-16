@@ -117,6 +117,11 @@ class WorldKernel:
         if self._started:
             return
         self._started = True
+        try:
+            from gsocialsim.social.politics import seed_political_topics
+            seed_political_topics(self.gsr)
+        except Exception:
+            pass
         # Seed trust values for existing follow edges.
         try:
             graph = getattr(self.network, "graph", None)
@@ -354,6 +359,10 @@ class WorldKernel:
             author_id=getattr(stimulus, "source", "unknown"),
             topic=topic,
             stance=stance,
+            content_text=getattr(stimulus, "content_text", None),
+            identity_threat=getattr(stimulus, "identity_threat", None),
+            primal_triggers=list(getattr(stimulus, "primal_triggers", []) or []),
+            primal_intensity=getattr(stimulus, "primal_intensity", None),
             media_type=getattr(stimulus, "media_type", None),
             outlet_id=getattr(stimulus, "outlet_id", None),
             community_id=getattr(stimulus, "community_id", None),

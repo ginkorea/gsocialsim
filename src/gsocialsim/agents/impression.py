@@ -41,6 +41,7 @@ class Impression:
     media_type: MediaType = MediaType.UNKNOWN
     consumed_prob: float = 1.0              # Probability agent actually consumes (reads/watches)
     interact_prob: float = 0.0              # Probability agent interacts (like/comment/reshare/reply)
+    primal_activation: float = 0.0          # Neuromarketing-style activation [0,1]
 
     def clamp(self) -> None:
         """Keep probabilities and bounded signals sane."""
@@ -51,3 +52,4 @@ class Impression:
         self.relationship_strength_source = max(0.0, min(1.0, self.relationship_strength_source))
         self.consumed_prob = max(0.0, min(1.0, self.consumed_prob))
         self.interact_prob = max(0.0, min(1.0, self.interact_prob))
+        self.primal_activation = max(0.0, min(1.0, self.primal_activation))

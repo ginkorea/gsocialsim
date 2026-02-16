@@ -244,6 +244,8 @@ class StimulusPerceptionEvent(Event):
             stance=_stimulus_stance(stimulus),
             content_text=getattr(stimulus, "content_text", None),
             identity_threat=_stimulus_identity_threat(stimulus),
+            primal_triggers=list(getattr(stimulus, "primal_triggers", []) or []),
+            primal_intensity=getattr(stimulus, "primal_intensity", None),
             media_type=getattr(stimulus, "media_type", None),
             outlet_id=getattr(stimulus, "outlet_id", None),
             community_id=getattr(stimulus, "community_id", None),

@@ -152,6 +152,7 @@ Each exposure produces:
 - identity threat
 - social proof
 - relationship strength of source
+- primal activation (optional)
 
 Impressions decay rapidly.
 
@@ -168,6 +169,7 @@ Belief updates are bounded and depend on:
 - repetition
 - social proof
 - relationship strength
+- primal activation (neuromarketing-style)
 
 Political salience can amplify identity threat and resistance.
 
@@ -177,6 +179,7 @@ Political salience can amplify identity threat and resistance.
 - Agents carry a `political_lean` and `partisanship` strength.
 - High political salience + high partisanship increases identity threat from opposing content.
 - Non-hostile disagreement can still reduce confidence and allow gradual change.
+- A default seed set of common political topics is provided for realistic initial distributions.
 
 Beliefs do not random-walk.
 

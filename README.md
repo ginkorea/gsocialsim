@@ -108,6 +108,12 @@ External data enters the world as **Stimuli**:
 
 Stimuli are transformed into internal content items and logged as exposure events.
 
+Optional neuromarketing fields:
+- `primal_triggers` (e.g., `personal,contrast,tangible,memorable,visual,emotion`)
+- `primal_intensity` in [0,1]
+
+These are abstracted as a bounded persuasion multiplier.
+
 ---
 
 ### Belief Update & Crossing Detection
@@ -133,6 +139,9 @@ The model includes a lightweight political identity system:
 - topics can be marked with **political salience**
 - politically salient topics can raise **identity threat** and increase resistance
 - non-hostile disagreement can still reduce confidence and enable gradual belief change
+
+Default political topic seeds live in `gsocialsim.social.politics.DEFAULT_POLITICAL_TOPICS`
+and are used by `generate_agent(...)` to initialize left/right-leaning stances.
 
 ---
 
@@ -179,6 +188,8 @@ Selected references:
 - Pettigrew & Tropp (2006), *Journal of Personality and Social Psychology*
 - Iyengar et al. (2012), *Public Opinion Quarterly*
 - Wood & Porter (2019), *Political Behavior*
+- Renvoise & Morin (2007), *Neuromarketing*
+- Morin & Renvoise (2018), *The Persuasion Code*
 
 ---
 

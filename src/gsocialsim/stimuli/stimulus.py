@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 
 class MediaType(str, Enum):
@@ -61,6 +61,8 @@ class Stimulus:
     topic_hint: Optional[str] = None
     stance_hint: Optional[float] = None
     political_salience: Optional[float] = None
+    primal_triggers: Optional[List[str]] = None
+    primal_intensity: Optional[float] = None
 
     # freeform extensibility
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -113,6 +115,36 @@ class Stimulus:
         if self.political_salience is not None:
             self.political_salience = max(0.0, min(1.0, self.political_salience))
             self.metadata.setdefault("political_salience", self.political_salience)
+
+        # Primal triggers/intensity
+        if self.primal_triggers is None:
+            raw = self.metadata.get("primal_triggers")
+            if isinstance(raw, str):
+                tokens = [t.strip().lower() for t in raw.replace("|", ",").split(",")]
+                self.primal_triggers = [t for t in tokens if t]
+            elif isinstance(raw, list):
+                self.primal_triggers = [str(t).strip().lower() for t in raw if str(t).strip()]
+            else:
+                self.primal_triggers = []
+        else:
+            self.primal_triggers = [str(t).strip().lower() for t in self.primal_triggers if str(t).strip()]
+        if self.primal_triggers:
+            self.metadata.setdefault("primal_triggers", list(self.primal_triggers))
+
+        if self.primal_intensity is None:
+            raw = self.metadata.get("primal_intensity")
+            try:
+                self.primal_intensity = float(raw) if raw is not None else None
+            except Exception:
+                self.primal_intensity = None
+        else:
+            try:
+                self.primal_intensity = float(self.primal_intensity)
+            except Exception:
+                self.primal_intensity = None
+        if self.primal_intensity is not None:
+            self.primal_intensity = max(0.0, min(1.0, self.primal_intensity))
+            self.metadata.setdefault("primal_intensity", self.primal_intensity)
 
         # Subscription-related IDs can live in metadata too (keeps CSV simple).
         if self.creator_id is None:

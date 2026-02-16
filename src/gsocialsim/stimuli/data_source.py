@@ -40,6 +40,8 @@ class CsvDataSource(DataSource):
       - stance           (float in [-1, 1])
       - identity_threat  (float in [0, 1])
       - political_salience (float in [0, 1])
+      - primal_triggers  (csv list: e.g. "self,contrast,visual")
+      - primal_intensity (float in [0, 1])
       - media_type       (news, social_post, video, meme, longform, forum_thread)
       - creator_id       (for subscription targeting)
       - outlet_id        (for subscription targeting)
@@ -99,6 +101,18 @@ class CsvDataSource(DataSource):
                         pol_val = float(pol_raw)
                     except Exception:
                         pol_val = None
+                primal_raw = get(row, "primal_triggers")
+                primal_triggers = None
+                if primal_raw is not None and str(primal_raw).strip() != "":
+                    tokens = [t.strip().lower() for t in str(primal_raw).replace("|", ",").split(",")]
+                    primal_triggers = [t for t in tokens if t]
+                primal_intensity_raw = get(row, "primal_intensity")
+                primal_intensity_val = None
+                if primal_intensity_raw is not None and str(primal_intensity_raw).strip() != "":
+                    try:
+                        primal_intensity_val = float(primal_intensity_raw)
+                    except Exception:
+                        primal_intensity_val = None
                 creator_id = _clean_opt_str(get(row, "creator_id"))
                 outlet_id = _clean_opt_str(get(row, "outlet_id"))
                 community_id = _clean_opt_str(get(row, "community_id"))
@@ -111,6 +125,10 @@ class CsvDataSource(DataSource):
                     metadata["identity_threat"] = threat_val
                 if pol_val is not None:
                     metadata["political_salience"] = pol_val
+                if primal_triggers is not None:
+                    metadata["primal_triggers"] = primal_triggers
+                if primal_intensity_val is not None:
+                    metadata["primal_intensity"] = primal_intensity_val
                 if media_type_raw is not None:
                     metadata["media_type"] = media_type_raw
                 if creator_id is not None:
@@ -132,6 +150,8 @@ class CsvDataSource(DataSource):
                     topic_hint=topic,
                     stance_hint=stance_val,
                     political_salience=pol_val,
+                    primal_triggers=primal_triggers,
+                    primal_intensity=primal_intensity_val,
                     metadata=metadata,
                 )
 

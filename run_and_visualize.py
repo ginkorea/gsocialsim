@@ -3,6 +3,7 @@ from typing import Any, Dict
 
 from gsocialsim.kernel.world_kernel import WorldKernel
 from gsocialsim.agents.agent import Agent
+from gsocialsim.agents.generation import generate_agent
 from gsocialsim.types import AgentId, TopicId
 from gsocialsim.social.relationship_vector import RelationshipVector
 from gsocialsim.stimuli.data_source import CsvDataSource
@@ -15,31 +16,29 @@ from gsocialsim.visualization import ExportRequest, get_exporter, list_exporters
 def setup_simulation_scenario(kernel: WorldKernel, *, stimuli_csv: str = "stimuli.csv"):
     print("Setting up simulation scenario...")
 
-    agent_A = Agent(id=AgentId("A"), seed=1)
-    agent_B = Agent(id=AgentId("B"), seed=2)
-    agent_C = Agent(id=AgentId("C (Source)"), seed=3)
-    agent_D = Agent(id=AgentId("D (Lurker)"), seed=4)
-
-    agents = [agent_A, agent_B, agent_C, agent_D]
-
     topics = [
         TopicId("T_Original"),
         TopicId("T_Science"),
-        TopicId("T_Politics"),
-        TopicId("T_Economy"),
-        TopicId("T_Culture"),
+        TopicId("T_POLITICS"),
+        TopicId("T_ECONOMY"),
+        TopicId("T_CULTURE"),
         TopicId("T_Memes"),
         TopicId("T_Sports"),
-        TopicId("T_Security"),
+        TopicId("T_SECURITY"),
     ]
+
+    agent_A = generate_agent(agent_id=AgentId("A"), seed=1, topics=topics)
+    agent_B = generate_agent(agent_id=AgentId("B"), seed=2, topics=topics)
+    agent_C = generate_agent(agent_id=AgentId("C (Source)"), seed=3, topics=topics)
+    agent_D = generate_agent(agent_id=AgentId("D (Lurker)"), seed=4, topics=topics)
+
+    agents = [agent_A, agent_B, agent_C, agent_D]
 
     # Enable life-cycle model with a 10x10 grid
     kernel.physical_world.enable_life_cycle = True
     kernel.physical_world.grid_size = 10
 
     for a in agents:
-        for t in topics:
-            a.beliefs.update(t, stance=0.0, confidence=0.5, salience=0.1, knowledge=0.1)
         kernel.agents.add_agent(a)
 
     graph = kernel.world_context.network.graph

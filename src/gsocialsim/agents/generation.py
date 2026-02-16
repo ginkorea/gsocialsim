@@ -9,6 +9,7 @@ from gsocialsim.agents.identity_state import IdentityState
 from gsocialsim.agents.emotion_state import EmotionState
 from gsocialsim.agents.reward_weights import RewardWeights
 from gsocialsim.types import AgentId, TopicId
+from gsocialsim.social.politics import DEFAULT_POLITICAL_TOPICS, sample_political_stance
 
 
 @dataclass(frozen=True)
@@ -141,9 +142,19 @@ def generate_agent(
 
     # Seed beliefs
     for topic in topics:
+        if topic in DEFAULT_POLITICAL_TOPICS:
+            stance = sample_political_stance(
+                local_rng,
+                lean=agent.identity.political_lean,
+                partisanship=agent.identity.partisanship,
+                seed=DEFAULT_POLITICAL_TOPICS[topic],
+            )
+        else:
+            stance = _stance_from_big5(local_rng, big5)
+
         agent.beliefs.update(
             topic_id=topic,
-            stance=_stance_from_big5(local_rng, big5),
+            stance=stance,
             confidence=_confidence_from_big5(big5),
             salience=_salience_from_big5(big5),
             knowledge=_knowledge_from_big5(big5),

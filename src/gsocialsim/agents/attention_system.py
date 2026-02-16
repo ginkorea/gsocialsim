@@ -72,6 +72,30 @@ class AttentionSystem:
         IntakeMode.DEEP_FOCUS: 3.00,  # deep focus is expensive
     }
 
+    _PRIMAL_BASE_BY_MEDIA = {
+        MediaType.VIDEO: 0.25,
+        MediaType.MEME: 0.20,
+        MediaType.SOCIAL_POST: 0.15,
+        MediaType.NEWS: 0.10,
+        MediaType.LONGFORM: 0.08,
+        MediaType.FORUM_THREAD: 0.08,
+        MediaType.UNKNOWN: 0.0,
+    }
+
+    _PRIMAL_TRIGGER_WEIGHT = {
+        "self": 0.12,
+        "personal": 0.12,
+        "contrast": 0.10,
+        "contrastable": 0.10,
+        "tangible": 0.10,
+        "start_end": 0.08,
+        "beginning_end": 0.08,
+        "memorable": 0.08,
+        "visual": 0.12,
+        "emotion": 0.12,
+        "emotional": 0.12,
+    }
+
     @staticmethod
     def _clamp01(x: float) -> float:
         return max(0.0, min(1.0, x))
@@ -94,6 +118,22 @@ class AttentionSystem:
 
         consumed_prob = self._clamp01(base_consume * consume_mult)
         interact_prob = self._clamp01(base_interact * interact_mult)
+
+        # Optional primal activation (neuromarketing-style)
+        triggers = getattr(content, "primal_triggers", []) or []
+        intensity = getattr(content, "primal_intensity", None)
+        primal_activation = 0.0
+        if triggers or intensity is not None:
+            base = float(self._PRIMAL_BASE_BY_MEDIA.get(mt, 0.0))
+            trig = 0.0
+            for t in triggers:
+                trig += float(self._PRIMAL_TRIGGER_WEIGHT.get(str(t).strip().lower(), 0.05))
+            if intensity is not None:
+                try:
+                    trig += 0.4 * float(intensity)
+                except Exception:
+                    pass
+            primal_activation = self._clamp01(base + trig)
 
         # Identity threat can be supplied by content or inferred from a simple flag.
         identity_threat = 0.0
@@ -119,6 +159,7 @@ class AttentionSystem:
             media_type=mt,
             consumed_prob=consumed_prob,
             interact_prob=interact_prob,
+            primal_activation=primal_activation,
         )
         imp.clamp()
 
