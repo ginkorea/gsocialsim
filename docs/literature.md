@@ -20,6 +20,30 @@ mechanisms implemented in code.
 - **Primal brain activation (SalesBrain)** -> optional primal trigger fields increase
   persuasion when present (abstracted to a bounded multiplier).
 
+## Default Political Topic Seeds (US-centric)
+
+These are used for initial stance distributions and political salience defaults:
+
+- T_POLITICS / T_Politics: salience 0.90, anchors -0.8 / +0.8
+- T_ECONOMY / T_Economy: salience 0.65, anchors -0.6 / +0.6
+- T_TAXES: salience 0.75, anchors -0.7 / +0.7
+- T_HEALTHCARE: salience 0.70, anchors -0.6 / +0.6
+- T_IMMIGRATION: salience 0.80, anchors -0.7 / +0.7
+- T_GUNS: salience 0.85, anchors -0.8 / +0.8
+- T_ABORTION: salience 0.90, anchors -0.85 / +0.85
+- T_CLIMATE: salience 0.80, anchors -0.7 / +0.7
+- T_ENERGY: salience 0.60, anchors -0.5 / +0.5
+- T_EDUCATION: salience 0.55, anchors -0.5 / +0.5
+- T_CRIME: salience 0.70, anchors -0.6 / +0.6
+- T_RACE: salience 0.80, anchors -0.7 / +0.7
+- T_FOREIGN_POLICY: salience 0.60, anchors -0.5 / +0.5
+- T_CULTURE / T_Culture: salience 0.55, anchors -0.4 / +0.4
+- T_SECURITY / T_Security: salience 0.70, anchors -0.6 / +0.6
+
+For non-US contexts, override these in code by editing
+`gsocialsim.social.politics.DEFAULT_POLITICAL_TOPICS` or at runtime
+via `seed_political_topics(...)`.
+
 ## References (Selected)
 
 - Kunda, Z. (1990). *The case for motivated reasoning.* Psychological Bulletin.

@@ -74,6 +74,8 @@ Agents are long-lived and stateful:
 - per-tick time budget (minutes), no banking
 - emotional and identity state
 - political identity (lean + partisanship strength)
+- multi-dimensional political identity (economic/social/security/environment/culture)
+- group identities (immutable demographics + mutable affiliations)
 - personality-weighted reward preferences
 - adaptive policies learned over time
  - dynamic trust on network edges
@@ -142,6 +144,8 @@ The model includes a lightweight political identity system:
 
 Default political topic seeds live in `gsocialsim.social.politics.DEFAULT_POLITICAL_TOPICS`
 and are used by `generate_agent(...)` to initialize left/right-leaning stances.
+
+See `docs/literature.md` for the default topic list and salience anchors.
 
 ---
 

@@ -16,6 +16,7 @@ from gsocialsim.stimuli.content_item import ContentItem
 from gsocialsim.policy.bandit_learner import BanditLearner, RewardVector
 from gsocialsim.stimuli.interaction import Interaction, InteractionVerb
 from gsocialsim.agents.impression import Impression, IntakeMode
+from gsocialsim.social.politics import DEFAULT_POLITICAL_TOPICS, effective_lean
 
 if TYPE_CHECKING:
     from gsocialsim.kernel.world_kernel import WorldContext
@@ -100,10 +101,13 @@ class Agent:
             if gsr is not None:
                 pol_sal = float(getattr(gsr.ensure_topic(content.topic), "political_salience", 0.0))
                 if pol_sal > 0.0:
+                    seed = DEFAULT_POLITICAL_TOPICS.get(content.topic)
                     lean = float(getattr(self.identity, "political_lean", 0.0))
+                    dims = getattr(self.identity, "political_dimensions", None)
+                    lean_eff = effective_lean(lean, dims, seed) if seed is not None else lean
                     part = float(getattr(self.identity, "partisanship", 0.0))
-                    alignment = float(impression.stance_signal) * lean
-                    pol_threat = pol_sal * max(0.0, -alignment) * max(0.0, min(1.0, part))
+                    pol_alignment = float(impression.stance_signal) * lean_eff
+                    pol_threat = pol_sal * max(0.0, -pol_alignment) * max(0.0, min(1.0, part))
         except Exception:
             pol_threat = 0.0
 
@@ -111,6 +115,38 @@ class Agent:
         delta = (0.015 * (alignment - 0.5)) + (0.01 * (credibility - 0.5)) - (0.02 * threat)
         if pol_threat > 0.0:
             delta -= 0.02 * pol_threat
+
+        # Group identity similarity nudges trust (small effect).
+        try:
+            author = context.agents.get(content.author_id)
+        except Exception:
+            author = None
+        if author is not None:
+            try:
+                demo_a = getattr(self.identity, "demographics", {}) or {}
+                demo_b = getattr(author.identity, "demographics", {}) or {}
+                if demo_a and demo_b:
+                    keys = set(demo_a.keys()) | set(demo_b.keys())
+                    matches = 0
+                    for k in keys:
+                        if demo_a.get(k) == demo_b.get(k):
+                            matches += 1
+                    match_frac = matches / max(1, len(keys))
+                    delta += 0.01 * (match_frac - 0.5)
+            except Exception:
+                pass
+            try:
+                ga = getattr(self.identity, "group_affiliations", {}) or {}
+                gb = getattr(author.identity, "group_affiliations", {}) or {}
+                if ga and gb:
+                    overlap = 0.0
+                    for g, s in ga.items():
+                        if g in gb:
+                            overlap += min(float(s), float(gb[g]))
+                    overlap = min(1.0, overlap)
+                    delta += 0.02 * (overlap - 0.2)
+            except Exception:
+                pass
 
         if impression.intake_mode == IntakeMode.PHYSICAL:
             delta *= 1.5
@@ -132,12 +168,15 @@ class Agent:
             return
 
         try:
+            seed = DEFAULT_POLITICAL_TOPICS.get(impression.topic)
             lean = float(getattr(self.identity, "political_lean", 0.0))
+            dims = getattr(self.identity, "political_dimensions", None)
+            lean_eff = effective_lean(lean, dims, seed) if seed is not None else lean
             part = float(getattr(self.identity, "partisanship", 0.0))
         except Exception:
             return
 
-        alignment = float(impression.stance_signal) * lean
+        alignment = float(impression.stance_signal) * lean_eff
         pol_threat = pol_sal * max(0.0, -alignment) * max(0.0, min(1.0, part))
         if pol_threat > 0.0:
             try:

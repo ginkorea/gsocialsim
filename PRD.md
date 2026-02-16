@@ -83,6 +83,9 @@ Most cycles result in **no visible action**, mirroring real human behavior.
 - `taboo_boundaries`
 - `political_lean` ∈ [-1,1]
 - `partisanship` ∈ [0,1]
+- `political_dimensions` (economic/social/security/environment/culture)
+- `demographics` (immutable group tags)
+- `group_affiliations` (mutable group strengths)
 
 #### Beliefs (Topic-Based, Fast-Changing)
 For each topic:

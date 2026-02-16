@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Set, Iterable, Optional
+from typing import List, Set, Iterable, Optional, Dict
 import random
 
 from gsocialsim.agents.impression import Impression
@@ -15,6 +15,9 @@ class IdentityState:
     taboo_boundaries: Set[str] = field(default_factory=set)
     political_lean: float = 0.0        # [-1,1] left/right axis (0 = neutral)
     partisanship: float = 0.5          # [0,1] strength of partisan identity
+    political_dimensions: Dict[str, float] = field(default_factory=dict)  # e.g., economic/social/security
+    demographics: Dict[str, str] = field(default_factory=dict)            # immutable group tags
+    group_affiliations: Dict[str, float] = field(default_factory=dict)    # mutable group strengths [0,1]
 
     def is_threatening(self, content_text: str) -> bool:
         """A simple check to see if content text contains taboo keywords."""
