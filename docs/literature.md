@@ -6,16 +6,16 @@ mechanisms implemented in code.
 
 ## Model-to-Literature Mapping (Selected)
 
-- **Motivated reasoning / identity protection** → identity threat gating, backfire
+- **Motivated reasoning / identity protection** -> identity threat gating, backfire
   on hostile opposing content, and self-reinforcement in consolidation.
-- **Confirmation bias** → aligned content increases confidence more than opposing content.
-- **Source credibility & trust** → influence strength scales by trust and credibility.
-- **Homophily & tie strength** → trust updates rise with alignment and decay with threat.
-- **Intergroup contact** → physical (in‑person) interactions boost trust and
+- **Confirmation bias** -> aligned content increases confidence more than opposing content.
+- **Source credibility & trust** -> influence strength scales by trust and credibility.
+- **Homophily & tie strength** -> trust updates rise with alignment and decay with threat.
+- **Intergroup contact** -> physical (in‑person) interactions boost trust and
   can support cross‑cutting influence.
-- **Affective polarization** → politically salient topics increase identity threat
+- **Affective polarization** -> politically salient topics increase identity threat
   and resistance when content is opposed.
-- **Backfire evidence is mixed** → backfire is conditional (requires high threat),
+- **Backfire evidence is mixed** -> backfire is conditional (requires high threat),
   leaving open non‑hostile change paths.
 
 ## References (Selected)
