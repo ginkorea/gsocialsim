@@ -225,24 +225,49 @@ void WorldKernel::_perceive_batch(int t) {
         if (!followers.empty()) {
             for (const auto& rid : followers) {
                 if (auto* agent = agents.get(rid)) {
-                    agent->enqueue_content(ptr, t, t, content.social_proof);
+                    double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
+                    double mutual_raw = 0.0;
+                    if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
+                        mutual_raw = *mv;
+                    }
+                    double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
+                    agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
                 }
             }
             if (auto* agent = agents.get(content.author_id)) {
-                agent->enqueue_content(ptr, t, t, content.social_proof);
+                agent->enqueue_content(ptr, t, t, content.social_proof, 1.0, 1.0);
             }
         } else if (max_recipients_per_content == 0 || max_recipients_per_content >= agent_ptr_cache.size()) {
             for (auto* agent : agent_ptr_cache) {
-                agent->enqueue_content(ptr, t, t, content.social_proof);
+                double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
+                double mutual_raw = 0.0;
+                if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
+                    mutual_raw = *mv;
+                }
+                double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
+                agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
             }
         } else {
             if (fallback_count == 0) {
                 for (auto* agent : agent_ptr_cache) {
-                    agent->enqueue_content(ptr, t, t, content.social_proof);
+                    double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
+                    double mutual_raw = 0.0;
+                    if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
+                        mutual_raw = *mv;
+                    }
+                    double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
+                    agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
                 }
             } else {
                 for (size_t i = 0; i < fallback_count; ++i) {
-                    agent_ptr_cache[fallback_indices[i]]->enqueue_content(ptr, t, t, content.social_proof);
+                    Agent* agent = agent_ptr_cache[fallback_indices[i]];
+                    double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
+                    double mutual_raw = 0.0;
+                    if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
+                        mutual_raw = *mv;
+                    }
+                    double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
+                    agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
                 }
             }
         }
@@ -255,24 +280,49 @@ void WorldKernel::_perceive_batch(int t) {
         if (!followers.empty()) {
             for (const auto& rid : followers) {
                 if (auto* agent = agents.get(rid)) {
-                    agent->enqueue_content(ptr, t, t, content.social_proof);
+                    double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
+                    double mutual_raw = 0.0;
+                    if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
+                        mutual_raw = *mv;
+                    }
+                    double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
+                    agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
                 }
             }
             if (auto* agent = agents.get(content.author_id)) {
-                agent->enqueue_content(ptr, t, t, content.social_proof);
+                agent->enqueue_content(ptr, t, t, content.social_proof, 1.0, 1.0);
             }
         } else if (max_recipients_per_content == 0 || max_recipients_per_content >= agent_ptr_cache.size()) {
             for (auto* agent : agent_ptr_cache) {
-                agent->enqueue_content(ptr, t, t, content.social_proof);
+                double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
+                double mutual_raw = 0.0;
+                if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
+                    mutual_raw = *mv;
+                }
+                double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
+                agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
             }
         } else {
             if (fallback_count == 0) {
                 for (auto* agent : agent_ptr_cache) {
-                    agent->enqueue_content(ptr, t, t, content.social_proof);
+                    double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
+                    double mutual_raw = 0.0;
+                    if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
+                        mutual_raw = *mv;
+                    }
+                    double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
+                    agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
                 }
             } else {
                 for (size_t i = 0; i < fallback_count; ++i) {
-                    agent_ptr_cache[fallback_indices[i]]->enqueue_content(ptr, t, t, content.social_proof);
+                    Agent* agent = agent_ptr_cache[fallback_indices[i]];
+                    double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
+                    double mutual_raw = 0.0;
+                    if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
+                        mutual_raw = *mv;
+                    }
+                    double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
+                    agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
                 }
             }
         }
@@ -306,8 +356,8 @@ void WorldKernel::_perceive_batch(int t) {
                 if (tval.has_value()) trust = tval.value();
 
                 agent.time_remaining = rem;
-                double proximity = geo.enable_life_cycle ? geo.proximity(agent.id, content.author_id) : 0.0;
-                auto plan = agent.plan_perception(content, trust, proximity, true, std::nullopt);
+                trust = clamp01(trust + mutual_trust_weight * next->mutual_score);
+                auto plan = agent.plan_perception(content, trust, next->proximity, true, std::nullopt);
                 agent.apply_perception_plan_local(plan, rem, &out);
                 agent.time_remaining = rem;
             }

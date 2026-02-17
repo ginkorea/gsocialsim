@@ -24,6 +24,12 @@ static bool parse_int(const std::string& v, int& out) {
     }
 }
 
+static double clamp01(double v) {
+    if (v < 0.0) return 0.0;
+    if (v > 1.0) return 1.0;
+    return v;
+}
+
 int main(int argc, char** argv) {
     std::string stimuli_path;
     std::string timing_out;
@@ -89,22 +95,90 @@ int main(int argc, char** argv) {
     }
 
     if (avg_following > 0 && agents > 1) {
-        std::uniform_int_distribution<int> pick(0, agents - 1);
+        int k = std::min(avg_following, agents - 1);
+        kernel.mutual_norm = static_cast<double>(k);
+
+        std::vector<std::vector<int>> by_cell;
+        std::vector<std::vector<int>> by_country;
+        std::unordered_map<std::string, int> cell_index;
+        std::unordered_map<std::string, int> country_index;
+
+        if (kernel.geo.enable_life_cycle && kernel.geo.population_loaded) {
+            for (int i = 0; i < agents; ++i) {
+                AgentId aid = "A" + std::to_string(i);
+                kernel.geo.ensure_agent(aid, kernel.rng);
+                const auto& loc = kernel.geo.agent_home[aid];
+                if (!loc.cell_id.empty()) {
+                    auto it = cell_index.find(loc.cell_id);
+                    if (it == cell_index.end()) {
+                        int idx = static_cast<int>(by_cell.size());
+                        cell_index[loc.cell_id] = idx;
+                        by_cell.push_back({});
+                        it = cell_index.find(loc.cell_id);
+                    }
+                    by_cell[it->second].push_back(i);
+                }
+                if (!loc.country.empty()) {
+                    auto it = country_index.find(loc.country);
+                    if (it == country_index.end()) {
+                        int idx = static_cast<int>(by_country.size());
+                        country_index[loc.country] = idx;
+                        by_country.push_back({});
+                        it = country_index.find(loc.country);
+                    }
+                    by_country[it->second].push_back(i);
+                }
+            }
+        }
+
+        std::uniform_int_distribution<int> pick_global(0, agents - 1);
         for (int i = 0; i < agents; ++i) {
             AgentId follower = "A" + std::to_string(i);
-            int k = std::min(avg_following, agents - 1);
             std::unordered_set<int> chosen;
             chosen.reserve(static_cast<size_t>(k));
-            while (static_cast<int>(chosen.size()) < k) {
-                int j = pick(kernel.rng);
-                if (j == i) continue;
-                chosen.insert(j);
+
+            int k_local = static_cast<int>(std::round(k * 0.6));
+            int k_country = static_cast<int>(std::round(k * 0.3));
+            int k_global = k - k_local - k_country;
+
+            auto add_from_bucket = [&](const std::vector<int>& bucket, int target) {
+                if (bucket.empty()) return;
+                std::uniform_int_distribution<int> pick(0, static_cast<int>(bucket.size()) - 1);
+                int attempts = 0;
+                while (static_cast<int>(chosen.size()) < k && target > 0 && attempts < target * 5) {
+                    int candidate = bucket[pick(kernel.rng)];
+                    if (candidate != i) {
+                        chosen.insert(candidate);
+                        --target;
+                    }
+                    ++attempts;
+                }
+            };
+
+            if (!by_cell.empty() && kernel.geo.population_loaded) {
+                const auto& loc = kernel.geo.agent_home[follower];
+                auto it = cell_index.find(loc.cell_id);
+                if (it != cell_index.end()) {
+                    add_from_bucket(by_cell[it->second], k_local);
+                }
+                auto itc = country_index.find(loc.country);
+                if (itc != country_index.end()) {
+                    add_from_bucket(by_country[itc->second], k_country);
+                }
             }
+
+            while (static_cast<int>(chosen.size()) < k) {
+                int candidate = pick_global(kernel.rng);
+                if (candidate == i) continue;
+                chosen.insert(candidate);
+            }
+
             for (int j : chosen) {
                 AgentId followed = "A" + std::to_string(j);
                 kernel.network.graph.add_edge(follower, followed, 0.5);
             }
         }
+        kernel.network.graph.compute_edge_mutual();
     }
 
     if (!kernel.geo.population_csv_path.empty()) {

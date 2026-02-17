@@ -113,8 +113,20 @@ public:
         std::vector<std::pair<AgentId, BeliefDelta>>* out_deltas = nullptr
     );
 
-    void enqueue_content(const Content& content, int tick, int current_tick, double engagement, double proximity = 0.0);
-    void enqueue_content(const Content* content, int tick, int current_tick, double engagement, double proximity = 0.0);
+    void enqueue_content(
+        const Content& content,
+        int tick,
+        int current_tick,
+        double engagement,
+        double proximity = 0.0,
+        double mutual_score = 0.0);
+    void enqueue_content(
+        const Content* content,
+        int tick,
+        int current_tick,
+        double engagement,
+        double proximity = 0.0,
+        double mutual_score = 0.0);
     std::optional<FeedItem> dequeue_next_content();
     void clear_feed();
 

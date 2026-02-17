@@ -87,6 +87,9 @@ struct WorldKernel {
     bool enable_timing = false;
     size_t max_recipients_per_content = 200; // 0 = broadcast to all when no followers
 
+    double mutual_trust_weight = 0.2;
+    double mutual_norm = 50.0;
+
     struct TimingStat {
         double total = 0.0;
         double max = 0.0;

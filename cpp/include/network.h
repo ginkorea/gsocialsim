@@ -17,6 +17,9 @@ public:
     const std::unordered_set<AgentId>& get_following_ref(const AgentId& agent_id) const;
     std::optional<double> get_edge_trust(const AgentId& follower, const AgentId& followed) const;
     std::optional<double> update_edge_trust(const AgentId& follower, const AgentId& followed, double delta);
+    size_t mutual_following_count(const AgentId& a, const AgentId& b) const;
+    void compute_edge_mutual();
+    std::optional<double> get_edge_mutual(const AgentId& follower, const AgentId& followed) const;
 
 private:
     std::unordered_map<AgentId, std::unordered_set<AgentId>> following_;
@@ -27,6 +30,7 @@ private:
         }
     };
     std::unordered_map<std::pair<AgentId, AgentId>, double, PairHash> edge_trust_;
+    std::unordered_map<std::pair<AgentId, AgentId>, double, PairHash> edge_mutual_;
     static const std::unordered_set<AgentId>& empty_set();
 };
 
