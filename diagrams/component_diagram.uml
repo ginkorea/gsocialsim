@@ -57,6 +57,13 @@ component "Event Logs" as LOGS
 component "Metrics + Reports
 (Delivery + Media KPIs)" as MET
 
+component "Population Layer" as PL
+component "Population Grid (Hex Cells)" as PG
+component "Segment Engine
+(Identity Mix + Traits)" as SE
+component "Population Update Engine" as PUE
+component "CUDA Backend (optional)" as CUDA
+
 WK --> ES
 WK --> DR
 WK --> AE
@@ -66,6 +73,7 @@ WK --> SI
 WK --> MI
 WK --> GA
 WK --> AL
+WK --> PL
 
 AE --> ARL
 AE --> MS
@@ -115,5 +123,14 @@ AL --> LOGS
 AL --> MET
 BF --> AL : delivery records
 ATTN --> AL : impressions + consume/interact
+
+PL --> PG
+PL --> SE
+PL --> PUE
+PUE --> CUDA
+BF --> PL : population exposures
+DM --> PL : population exposures
+PL --> AL : population metrics
+PL --> AE : aggregated audience feedback
 
 @enduml

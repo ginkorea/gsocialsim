@@ -19,6 +19,9 @@ mechanisms implemented in code.
   leaving open non-hostile change paths.
 - **Primal brain activation (SalesBrain)** -> optional primal trigger fields increase
   persuasion when present (abstracted to a bounded multiplier).
+- **Opinion dynamics / social influence** -> bounded confidence, inertia, and anchoring models
+  for belief updates and resistance to change.
+- **Threshold contagion** -> multi‑hit requirement before adoption or belief movement.
 
 ## Default Political Topic Seeds (US-centric)
 
@@ -56,3 +59,7 @@ via `seed_political_topics(...)`.
 - Renvoise, P., & Morin, C. (2007). *Neuromarketing: Understanding the Buy Buttons in Your Customer's Brain.* HarperCollins Leadership.
 - Morin, C., & Renvoise, P. (2018). *The Persuasion Code: How Neuromarketing Can Help You Persuade Anyone, Anywhere, Anytime.* Wiley.
 - Plassmann, H., Ramsoy, T. Z., & Milosavljevic, M. (2012). *Branding the brain: A critical review.* Journal of Consumer Psychology.
+- DeGroot, M. H. (1974). *Reaching a consensus.* Journal of the American Statistical Association.
+- Friedkin, N. E., & Johnsen, E. C. (1999). *Social influence networks and opinion change.* Advances in Group Processes.
+- Hegselmann, R., & Krause, U. (2002). *Opinion dynamics and bounded confidence models.* Journal of Artificial Societies and Social Simulation.
+- Granovetter, M. (1978). *Threshold models of collective behavior.* American Journal of Sociology.

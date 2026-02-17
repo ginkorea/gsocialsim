@@ -45,6 +45,7 @@ class WorldContext {
   +content: ContentStore
   +physical: PhysicalWorld
   +stimuli: StimulusStore
+  +populations: PopulationLayer
   +analytics: Analytics
   +rng: RNG
 }
@@ -53,6 +54,112 @@ WorldKernel --> SimClock
 WorldKernel --> EventScheduler
 WorldKernel --> DeterministicReplay
 WorldKernel --> WorldContext
+
+'========================
+' Population Layer (Segmented Audiences)
+'========================
+class PopulationLayer {
+  +grid: PopulationGrid
+  +segments: SegmentCatalog
+  +update(exposures: List<PopulationExposure>)
+  +sampleAudience(content: ContentItem): PopulationReach
+}
+
+class PopulationGrid {
+  +cells: Map<CellId, PopulationCell>
+  +get(cellId: CellId): PopulationCell
+}
+
+class PopulationCell {
+  +id: CellId
+  +population: int
+  +segment_mix: SegmentMix
+  +beliefs: Map<TopicId, BeliefDistribution>
+  +exposure: ExposureAccumulator
+  +applyUpdate(engine: PopulationUpdateEngine)
+}
+
+class SegmentCatalog {
+  +segments: Map<SegmentId, PopulationSegment>
+  +get(id: SegmentId): PopulationSegment
+}
+
+class PopulationSegment {
+  +id: SegmentId
+  +traits: TraitVector
+  +baseline_beliefs: Map<TopicId, BeliefDistribution>
+  +trust_profile: TrustProfile
+  +media_habits: MediaHabits
+}
+
+class SegmentMix {
+  +weights: Map<SegmentId,float>  '[0,1] sums to 1
+}
+
+class TraitVector {
+  +identity_vector: float[8..16]
+  +identity_rigidity: float
+  +attention_budget: float
+  +susceptibility: float
+  +polarization: float
+}
+
+class BeliefDistribution {
+  +mean: float         '[-1,+1]
+  +variance: float     '[0,1]
+  +momentum: float     'inertia/velocity
+  +core_value: float   'rebound anchor
+}
+
+class ExposureAccumulator {
+  +events: List<PopulationExposure>
+  +accumulate(e: PopulationExposure)
+  +clear()
+}
+
+class PopulationExposure {
+  +timestamp: long
+  +cell_id: CellId
+  +source: ActorId
+  +topic: TopicId
+  +stance: float
+  +strength: float
+  +channel: ChannelType
+}
+
+class PopulationUpdateEngine {
+  +apply(cell: PopulationCell, segments: SegmentCatalog)
+  +cuda_backend: bool
+}
+
+class PopulationReach {
+  +cell_id: CellId
+  +exposed: int
+  +consumed: int
+  +engaged: int
+}
+
+class TrustProfile {
+  +by_actor: Map<ActorId,float>
+  +by_channel: Map<ChannelType,float>
+}
+
+class MediaHabits {
+  +scroll_bias: float
+  +seek_bias: float
+  +physical_bias: float
+}
+
+WorldContext --> PopulationLayer
+PopulationLayer --> PopulationGrid
+PopulationLayer --> SegmentCatalog
+PopulationGrid o-- PopulationCell
+PopulationCell *-- SegmentMix
+PopulationCell *-- ExposureAccumulator
+PopulationLayer --> PopulationUpdateEngine
+PopulationSegment *-- TraitVector
+PopulationSegment *-- TrustProfile
+PopulationSegment *-- MediaHabits
 
 '========================
 ' Agents

@@ -45,6 +45,12 @@ phase-contract kernel, deterministic runs, and batch-friendly execution.
 - Note: C++ should output structured logs to drive current visualizations
 - Status: active (C++ `state.json` + `analytics.csv` wired to Python exporters via `cpp/render_from_cpp.py`)
 
+## Module 8: Population Layer (Hybrid)
+- Target: segmented audiences per hex cell with distributions + optional micro‑matrices for focused cells
+- Scope: population grid, segment catalog, exposure aggregation, update engine
+- Status: planned
+- CUDA: likely home for GPU acceleration (population update kernels)
+
 ## Recent Updates (2026-02-17)
 - C++ analytics default to summary mode; detailed mode required for visualization exports.
 - Added `--export-state` and `--export-dir` to write `reports/state.json`.
@@ -54,7 +60,7 @@ phase-contract kernel, deterministic runs, and batch-friendly execution.
 - Visualization: influence edges now colored by direction; agents colored by political lean.
 - Graph layout stabilized (physics settle + freeze) with tunable spread/seed options in renderer.
 
-## Module 8: Performance + Parallelism
+## Module 9: Performance + Parallelism
 - Target: batch data structures + threading
 - Scope: agent-centric batches, SIMD-friendly structures, optional OpenMP
 

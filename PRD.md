@@ -93,6 +93,39 @@ The platform is intended for **research, experimentation, and counterfactual ana
 - Trust gate (superlinear):
   `trust_effect = trust^γ` (γ in 2–4) so low trust yields near‑zero influence.
 
+### TODO (Next)
+
+- Population layer (hybrid): hex‑cell populations with segment mixes + optional micro‑matrix individuals for focused cells.
+- UML drift audit: conceptual vs implemented vs drift, then roadmap to converge.
+
+### UML Drift Audit (Conceptual vs Implemented)
+
+**Conceptual goal (UML source of truth)**
+- Full capability target in `diagrams/` (class/component/sequence).
+- Includes subscriptions, multi‑layer networks, platform mechanics, and now a population layer.
+
+**Implemented as designed (current repo)**
+- C++ kernel phases, agents, stimuli ingestion, follow graph + trust, optional geo.
+- Analytics: impressions, belief deltas, interactions (detailed) + summary mode.
+- Export bridge: `reports/state.json` + `reports/analytics.csv` + Python renderers.
+
+**Design drift (implemented but not in original UML)**
+- Analytics summary vs detailed mode.
+- C++ export pipeline + Python visualization bridge.
+- Network generation modes (grouped/random/geo + outliers/hubs).
+- Visualization stabilization (physics settle then freeze).
+
+**Gaps (conceptual UML not yet implemented)**
+- Subscription service + opt‑in feed semantics.
+- Multi‑layer network manager with platform mechanics and delivery records.
+- Population layer (segmented audiences) + CUDA backend.
+
+**Roadmap to converge**
+1. Update conceptual UML to reflect current export + network/visualization mechanics.
+2. Port subscription service + delivery records into C++.
+3. Implement population layer (hybrid: distributions + optional micro‑matrices).
+4. Add CUDA backend for population update engine.
+
 ---
 
 ## 4. Agents

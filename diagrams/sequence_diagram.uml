@@ -24,6 +24,8 @@ participant "BeliefUpdateEngine" as BUE
 participant "ActionPolicy" as POL
 participant "GlobalSocialReality" as GSR
 participant "Analytics" as AL
+participant "PopulationLayer" as PL
+participant "PopulationUpdateEngine" as PUE
 
 == Tick Start / Scheduled Events ==
 WK -> ES: nextEvents(tick)
@@ -117,6 +119,13 @@ loop for each viewer agent (consumer)
     end
   end
 end
+
+== Population Aggregation (Hex Cells / Segments) ==
+WK -> PL: collectPopulationExposures(tick)
+PL -> PUE: applyUpdates()
+PUE --> PL: [PopulationMetrics]
+PL -> AL: logPopulationMetrics()
+PL -> WK: audienceFeedback()
 
 == Online Delivery: Direct Messages ==
 loop for each viewer agent
