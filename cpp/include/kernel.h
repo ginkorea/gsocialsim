@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "agent.h"
+#include "geo_world.h"
 #include "global_social_reality.h"
 #include "network.h"
 #include "stimulus_ingestion.h"
@@ -107,6 +108,7 @@ struct WorldKernel {
     NetworkLayer network;
     GlobalSocialReality gsr;
     StimulusIngestionEngine stimulus_engine;
+    GeoWorld geo;
 
     uint32_t seed = 123;
     std::mt19937 rng = std::mt19937(seed);

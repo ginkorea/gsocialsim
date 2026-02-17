@@ -14,6 +14,7 @@ add_executable(gsocialsim_cpp
     src/network.cpp
     src/global_social_reality.cpp
     src/feed_queue.cpp
+    src/geo_world.cpp
     src/utils.cpp
 )
 

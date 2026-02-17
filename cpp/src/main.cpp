@@ -106,6 +106,10 @@ int main(int argc, char** argv) {
         }
     }
 
+    if (!kernel.geo.population_csv_path.empty()) {
+        kernel.geo.load_population_csv();
+    }
+
     const int log_every = std::max(1, ticks / 10);
     auto start = std::chrono::steady_clock::now();
     for (int t = 0; t < ticks; ++t) {

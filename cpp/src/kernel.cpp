@@ -93,6 +93,9 @@ static inline void refresh_agent_cache(WorldKernel& kernel) {
 void WorldKernel::start() {
     if (started) return;
     rng.seed(seed);
+    if (geo.enable_life_cycle) {
+        geo.load_population_csv();
+    }
     started = true;
 }
 
@@ -162,6 +165,9 @@ void WorldKernel::_reset_tick_budgets(int /*t*/) {
     double minutes_per_tick = static_cast<double>(clock.seconds_per_tick) / 60.0;
     for (size_t i = 0; i < agent_ptr_cache.size(); ++i) {
         Agent& agent = *agent_ptr_cache[i];
+        if (geo.enable_life_cycle) {
+            geo.ensure_agent(agent.id, rng);
+        }
         agent.reset_time(minutes_per_tick);
         context.set_time_budget(agent.id, minutes_per_tick);
     }
@@ -300,7 +306,8 @@ void WorldKernel::_perceive_batch(int t) {
                 if (tval.has_value()) trust = tval.value();
 
                 agent.time_remaining = rem;
-                auto plan = agent.plan_perception(content, trust, 0.0, true, std::nullopt);
+                double proximity = geo.enable_life_cycle ? geo.proximity(agent.id, content.author_id) : 0.0;
+                auto plan = agent.plan_perception(content, trust, proximity, true, std::nullopt);
                 agent.apply_perception_plan_local(plan, rem, &out);
                 agent.time_remaining = rem;
             }

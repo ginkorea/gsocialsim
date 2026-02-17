@@ -14,14 +14,17 @@ static double recency_score(int tick, int current_tick) {
     return 1.0 / (1.0 + static_cast<double>(age));
 }
 
-void FeedPriorityQueue::push(const Content* content, int tick, int current_tick, double engagement) {
+void FeedPriorityQueue::push(const Content* content, int tick, int current_tick, double engagement, double proximity) {
     if (!content) return;
     FeedItem item;
     item.content = content;
     item.tick = tick;
     item.engagement = clamp01(engagement);
+    item.proximity = clamp01(proximity);
     double recency = recency_score(tick, current_tick);
-    item.score = (recency_weight_ * recency) + (engagement_weight_ * item.engagement);
+    item.score = (recency_weight_ * recency) +
+                 (engagement_weight_ * item.engagement) +
+                 (proximity_weight_ * item.proximity);
     heap_.push(item);
 }
 

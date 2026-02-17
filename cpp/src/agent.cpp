@@ -472,13 +472,13 @@ void Agent::apply_perception_plan_local(
     }
 }
 
-void Agent::enqueue_content(const Content& content, int tick, int current_tick, double engagement) {
-    feed_queue.push(&content, tick, current_tick, engagement);
+void Agent::enqueue_content(const Content& content, int tick, int current_tick, double engagement, double proximity) {
+    feed_queue.push(&content, tick, current_tick, engagement, proximity);
 }
 
-void Agent::enqueue_content(const Content* content, int tick, int current_tick, double engagement) {
+void Agent::enqueue_content(const Content* content, int tick, int current_tick, double engagement, double proximity) {
     if (!content) return;
-    feed_queue.push(content, tick, current_tick, engagement);
+    feed_queue.push(content, tick, current_tick, engagement, proximity);
 }
 
 std::optional<FeedItem> Agent::dequeue_next_content() {
