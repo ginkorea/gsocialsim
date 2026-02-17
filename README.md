@@ -259,7 +259,7 @@ Edges represent realized influence, not just potential.
 
 ---
 
-## Running the Simulator
+## Running the Simulator (C++ Primary)
 
 ### Install
 
@@ -272,23 +272,52 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ````
 
-### Run a Demo
+### Build (C++)
+
+```bash
+cmake -S cpp -B cpp/build
+cmake --build cpp/build
+```
+
+### Run (C++)
+
+```bash
+./cpp/build/gsocialsim_cpp --stimuli stimuli.csv --ticks 288 --agents 1000 \
+  --analytics --analytics-mode detailed --export-state
+```
+
+Outputs:
+
+```text
+reports/analytics.csv
+reports/state.json
+```
+
+### Render Visuals (Python)
+
+```bash
+python3 cpp/render_from_cpp.py --viz full --out reports/influence_graph.html
+```
+
+Other visualizations:
+
+```text
+reports/influence_graph.html
+reports/agents_only.html
+reports/bipartite.html
+reports/platform.html
+reports/threshold.html
+```
+
+Open them in a browser.
+
+### Legacy Python Demo
+
+The original Python simulator is still available for reference:
 
 ```bash
 python3 run_and_visualize.py
 ```
-
-Outputs one or more HTML files (depending on exporter selection), e.g.:
-
-```text
-influence_graph.html
-agents_only.html
-bipartite.html
-platform.html
-threshold.html
-```
-
-Open them in a browser.
 
 ---
 
@@ -325,6 +354,7 @@ The guiding question:
 ## Project Structure
 
 ```
+cpp/                # C++ engine + CLI
 src/gsocialsim/
 ├── agents/          # agent state, beliefs, attention, personality
 ├── analytics/       # metrics and attribution
