@@ -210,17 +210,12 @@ void WorldKernel::_perceive_batch(int t) {
         return &tick_content.back();
     };
 
-    std::vector<size_t> fallback_indices;
-    size_t fallback_count = 0;
-    if (max_recipients_per_content > 0 && max_recipients_per_content < agent_ptr_cache.size()) {
-        fallback_indices.resize(agent_ptr_cache.size());
-        for (size_t i = 0; i < fallback_indices.size(); ++i) fallback_indices[i] = i;
-        std::shuffle(fallback_indices.begin(), fallback_indices.end(), rng);
-        fallback_count = max_recipients_per_content;
-    }
+    std::unordered_map<AgentId, const Content*> latest_post_by_author;
+    latest_post_by_author.reserve(context.posted_by_tick[t].size());
 
     for (const auto& content : context.posted_by_tick[t]) {
         const Content* ptr = add_content(content);
+        latest_post_by_author[content.author_id] = ptr;
         const auto& followers = network.graph.get_followers_ref(content.author_id);
         if (!followers.empty()) {
             for (const auto& rid : followers) {
@@ -237,39 +232,8 @@ void WorldKernel::_perceive_batch(int t) {
             if (auto* agent = agents.get(content.author_id)) {
                 agent->enqueue_content(ptr, t, t, content.social_proof, 1.0, 1.0);
             }
-        } else if (max_recipients_per_content == 0 || max_recipients_per_content >= agent_ptr_cache.size()) {
-            for (auto* agent : agent_ptr_cache) {
-                double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
-                double mutual_raw = 0.0;
-                if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
-                    mutual_raw = *mv;
-                }
-                double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
-                agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
-            }
         } else {
-            if (fallback_count == 0) {
-                for (auto* agent : agent_ptr_cache) {
-                    double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
-                    double mutual_raw = 0.0;
-                    if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
-                        mutual_raw = *mv;
-                    }
-                    double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
-                    agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
-                }
-            } else {
-                for (size_t i = 0; i < fallback_count; ++i) {
-                    Agent* agent = agent_ptr_cache[fallback_indices[i]];
-                    double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
-                    double mutual_raw = 0.0;
-                    if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
-                        mutual_raw = *mv;
-                    }
-                    double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
-                    agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
-                }
-            }
+            // Unfollowed authors are not broadcast; discovery path handles them.
         }
     }
 
@@ -292,38 +256,85 @@ void WorldKernel::_perceive_batch(int t) {
             if (auto* agent = agents.get(content.author_id)) {
                 agent->enqueue_content(ptr, t, t, content.social_proof, 1.0, 1.0);
             }
-        } else if (max_recipients_per_content == 0 || max_recipients_per_content >= agent_ptr_cache.size()) {
-            for (auto* agent : agent_ptr_cache) {
-                double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
-                double mutual_raw = 0.0;
-                if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
-                    mutual_raw = *mv;
-                }
-                double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
-                agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
-            }
         } else {
-            if (fallback_count == 0) {
-                for (auto* agent : agent_ptr_cache) {
-                    double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
-                    double mutual_raw = 0.0;
-                    if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
-                        mutual_raw = *mv;
-                    }
-                    double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
-                    agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
+            // Unfollowed authors are not broadcast; discovery path handles them.
+        }
+    }
+
+    std::vector<const Content*> discovery_pool;
+    if (!tick_content.empty() && discovery_pool_size > 0) {
+        discovery_pool.reserve(tick_content.size());
+        for (const auto& c : tick_content) {
+            discovery_pool.push_back(&c);
+        }
+        size_t pool = std::min(discovery_pool_size, discovery_pool.size());
+        std::partial_sort(
+            discovery_pool.begin(),
+            discovery_pool.begin() + static_cast<long>(pool),
+            discovery_pool.end(),
+            [](const Content* a, const Content* b) {
+                return a->social_proof > b->social_proof;
+            });
+        discovery_pool.resize(pool);
+    }
+
+    if (geo.enable_life_cycle && offline_contacts_per_tick > 0) {
+        std::uniform_real_distribution<double> u01(0.0, 1.0);
+        for (auto* agent : agent_ptr_cache) {
+            const auto& peers = geo.peers_in_cell(agent->id);
+            if (peers.size() <= 1) continue;
+            double hour = (static_cast<double>(clock.tick_of_day()) / std::max(1, clock.ticks_per_day)) * 24.0;
+            double time_factor = (hour >= 8.0 && hour <= 20.0) ? 1.2 : (hour >= 6.0 && hour < 8.0 ? 0.8 : 0.5);
+            int age = agent->identity.age_years;
+            double age_factor = (age < 25) ? 1.3 : (age < 40 ? 1.1 : (age < 60 ? 0.9 : 0.6));
+            int target = static_cast<int>(std::round(offline_contacts_per_tick * time_factor * age_factor));
+            if (target < 1) continue;
+            target = std::min<int>(target, 4);
+            target = std::min<int>(target, static_cast<int>(peers.size()) - 1);
+            int attempts = 0;
+            int selected = 0;
+            while (selected < target && attempts < target * 5) {
+                ++attempts;
+                std::uniform_int_distribution<size_t> pick(0, peers.size() - 1);
+                const AgentId& other_id = peers[pick(rng)];
+                if (other_id == agent->id) continue;
+                auto it = latest_post_by_author.find(other_id);
+                if (it == latest_post_by_author.end()) continue;
+
+                double proximity = geo.proximity(agent->id, other_id);
+                if (proximity <= 0.0) continue;
+
+                int age_a = agent->identity.age_years;
+                int age_b = age_a;
+                if (auto itb = agents.get(other_id)) {
+                    age_b = itb->identity.age_years;
                 }
-            } else {
-                for (size_t i = 0; i < fallback_count; ++i) {
-                    Agent* agent = agent_ptr_cache[fallback_indices[i]];
-                    double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
-                    double mutual_raw = 0.0;
-                    if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
-                        mutual_raw = *mv;
-                    }
-                    double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
-                    agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
+                double age_sim = 1.0 - std::min(1.0, std::abs(age_a - age_b) / 40.0);
+
+                double lean_a = agent->identity.political_lean;
+                double lean_b = lean_a;
+                if (auto itb = agents.get(other_id)) {
+                    lean_b = itb->identity.political_lean;
                 }
+                double align = 1.0 - std::min(1.0, std::abs(lean_a - lean_b) / 2.0);
+
+                int demo_match = 0;
+                if (auto itb = agents.get(other_id)) {
+                    if (!agent->identity.sex.empty() && agent->identity.sex == itb->identity.sex) demo_match++;
+                    if (!agent->identity.race.empty() && agent->identity.race == itb->identity.race) demo_match++;
+                }
+                double demo_score = demo_match > 0 ? (demo_match / 2.0) : 0.0;
+
+                double mutual_raw = static_cast<double>(network.graph.mutual_following_count(agent->id, other_id));
+                double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
+
+                double prob = offline_base_prob * proximity;
+                prob *= (1.0 + 0.25 * align + 0.15 * age_sim + 0.15 * demo_score + 0.2 * mutual_score);
+                prob = clamp01(prob);
+                if (u01(rng) > prob) continue;
+
+                agent->enqueue_content(it->second, t, t, it->second->social_proof, proximity, mutual_score);
+                selected++;
             }
         }
     }
@@ -345,6 +356,46 @@ void WorldKernel::_perceive_batch(int t) {
             Agent& agent = *agent_ptr_cache[i];
             double rem = remaining_cache[i];
             if (rem <= 0.0) continue;
+
+            if (!discovery_pool.empty() && discovery_max_per_tick > 0) {
+                int min_k = std::max(0, discovery_min_per_tick);
+                int max_k = std::max(min_k, discovery_max_per_tick);
+                std::uniform_int_distribution<int> pick_k(min_k, max_k);
+                int target = pick_k(rng);
+                if (target > 0) {
+                    const auto& following = network.graph.get_following_ref(agent.id);
+                    std::uniform_int_distribution<size_t> pick_idx(0, discovery_pool.size() - 1);
+                    int attempts = 0;
+                    int selected = 0;
+                    while (selected < target && attempts < target * 5) {
+                        ++attempts;
+                        const Content* cand = discovery_pool[pick_idx(rng)];
+                        if (!cand) continue;
+                        if (cand->author_id == agent.id) continue;
+                        if (following.find(cand->author_id) != following.end()) continue;
+
+                        double align = 0.5;
+                        if (auto author = agents.get(cand->author_id)) {
+                            double diff = std::abs(agent.identity.political_lean - author->identity.political_lean);
+                            align = 1.0 - std::min(1.0, diff / 2.0);
+                        }
+                        double mutual_raw = 0.0;
+                        if (auto mv = network.graph.get_edge_mutual(agent.id, cand->author_id)) {
+                            mutual_raw = *mv;
+                        }
+                        double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
+                        double popularity = clamp01(cand->social_proof);
+
+                        double p = clamp01(0.4 * align + 0.3 * mutual_score + 0.3 * popularity);
+                        std::uniform_real_distribution<double> u01(0.0, 1.0);
+                        if (u01(rng) > p) continue;
+
+                        double proximity = geo.enable_life_cycle ? 0.2 * geo.proximity(agent.id, cand->author_id) : 0.0;
+                        agent.enqueue_content(cand, t, t, cand->social_proof, proximity, mutual_score);
+                        selected++;
+                    }
+                }
+            }
             while (rem > 0.0) {
                 auto next = agent.dequeue_next_content();
                 if (!next.has_value()) break;

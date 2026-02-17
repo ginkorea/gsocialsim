@@ -41,8 +41,10 @@ struct GeoWorld {
     GeoPopulationSampler population;
     std::unordered_map<AgentId, GeoLocation> agent_home;
     std::unordered_map<AgentId, double> agent_social_factor;
+    std::unordered_map<std::string, std::vector<AgentId>> cell_agents;
 
     void load_population_csv();
     void ensure_agent(const AgentId& agent_id, std::mt19937& rng);
     double proximity(const AgentId& a, const AgentId& b) const;
+    const std::vector<AgentId>& peers_in_cell(const AgentId& agent_id) const;
 };

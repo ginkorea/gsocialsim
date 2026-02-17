@@ -85,10 +85,15 @@ struct WorldKernel {
     bool enable_parallel = true;
     size_t parallel_workers = 0;
     bool enable_timing = false;
-    size_t max_recipients_per_content = 200; // 0 = broadcast to all when no followers
+    size_t max_recipients_per_content = 0; // deprecated
 
     double mutual_trust_weight = 0.2;
     double mutual_norm = 50.0;
+    int offline_contacts_per_tick = 2;
+    double offline_base_prob = 0.6;
+    int discovery_min_per_tick = 1;
+    int discovery_max_per_tick = 3;
+    size_t discovery_pool_size = 200;
 
     struct TimingStat {
         double total = 0.0;

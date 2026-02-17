@@ -112,6 +112,7 @@ void GeoWorld::ensure_agent(const AgentId& agent_id, std::mt19937& rng) {
     agent_home[agent_id] = loc;
     std::uniform_real_distribution<double> dist(0.2, 1.0);
     agent_social_factor[agent_id] = dist(rng);
+    cell_agents[loc.cell_id].push_back(agent_id);
 }
 
 double GeoWorld::proximity(const AgentId& a, const AgentId& b) const {
@@ -124,4 +125,13 @@ double GeoWorld::proximity(const AgentId& a, const AgentId& b) const {
         return 0.2;
     }
     return 0.0;
+}
+
+const std::vector<AgentId>& GeoWorld::peers_in_cell(const AgentId& agent_id) const {
+    static const std::vector<AgentId> empty;
+    auto it = agent_home.find(agent_id);
+    if (it == agent_home.end()) return empty;
+    auto itc = cell_agents.find(it->second.cell_id);
+    if (itc == cell_agents.end()) return empty;
+    return itc->second;
 }

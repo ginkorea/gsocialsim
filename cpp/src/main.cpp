@@ -12,7 +12,7 @@ static void usage() {
     std::cout << "Usage: gsocialsim_cpp --stimuli <path> --ticks <n> --agents <n> "
                  "[--timing] [--timing-out <path>] [--timing-top <n>] "
                  "[--parallel-workers <n>] [--no-parallel] [--seed <n>] "
-                 "[--avg-following <n>] [--max-recipients <n>]\n";
+                 "[--avg-following <n>]\n";
 }
 
 static bool parse_int(const std::string& v, int& out) {
@@ -30,6 +30,33 @@ static double clamp01(double v) {
     return v;
 }
 
+static void assign_demographics(Agent& agent, std::mt19937& rng) {
+    std::normal_distribution<double> age_dist(35.0, 18.0);
+    int age = static_cast<int>(std::round(age_dist(rng)));
+    if (age < 18) age = 18;
+    if (age > 80) age = 80;
+    agent.identity.age_years = age;
+
+    std::uniform_real_distribution<double> u01(0.0, 1.0);
+    double r = u01(rng);
+    agent.identity.sex = (r < 0.5) ? "female" : "male";
+
+    double rr = u01(rng);
+    if (rr < 0.60) agent.identity.race = "white";
+    else if (rr < 0.73) agent.identity.race = "black";
+    else if (rr < 0.91) agent.identity.race = "latino";
+    else if (rr < 0.97) agent.identity.race = "asian";
+    else agent.identity.race = "other";
+
+    std::uniform_real_distribution<double> lean_dist(-1.0, 1.0);
+    agent.identity.political_lean = lean_dist(rng);
+    agent.identity.partisanship = clamp01(u01(rng));
+
+    agent.identity.demographics["age"] = std::to_string(agent.identity.age_years);
+    agent.identity.demographics["sex"] = agent.identity.sex;
+    agent.identity.demographics["race"] = agent.identity.race;
+}
+
 int main(int argc, char** argv) {
     std::string stimuli_path;
     std::string timing_out;
@@ -41,7 +68,6 @@ int main(int argc, char** argv) {
     bool enable_parallel = true;
     int seed = 123;
     int avg_following = 50;
-    int max_recipients = 200;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -65,8 +91,6 @@ int main(int argc, char** argv) {
             parse_int(argv[++i], seed);
         } else if (arg == "--avg-following" && i + 1 < argc) {
             parse_int(argv[++i], avg_following);
-        } else if (arg == "--max-recipients" && i + 1 < argc) {
-            parse_int(argv[++i], max_recipients);
         } else if (arg == "--help" || arg == "-h") {
             usage();
             return 0;
@@ -82,15 +106,13 @@ int main(int argc, char** argv) {
     }
     kernel.seed = static_cast<uint32_t>(seed);
     kernel.rng.seed(kernel.seed);
-    if (max_recipients >= 0) {
-        kernel.max_recipients_per_content = static_cast<size_t>(max_recipients);
-    }
     if (!stimuli_path.empty()) {
         kernel.stimulus_engine.register_data_source(std::make_shared<CsvDataSource>(stimuli_path));
     }
 
     for (int i = 0; i < agents; ++i) {
         Agent a("A" + std::to_string(i), static_cast<uint32_t>(i + 1));
+        assign_demographics(a, kernel.rng);
         kernel.agents.add_agent(a);
     }
 

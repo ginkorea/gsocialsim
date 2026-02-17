@@ -73,6 +73,9 @@ struct IdentityState {
     std::unordered_set<std::string> taboo_boundaries;
     double political_lean = 0.0;
     double partisanship = 0.0;
+    int age_years = 35;
+    std::string sex = "unknown";
+    std::string race = "unknown";
     std::unordered_map<std::string, double> political_dimensions;
     std::unordered_map<std::string, std::string> demographics;
     std::unordered_map<std::string, double> group_affiliations;
