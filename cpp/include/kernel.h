@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -126,12 +127,33 @@ struct WorldKernel {
     std::vector<Agent*> agent_ptr_cache;
     std::vector<double> remaining_cache;
 
+    enum class AnalyticsMode {
+        Summary,
+        Detailed
+    };
+
+    struct AnalyticsSummary {
+        int tick = 0;
+        uint64_t impressions = 0;
+        uint64_t consumed = 0;
+        uint64_t belief_deltas = 0;
+
+        void reset(int t) {
+            tick = t;
+            impressions = 0;
+            consumed = 0;
+            belief_deltas = 0;
+        }
+    };
+
     // Analytics (lightweight)
     bool enable_analytics = false;
-    std::string analytics_path = "analytics.csv";
+    AnalyticsMode analytics_mode = AnalyticsMode::Summary;
+    std::string analytics_path = "reports/analytics.csv";
     std::vector<std::string> analytics_buffer;
     size_t analytics_flush_every = 1000;
     std::mutex analytics_mutex;
+    AnalyticsSummary analytics_summary;
     void analytics_log(int tick, const std::string& type, const std::string& payload);
     void analytics_flush();
 

@@ -66,14 +66,43 @@ void WorldKernel::_record_timing(const std::string& name, double seconds) {
 
 void WorldKernel::analytics_log(int tick, const std::string& type, const std::string& payload) {
     if (!enable_analytics) return;
+    std::lock_guard<std::mutex> lock(analytics_mutex);
+    if (analytics_mode == AnalyticsMode::Summary) {
+        if (analytics_summary.tick != tick) {
+            analytics_summary.reset(tick);
+        }
+        if (type == "impression") {
+            analytics_summary.impressions += 1;
+            if (payload.find("|consumed=1") != std::string::npos) {
+                analytics_summary.consumed += 1;
+            }
+        } else if (type == "belief_delta") {
+            analytics_summary.belief_deltas += 1;
+        }
+        return;
+    }
     std::ostringstream os;
     os << tick << "," << type << "," << payload;
-    std::lock_guard<std::mutex> lock(analytics_mutex);
     analytics_buffer.push_back(os.str());
 }
 
 void WorldKernel::analytics_flush() {
     if (!enable_analytics) return;
+    if (analytics_mode == AnalyticsMode::Summary) {
+        AnalyticsSummary snap;
+        {
+            std::lock_guard<std::mutex> lock(analytics_mutex);
+            snap = analytics_summary;
+        }
+        std::ofstream out(analytics_path, std::ios::app);
+        if (!out.is_open()) return;
+        out << snap.tick << ",summary"
+            << ",impressions=" << snap.impressions
+            << "|consumed=" << snap.consumed
+            << "|belief_deltas=" << snap.belief_deltas
+            << "\n";
+        return;
+    }
     std::vector<std::string> local;
     {
         std::lock_guard<std::mutex> lock(analytics_mutex);
@@ -132,6 +161,10 @@ void WorldKernel::step(int num_ticks) {
     for (int i = 0; i < num_ticks; ++i) {
         int t = clock.t;
         auto tick_start = std::chrono::steady_clock::now();
+        if (enable_analytics && analytics_mode == AnalyticsMode::Summary) {
+            std::lock_guard<std::mutex> lock(analytics_mutex);
+            analytics_summary.reset(t);
+        }
 
         if (enable_timing) {
             auto s = std::chrono::steady_clock::now();

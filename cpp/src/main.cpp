@@ -1,5 +1,6 @@
 #include <chrono>
 #include <cctype>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -12,7 +13,8 @@ static void usage() {
     std::cout << "Usage: gsocialsim_cpp --stimuli <path> --ticks <n> --agents <n> "
                  "[--timing] [--timing-out <path>] [--timing-top <n>] "
                  "[--parallel-workers <n>] [--no-parallel] [--seed <n>] "
-                 "[--avg-following <n>] [--analytics] [--analytics-out <path>]\n";
+                 "[--avg-following <n>] [--analytics] [--analytics-out <path>] "
+                 "[--analytics-mode <summary|detailed>]\n";
 }
 
 static bool parse_int(const std::string& v, int& out) {
@@ -28,6 +30,15 @@ static double clamp01(double v) {
     if (v < 0.0) return 0.0;
     if (v > 1.0) return 1.0;
     return v;
+}
+
+static void ensure_parent_dir(const std::string& path) {
+    if (path.empty()) return;
+    std::filesystem::path p(path);
+    auto parent = p.parent_path();
+    if (parent.empty()) return;
+    std::error_code ec;
+    std::filesystem::create_directories(parent, ec);
 }
 
 static void assign_demographics(Agent& agent, std::mt19937& rng) {
@@ -69,7 +80,8 @@ int main(int argc, char** argv) {
     int seed = 123;
     int avg_following = 50;
     bool enable_analytics = false;
-    std::string analytics_path = "analytics.csv";
+    std::string analytics_path = "reports/analytics.csv";
+    WorldKernel::AnalyticsMode analytics_mode = WorldKernel::AnalyticsMode::Summary;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -97,6 +109,17 @@ int main(int argc, char** argv) {
             enable_analytics = true;
         } else if (arg == "--analytics-out" && i + 1 < argc) {
             analytics_path = argv[++i];
+        } else if (arg == "--analytics-mode" && i + 1 < argc) {
+            std::string mode = argv[++i];
+            if (mode == "summary") {
+                analytics_mode = WorldKernel::AnalyticsMode::Summary;
+            } else if (mode == "detailed") {
+                analytics_mode = WorldKernel::AnalyticsMode::Detailed;
+            } else {
+                std::cerr << "Unknown analytics mode: " << mode << "\n";
+                usage();
+                return 1;
+            }
         } else if (arg == "--help" || arg == "-h") {
             usage();
             return 0;
@@ -114,6 +137,13 @@ int main(int argc, char** argv) {
     kernel.rng.seed(kernel.seed);
     kernel.enable_analytics = enable_analytics;
     kernel.analytics_path = analytics_path;
+    kernel.analytics_mode = analytics_mode;
+    if (enable_analytics) {
+        ensure_parent_dir(analytics_path);
+    }
+    if (!timing_out.empty()) {
+        ensure_parent_dir(timing_out);
+    }
     if (!stimuli_path.empty()) {
         kernel.stimulus_engine.register_data_source(std::make_shared<CsvDataSource>(stimuli_path));
     }
