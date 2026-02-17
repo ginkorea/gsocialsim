@@ -92,6 +92,7 @@ static inline void refresh_agent_cache(WorldKernel& kernel) {
 
 void WorldKernel::start() {
     if (started) return;
+    rng.seed(seed);
     started = true;
 }
 
@@ -203,6 +204,15 @@ void WorldKernel::_perceive_batch(int t) {
         return &tick_content.back();
     };
 
+    std::vector<size_t> fallback_indices;
+    size_t fallback_count = 0;
+    if (max_recipients_per_content > 0 && max_recipients_per_content < agent_ptr_cache.size()) {
+        fallback_indices.resize(agent_ptr_cache.size());
+        for (size_t i = 0; i < fallback_indices.size(); ++i) fallback_indices[i] = i;
+        std::shuffle(fallback_indices.begin(), fallback_indices.end(), rng);
+        fallback_count = max_recipients_per_content;
+    }
+
     for (const auto& content : context.posted_by_tick[t]) {
         const Content* ptr = add_content(content);
         const auto& followers = network.graph.get_followers_ref(content.author_id);
@@ -215,9 +225,19 @@ void WorldKernel::_perceive_batch(int t) {
             if (auto* agent = agents.get(content.author_id)) {
                 agent->enqueue_content(ptr, t, t, content.social_proof);
             }
-        } else {
+        } else if (max_recipients_per_content == 0 || max_recipients_per_content >= agent_ptr_cache.size()) {
             for (auto* agent : agent_ptr_cache) {
                 agent->enqueue_content(ptr, t, t, content.social_proof);
+            }
+        } else {
+            if (fallback_count == 0) {
+                for (auto* agent : agent_ptr_cache) {
+                    agent->enqueue_content(ptr, t, t, content.social_proof);
+                }
+            } else {
+                for (size_t i = 0; i < fallback_count; ++i) {
+                    agent_ptr_cache[fallback_indices[i]]->enqueue_content(ptr, t, t, content.social_proof);
+                }
             }
         }
     }
@@ -235,9 +255,19 @@ void WorldKernel::_perceive_batch(int t) {
             if (auto* agent = agents.get(content.author_id)) {
                 agent->enqueue_content(ptr, t, t, content.social_proof);
             }
-        } else {
+        } else if (max_recipients_per_content == 0 || max_recipients_per_content >= agent_ptr_cache.size()) {
             for (auto* agent : agent_ptr_cache) {
                 agent->enqueue_content(ptr, t, t, content.social_proof);
+            }
+        } else {
+            if (fallback_count == 0) {
+                for (auto* agent : agent_ptr_cache) {
+                    agent->enqueue_content(ptr, t, t, content.social_proof);
+                }
+            } else {
+                for (size_t i = 0; i < fallback_count; ++i) {
+                    agent_ptr_cache[fallback_indices[i]]->enqueue_content(ptr, t, t, content.social_proof);
+                }
             }
         }
     }

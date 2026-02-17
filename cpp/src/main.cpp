@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <unordered_set>
 
 #include "data_source.h"
 #include "kernel.h"
@@ -10,7 +11,8 @@
 static void usage() {
     std::cout << "Usage: gsocialsim_cpp --stimuli <path> --ticks <n> --agents <n> "
                  "[--timing] [--timing-out <path>] [--timing-top <n>] "
-                 "[--parallel-workers <n>] [--no-parallel]\n";
+                 "[--parallel-workers <n>] [--no-parallel] [--seed <n>] "
+                 "[--avg-following <n>] [--max-recipients <n>]\n";
 }
 
 static bool parse_int(const std::string& v, int& out) {
@@ -31,6 +33,9 @@ int main(int argc, char** argv) {
     int parallel_workers = 0;
     bool enable_timing = false;
     bool enable_parallel = true;
+    int seed = 123;
+    int avg_following = 50;
+    int max_recipients = 200;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -50,6 +55,12 @@ int main(int argc, char** argv) {
             parse_int(argv[++i], parallel_workers);
         } else if (arg == "--no-parallel") {
             enable_parallel = false;
+        } else if (arg == "--seed" && i + 1 < argc) {
+            parse_int(argv[++i], seed);
+        } else if (arg == "--avg-following" && i + 1 < argc) {
+            parse_int(argv[++i], avg_following);
+        } else if (arg == "--max-recipients" && i + 1 < argc) {
+            parse_int(argv[++i], max_recipients);
         } else if (arg == "--help" || arg == "-h") {
             usage();
             return 0;
@@ -62,6 +73,11 @@ int main(int argc, char** argv) {
     if (parallel_workers > 0) {
         kernel.parallel_workers = static_cast<size_t>(parallel_workers);
     }
+    kernel.seed = static_cast<uint32_t>(seed);
+    kernel.rng.seed(kernel.seed);
+    if (max_recipients >= 0) {
+        kernel.max_recipients_per_content = static_cast<size_t>(max_recipients);
+    }
     if (!stimuli_path.empty()) {
         kernel.stimulus_engine.register_data_source(std::make_shared<CsvDataSource>(stimuli_path));
     }
@@ -69,6 +85,25 @@ int main(int argc, char** argv) {
     for (int i = 0; i < agents; ++i) {
         Agent a("A" + std::to_string(i), static_cast<uint32_t>(i + 1));
         kernel.agents.add_agent(a);
+    }
+
+    if (avg_following > 0 && agents > 1) {
+        std::uniform_int_distribution<int> pick(0, agents - 1);
+        for (int i = 0; i < agents; ++i) {
+            AgentId follower = "A" + std::to_string(i);
+            int k = std::min(avg_following, agents - 1);
+            std::unordered_set<int> chosen;
+            chosen.reserve(static_cast<size_t>(k));
+            while (static_cast<int>(chosen.size()) < k) {
+                int j = pick(kernel.rng);
+                if (j == i) continue;
+                chosen.insert(j);
+            }
+            for (int j : chosen) {
+                AgentId followed = "A" + std::to_string(j);
+                kernel.network.graph.add_edge(follower, followed, 0.5);
+            }
+        }
     }
 
     const int log_every = std::max(1, ticks / 10);

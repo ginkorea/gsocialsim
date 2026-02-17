@@ -84,6 +84,7 @@ struct WorldKernel {
     bool enable_parallel = true;
     size_t parallel_workers = 0;
     bool enable_timing = false;
+    size_t max_recipients_per_content = 200; // 0 = broadcast to all when no followers
 
     struct TimingStat {
         double total = 0.0;
@@ -106,6 +107,9 @@ struct WorldKernel {
     NetworkLayer network;
     GlobalSocialReality gsr;
     StimulusIngestionEngine stimulus_engine;
+
+    uint32_t seed = 123;
+    std::mt19937 rng = std::mt19937(seed);
 
     std::vector<AgentId> agent_id_cache;
     std::vector<Agent*> agent_ptr_cache;
