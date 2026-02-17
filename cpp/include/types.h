@@ -9,6 +9,7 @@
 using AgentId = std::string;
 using TopicId = std::string;
 using ContentId = std::string;
+using ActorId = std::string;
 
 enum class MediaType {
     UNKNOWN = 0,
@@ -107,12 +108,17 @@ struct Content {
     AgentId author_id;
     TopicId topic;
     double stance = 0.0;
+    bool is_identity_threatening = false;
+    std::optional<std::string> content_text;
+    std::optional<double> identity_threat;
     MediaType media_type = MediaType::UNKNOWN;
-    double identity_threat = 0.0;
     std::vector<std::string> primal_triggers;
     double primal_intensity = 0.0;
     double credibility_signal = 0.5;
     double social_proof = 0.0;
+    std::optional<std::string> outlet_id;
+    std::optional<std::string> community_id;
+    std::unordered_map<std::string, std::string> provenance;
 };
 
 enum class InteractionVerb {
@@ -140,10 +146,15 @@ struct Stimulus {
     ContentId id;
     int tick = 0;
     AgentId source;
-    TopicId topic;
+    std::string content_text;
+    std::optional<std::string> creator_id;
+    std::optional<std::string> outlet_id;
+    std::optional<std::string> community_id;
+    std::optional<std::string> topic_hint;
+    std::optional<double> stance_hint;
+    std::optional<double> political_salience;
+    std::vector<std::string> primal_triggers;
+    std::optional<double> primal_intensity;
+    std::unordered_map<std::string, std::string> metadata;
     MediaType media_type = MediaType::UNKNOWN;
-    double stance = 0.0;
-    double identity_threat = 0.0;
-    double primal_intensity = 0.0;
-    double credibility_signal = 0.5;
 };

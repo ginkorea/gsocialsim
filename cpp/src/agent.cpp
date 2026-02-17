@@ -131,7 +131,11 @@ Impression AttentionSystem::evaluate(const Content& content, double proximity) c
     imp.topic = content.topic;
     imp.content_id = content.id;
     imp.stance_signal = content.stance;
-    imp.identity_threat = clamp01(content.identity_threat);
+    if (content.identity_threat.has_value()) {
+        imp.identity_threat = clamp01(content.identity_threat.value());
+    } else {
+        imp.identity_threat = content.is_identity_threatening ? 1.0 : 0.0;
+    }
     imp.primal_activation = 0.0;
     imp.credibility_signal = clamp01(content.credibility_signal);
     imp.social_proof = clamp01(content.social_proof);

@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "kernel.h"
+#include "utils.h"
 
 int main(int argc, char** argv) {
     (void)argc;
@@ -13,8 +14,9 @@ int main(int argc, char** argv) {
         s.id = "stim_" + std::to_string(t);
         s.tick = t;
         s.source = "SOURCE";
-        s.topic = "T_Original";
-        s.stance = 0.1;
+        s.content_text = "placeholder";
+        s.topic_hint = "T_Original";
+        s.stance_hint = 0.1;
         ctx.stimuli_by_tick[t].push_back(s);
     };
     kernel.act_fn = [](int t, WorldContext& ctx) {
