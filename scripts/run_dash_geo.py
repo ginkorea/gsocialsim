@@ -158,13 +158,49 @@ def parse_args() -> argparse.Namespace:
         help="Timing detail level",
     )
     p.add_argument("--timing-top", type=int, default=20, help="Timing report top N rows")
+    p.add_argument(
+        "--debug-logs",
+        default=False,
+        action=argparse.BooleanOptionalAction,
+        help="Enable verbose analytics debug logging",
+    )
+    p.add_argument("--parallel", action="store_true", help="Enable parallel planning for act/perceive")
+    p.add_argument("--parallel-workers", type=int, default=0, help="Worker threads for parallel mode")
+    p.add_argument(
+        "--max-recipients",
+        type=int,
+        default=0,
+        help="Cap recipients per content (0 = no cap)",
+    )
+    p.add_argument(
+        "--max-perceptions",
+        type=int,
+        default=0,
+        help="Cap perceptions per agent per tick (0 = no cap)",
+    )
+    p.add_argument(
+        "--batch",
+        default=True,
+        action=argparse.BooleanOptionalAction,
+        help="Enable agent-centric batch processing (default on)",
+    )
     return p.parse_args()
 
 
 def main() -> None:
     args = parse_args()
 
-    kernel = WorldKernel(seed=args.seed, enable_timing=args.timing, timing_level=args.timing_level)
+    kernel = WorldKernel(
+        seed=args.seed,
+        enable_timing=args.timing,
+        timing_level=args.timing_level,
+        enable_debug_logging=args.debug_logs,
+        enable_parallel=args.parallel,
+        parallel_workers=args.parallel_workers,
+        max_recipients_per_content=args.max_recipients,
+        max_perceptions_per_tick=args.max_perceptions,
+        enable_batch_all=args.batch,
+    )
     extra_agents = max(0, int(args.agents) - 4)
     setup_simulation_scenario(
         kernel,
@@ -245,7 +281,7 @@ def main() -> None:
         show_edges = "show" in (show_edges_values or [])
         return build_geo_figure(kernel, tick_of_day, edge_mode, show_edges)
 
-    app.run_server(debug=False, port=args.port)
+    app.run(debug=False, port=args.port)
 
 
 if __name__ == "__main__":

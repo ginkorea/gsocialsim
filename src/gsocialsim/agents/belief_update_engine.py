@@ -7,6 +7,7 @@ from gsocialsim.agents.impression import Impression, IntakeMode
 from gsocialsim.agents.belief_state import TopicId
 from gsocialsim.social.global_social_reality import GlobalSocialReality
 from gsocialsim.types import ActorId
+from gsocialsim.fast import perception as fast
 
 if TYPE_CHECKING:
     from gsocialsim.agents.agent import Agent
@@ -47,9 +48,10 @@ class BeliefUpdateEngine:
         trust = float(getattr(rel, "trust", 0.0))
         trust = self._clamp(trust, 0.0, 1.0)
 
-        multiplier = 10.0 if impression.intake_mode == IntakeMode.PHYSICAL else 1.0
+        is_physical = impression.intake_mode == IntakeMode.PHYSICAL
+        multiplier = 10.0 if is_physical else 1.0
         # In-person interaction tends to raise perceived trust.
-        trust_effect = min(1.0, trust + 0.15) if impression.intake_mode == IntakeMode.PHYSICAL else trust
+        trust_effect = min(1.0, trust + 0.15) if is_physical else trust
 
         # Credibility modulates influence strength but keeps default stable at 1.0.
         credibility = float(getattr(impression, "credibility_signal", 0.5))
@@ -68,6 +70,25 @@ class BeliefUpdateEngine:
         # Threat signal can come from impression or test hook
         identity_threat = float(getattr(impression, "identity_threat", 0.0))
         is_threatening = bool(getattr(impression, "_is_threatening_hack", False)) or identity_threat > 0.5
+
+        if fast.HAS_FAST:
+            stance_delta, confidence_delta = fast.compute_belief_delta(
+                stance_signal=float(impression.stance_signal),
+                current_stance=float(current_belief.stance) if current_belief else 0.0,
+                has_belief=current_belief is not None,
+                trust=trust,
+                credibility=float(credibility),
+                primal_activation=float(primal_activation),
+                identity_threat=float(identity_threat),
+                is_self_source=is_self_source,
+                identity_rigidity=float(getattr(viewer.identity, "identity_rigidity", 0.5)),
+                is_physical=is_physical,
+            )
+            return BeliefDelta(
+                topic_id=topic_id,
+                stance_delta=stance_delta,
+                confidence_delta=confidence_delta,
+            )
 
         if current_belief is None:
             # Initialize beliefs conservatively (still scaled by trust)

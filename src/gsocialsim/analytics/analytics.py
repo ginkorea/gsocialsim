@@ -37,7 +37,8 @@ class Analytics:
       - Belief deltas may be queued during ACT/PERCEIVE and applied only in CONSOLIDATE.
       - We support a separate log for queued deltas to prevent “it looks applied” confusion.
     """
-    def __init__(self):
+    def __init__(self, *, enable_debug_logging: bool = True):
+        self.enable_debug_logging = bool(enable_debug_logging)
         self.exposure_history = ExposureHistory()
         self.crossing_detector = BeliefCrossingDetector()
         self.attribution_engine = AttributionEngine()
@@ -69,10 +70,11 @@ class Analytics:
         except Exception:
             stance_d, conf_d, topic = 0.0, 0.0, "unknown"
 
-        print(
-            f"DEBUG:[T={timestamp}] Agent['{agent_id}'] BeliefUpdate(APPLIED): "
-            f"Topic='{topic}', StanceΔ={stance_d:.4f}, ConfΔ={conf_d:.4f}"
-        )
+        if self.enable_debug_logging:
+            print(
+                f"DEBUG:[T={timestamp}] Agent['{agent_id}'] BeliefUpdate(APPLIED): "
+                f"Topic='{topic}', StanceΔ={stance_d:.4f}, ConfΔ={conf_d:.4f}"
+            )
 
     def log_belief_delta_queued(self, timestamp: int, agent_id: str, delta: Any):
         """
@@ -87,10 +89,11 @@ class Analytics:
         except Exception:
             stance_d, conf_d, topic = 0.0, 0.0, "unknown"
 
-        print(
-            f"DEBUG:[T={timestamp}] Agent['{agent_id}'] BeliefDelta(QUEUED): "
-            f"Topic='{topic}', StanceΔ={stance_d:.4f}, ConfΔ={conf_d:.4f}"
-        )
+        if self.enable_debug_logging:
+            print(
+                f"DEBUG:[T={timestamp}] Agent['{agent_id}'] BeliefDelta(QUEUED): "
+                f"Topic='{topic}', StanceΔ={stance_d:.4f}, ConfΔ={conf_d:.4f}"
+            )
 
     # -----------------
     # Exposure / consumption
@@ -108,10 +111,11 @@ class Analytics:
         intake_mode: Optional[str] = None,
         media_type: Optional[str] = None,
     ):
-        print(
-            f"DEBUG:[T={timestamp}] Agent['{viewer_id}'] Perceived: "
-            f"Source='{source_id}', Topic='{topic}', Physical={is_physical}"
-        )
+        if self.enable_debug_logging:
+            print(
+                f"DEBUG:[T={timestamp}] Agent['{viewer_id}'] Perceived: "
+                f"Source='{source_id}', Topic='{topic}', Physical={is_physical}"
+            )
 
         event = ExposureEvent(
             timestamp=timestamp,
@@ -151,28 +155,31 @@ class Analytics:
         if media_type:
             self.consumed_by_media[str(media_type)] += 1
 
-        print(
-            f"DEBUG:[T={timestamp}] Agent['{viewer_id}'] Consumed: "
-            f"Content='{content_id}', Topic='{topic}', Media={media_type}, Intake={intake_mode}"
-        )
+        if self.enable_debug_logging:
+            print(
+                f"DEBUG:[T={timestamp}] Agent['{viewer_id}'] Consumed: "
+                f"Content='{content_id}', Topic='{topic}', Media={media_type}, Intake={intake_mode}"
+            )
 
     # -----------------
     # Interactions / crossings
     # -----------------
     def log_interaction(self, timestamp: int, interaction: Interaction):
-        target = interaction.target_stimulus_id or (interaction.original_content.id if interaction.original_content else "None")
-        print(
-            f"DEBUG:[T={timestamp}] Agent['{interaction.agent_id}'] Interacted: "
-            f"Verb='{interaction.verb.value}', Target='{target}'"
-        )
+        if self.enable_debug_logging:
+            target = interaction.target_stimulus_id or (interaction.original_content.id if interaction.original_content else "None")
+            print(
+                f"DEBUG:[T={timestamp}] Agent['{interaction.agent_id}'] Interacted: "
+                f"Verb='{interaction.verb.value}', Target='{target}'"
+            )
         self.interactions.append(interaction)
 
     def log_belief_crossing(self, event: BeliefCrossingEvent):
-        print(
-            f"LOG:[T={event.timestamp}] Agent['{event.agent_id}'] BeliefCrossing: "
-            f"Topic='{event.topic}', Stance={event.old_stance:.2f}->{event.new_stance:.2f}, "
-            f"Attribution={event.attribution}"
-        )
+        if self.enable_debug_logging:
+            print(
+                f"LOG:[T={event.timestamp}] Agent['{event.agent_id}'] BeliefCrossing: "
+                f"Topic='{event.topic}', Stance={event.old_stance:.2f}->{event.new_stance:.2f}, "
+                f"Attribution={event.attribution}"
+            )
         self.crossings.append(event)
 
     # -----------------
@@ -198,13 +205,15 @@ class Analytics:
 
         top_topics = sorted(topic_counts.items(), key=lambda kv: kv[1], reverse=True)[:3]
         top_str = ", ".join([f"{t}:{c}" for t, c in top_topics]) if top_topics else "none"
-        print(
-            f"LOG:[T={timestamp}] Agent['{agent_id}'] Dream: consolidated={consolidated}, actions={actions}, top_topics={top_str}"
-        )
+        if self.enable_debug_logging:
+            print(
+                f"LOG:[T={timestamp}] Agent['{agent_id}'] Dream: consolidated={consolidated}, actions={actions}, top_topics={top_str}"
+            )
 
     def log_delivery(self, record: DeliveryRecord):
         self.delivery_records.append(record)
-        print(
-            f"DEBUG:[T={record.tick}] Delivery viewer='{record.viewer_id}' layer='{record.layer_id}' "
-            f"intake='{record.intake_mode}' eligible={record.eligible} shown={record.shown} seen={record.seen}"
-        )
+        if self.enable_debug_logging:
+            print(
+                f"DEBUG:[T={record.tick}] Delivery viewer='{record.viewer_id}' layer='{record.layer_id}' "
+                f"intake='{record.intake_mode}' eligible={record.eligible} shown={record.shown} seen={record.seen}"
+            )

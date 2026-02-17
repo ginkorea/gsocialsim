@@ -1,3 +1,4 @@
+#include <chrono>
 #include <iostream>
 #include <string>
 
@@ -47,13 +48,16 @@ int main(int argc, char** argv) {
     }
 
     const int log_every = std::max(1, ticks / 10);
+    auto start = std::chrono::steady_clock::now();
     for (int t = 0; t < ticks; ++t) {
         kernel.step(1);
         if ((t + 1) % log_every == 0 || t == 0) {
             std::cout << "tick " << (t + 1) << "/" << ticks << "\n";
         }
     }
+    auto end = std::chrono::steady_clock::now();
+    double elapsed = std::chrono::duration<double>(end - start).count();
 
-    std::cout << "gsocialsim_cpp: kernel ran " << ticks << " ticks\n";
+    std::cout << "gsocialsim_cpp: kernel ran " << ticks << " ticks in " << elapsed << "s\n";
     return 0;
 }

@@ -27,6 +27,40 @@ class MemoryStore:
 
 
 @dataclass
+class PlannedAction:
+    agent_id: str
+    interaction: Optional[Interaction]
+    cost_minutes: float = 0.0
+    reward: Optional[RewardVector] = None
+    action_key: Optional[str] = None
+
+
+@dataclass
+class PerceptionPlan:
+    agent_id: str
+    content: ContentItem
+    impression: Impression
+    is_physical: bool
+    stimulus_id: Optional[str]
+    exposed: bool
+    consumed_roll: bool
+    has_belief: bool
+    attention_cost: float
+    exposure_cost: float
+    consumption_extra_cost: float
+    belief_delta: Optional[BeliefDelta]
+    old_stance: float
+
+
+@dataclass
+class ActivityPreferences:
+    read_propensity: float = 0.5
+    write_propensity: float = 0.5
+    react_propensity: float = 0.5
+    reflect_propensity: float = 0.3
+
+
+@dataclass
 class Agent:
     id: str
     seed: int
@@ -41,6 +75,7 @@ class Agent:
     belief_update_engine: BeliefUpdateEngine = field(default_factory=BeliefUpdateEngine)
     memory: MemoryStore = field(default_factory=MemoryStore)
     policy: BanditLearner = field(default_factory=BanditLearner)
+    activity: ActivityPreferences = field(default_factory=ActivityPreferences)
 
     # Working memory
     max_recent_impressions: int = 200
@@ -215,23 +250,17 @@ class Agent:
         self.beliefs.apply_delta(delta)
         return False
 
-    def perceive(
+    def plan_perception(
         self,
         content: ContentItem,
         context: "WorldContext",
         is_physical: bool = False,
         stimulus_id: Optional[str] = None,
-    ):
+        *,
+        compute_delta: bool = True,
+    ) -> PerceptionPlan:
         """
-        Perception pipeline (contract-aware):
-          1) Evaluate content -> Impression
-          2) Store impression (working memory)
-          3) Log exposure (always)
-          4) Sample consumption
-             - if not consumed: stop
-             - if consumed: log consumption, compute belief delta
-          5) Phase contract:
-             - belief deltas are queued unless CONSOLIDATE is active
+        Compute a perception plan without mutating shared state.
         """
         impression = self.attention.evaluate(content, is_physical=is_physical)
 
@@ -245,33 +274,103 @@ class Agent:
         # apply political identity context (may raise identity_threat)
         self._apply_political_context(context, impression)
 
+        try:
+            prefs = getattr(self, "activity", None)
+            read_pref = float(getattr(prefs, "read_propensity", 0.5)) if prefs else 0.5
+        except Exception:
+            read_pref = 0.5
+        if is_physical:
+            read_pref = min(1.0, 0.05 + 1.1 * read_pref)
+
+        exposed = self.rng.random() < read_pref
+        if not exposed:
+            return PerceptionPlan(
+                agent_id=self.id,
+                content=content,
+                impression=impression,
+                is_physical=is_physical,
+                stimulus_id=stimulus_id,
+                exposed=False,
+                consumed_roll=False,
+                has_belief=False,
+                attention_cost=0.0,
+                exposure_cost=0.0,
+                consumption_extra_cost=0.0,
+                belief_delta=None,
+                old_stance=0.0,
+            )
+
+        consumed_prob = self._clamp01(float(getattr(impression, "consumed_prob", 1.0)))
+        consumed_roll = self.rng.random() < consumed_prob
+        attention_cost = float(getattr(impression, "attention_cost_minutes", 0.0))
+        exposure_cost = min(0.5, max(0.05, 0.15 * attention_cost))
+        consumption_extra_cost = max(0.0, attention_cost - exposure_cost)
+
+        prior = self.beliefs.get(content.topic)
+        has_belief = prior is not None
+        old_stance = prior.stance if prior else 0.0
+
+        belief_delta = None
+        if consumed_roll and compute_delta:
+            belief_delta = self.belief_update_engine.update(
+                viewer=self,
+                content_author_id=content.author_id,
+                impression=impression,
+                gsr=context.gsr,
+            )
+
+        return PerceptionPlan(
+            agent_id=self.id,
+            content=content,
+            impression=impression,
+            is_physical=is_physical,
+            stimulus_id=stimulus_id,
+            exposed=True,
+            consumed_roll=consumed_roll,
+            has_belief=has_belief,
+            attention_cost=attention_cost,
+            exposure_cost=exposure_cost,
+            consumption_extra_cost=consumption_extra_cost,
+            belief_delta=belief_delta,
+            old_stance=old_stance,
+        )
+
+    def apply_perception_plan(self, plan: PerceptionPlan, context: "WorldContext") -> None:
+        """
+        Apply a perception plan, mutating state and logging analytics.
+        """
+        if not plan.exposed:
+            return
+        content = plan.content
+        impression = plan.impression
+
         self._remember_impression(impression)
 
         # --- Exposure (always) ---
+        if plan.exposure_cost > 0.0:
+            spend = getattr(context, "spend_time", None)
+            if callable(spend):
+                if not spend(self.id, plan.exposure_cost):
+                    return
         context.analytics.log_exposure(
             viewer_id=self.id,
             source_id=content.author_id,
             topic=content.topic,
-            is_physical=is_physical,
+            is_physical=plan.is_physical,
             timestamp=context.clock.t,
             content_id=content.id,
             intake_mode=impression.intake_mode.value,
             media_type=impression.media_type.value if impression.media_type else None,
         )
 
-        consumed_prob = self._clamp01(float(getattr(impression, "consumed_prob", 1.0)))
-        if self.rng.random() >= consumed_prob:
-            return  # exposed but not consumed
+        if not plan.consumed_roll:
+            return
 
         # Spend time for actual consumption (opportunity cost)
-        try:
-            cost = float(getattr(impression, "attention_cost_minutes", 0.0))
-        except Exception:
-            cost = 0.0
-        if cost > 0.0:
+        if plan.consumption_extra_cost > 0.0:
             spend = getattr(context, "spend_time", None)
             if callable(spend):
-                if not spend(self.id, cost):
+                if not spend(self.id, plan.consumption_extra_cost):
                     return
 
         # --- Consumption (explicit) ---
@@ -287,32 +386,23 @@ class Agent:
         # Record for daily dream
         self.daily_impressions_consumed.append(impression)
 
-        # --- Belief delta compute (no direct mutation here under contract) ---
-        prior = self.beliefs.get(content.topic)
-        old_stance = prior.stance if prior else 0.0
+        if plan.belief_delta is None:
+            return
 
-        belief_delta = self.belief_update_engine.update(
-            viewer=self,
-            content_author_id=content.author_id,
-            impression=impression,
-            gsr=context.gsr,
-        )
-
-        deferred = self._apply_or_queue_belief_delta(context, belief_delta)
+        deferred = self._apply_or_queue_belief_delta(context, plan.belief_delta)
 
         # Trust update based on consumption (after delta compute to keep influence stable)
-        self._update_trust_from_impression(context, content, impression, old_stance)
+        self._update_trust_from_impression(context, content, impression, plan.old_stance)
 
         # If deferred, we cannot legally compute crossings/new stance yet (state unchanged).
-        # Kernel CONSOLIDATE will apply and log belief updates.
         if deferred:
             return
 
         # Immediate-apply path (only when contract deferral is disabled or we are consolidating)
         after = self.beliefs.get(content.topic)
-        new_stance = after.stance if after else old_stance
+        new_stance = after.stance if after else plan.old_stance
 
-        if context.analytics.crossing_detector.check(old_stance, new_stance):
+        if context.analytics.crossing_detector.check(plan.old_stance, new_stance):
             attribution = context.analytics.attribution_engine.assign_credit(
                 agent_id=self.id,
                 topic=content.topic,
@@ -324,7 +414,7 @@ class Agent:
                 timestamp=context.clock.t,
                 agent_id=self.id,
                 topic=content.topic,
-                old_stance=old_stance,
+                old_stance=plan.old_stance,
                 new_stance=new_stance,
                 attribution=attribution,
             )
@@ -333,46 +423,83 @@ class Agent:
         context.analytics.log_belief_update(
             timestamp=context.clock.t,
             agent_id=self.id,
-            delta=belief_delta,
+            delta=plan.belief_delta,
         )
+
+    def perceive(
+        self,
+        content: ContentItem,
+        context: "WorldContext",
+        is_physical: bool = False,
+        stimulus_id: Optional[str] = None,
+    ):
+        plan = self.plan_perception(content, context, is_physical=is_physical, stimulus_id=stimulus_id)
+        self.apply_perception_plan(plan, context)
 
     def learn(self, action_key: str, reward_vector: RewardVector):
         self.policy.learn(action_key, reward_vector)
 
-    def act(self, tick: int, context: Optional["WorldContext"] = None) -> Optional[Interaction]:
-        # Action is gated by time budget if available
-        spend = getattr(context, "spend_time", None) if context is not None else None
-
+    def plan_action(self, tick: int, context: Optional["WorldContext"] = None) -> PlannedAction:
         interaction = self.policy.generate_interaction(self, tick)
-        if interaction:
-            attention_costs = {
-                InteractionVerb.CREATE: 5.0,
-                InteractionVerb.LIKE: 1.0,
-                InteractionVerb.FORWARD: 1.0,
-                InteractionVerb.COMMENT: 3.0,
-                InteractionVerb.REPLY: 3.0,
-            }
-            cost = attention_costs.get(interaction.verb, 1.0)
-            if callable(spend) and cost > 0.0:
-                if not spend(self.id, cost):
-                    return None
-            self.daily_actions.append(interaction)
+        if not interaction:
+            return PlannedAction(agent_id=self.id, interaction=None)
 
-            reward = RewardVector()
-            topic = None
+        try:
+            prefs = getattr(self, "activity", None)
+            if prefs:
+                if interaction.verb == InteractionVerb.CREATE:
+                    if self.rng.random() > float(getattr(prefs, "write_propensity", 0.5)):
+                        return PlannedAction(agent_id=self.id, interaction=None)
+                elif interaction.verb in (InteractionVerb.LIKE, InteractionVerb.FORWARD, InteractionVerb.COMMENT, InteractionVerb.REPLY):
+                    if self.rng.random() > float(getattr(prefs, "react_propensity", 0.5)):
+                        return PlannedAction(agent_id=self.id, interaction=None)
+        except Exception:
+            pass
 
-            if interaction.verb == InteractionVerb.LIKE:
-                reward.affiliation = 0.2
-                topic = interaction.target_stimulus_id
-            elif interaction.verb == InteractionVerb.FORWARD:
-                reward.status = 0.3
-                topic = interaction.target_stimulus_id
+        attention_costs = {
+            InteractionVerb.CREATE: 5.0,
+            InteractionVerb.LIKE: 1.0,
+            InteractionVerb.FORWARD: 1.0,
+            InteractionVerb.COMMENT: 3.0,
+            InteractionVerb.REPLY: 3.0,
+        }
+        cost = attention_costs.get(interaction.verb, 1.0)
+        reward = None
+        action_key = None
 
-            if topic:
-                action_key = f"{interaction.verb.value}_{topic}"
-                self.learn(action_key, reward)
+        if interaction.verb == InteractionVerb.LIKE:
+            reward = RewardVector(affiliation=0.2)
+            action_key = f"{interaction.verb.value}_{interaction.target_stimulus_id}"
+        elif interaction.verb == InteractionVerb.FORWARD:
+            reward = RewardVector(status=0.3)
+            action_key = f"{interaction.verb.value}_{interaction.target_stimulus_id}"
 
+        return PlannedAction(
+            agent_id=self.id,
+            interaction=interaction,
+            cost_minutes=cost,
+            reward=reward,
+            action_key=action_key,
+        )
+
+    def apply_planned_action(self, plan: PlannedAction, context: Optional["WorldContext"] = None) -> Optional[Interaction]:
+        interaction = plan.interaction
+        if not interaction:
+            return None
+
+        spend = getattr(context, "spend_time", None) if context is not None else None
+        if callable(spend) and plan.cost_minutes > 0.0:
+            if not spend(self.id, plan.cost_minutes):
+                return None
+
+        self.daily_actions.append(interaction)
+        if plan.action_key and plan.reward:
+            self.learn(plan.action_key, plan.reward)
         return interaction
+
+    def act(self, tick: int, context: Optional["WorldContext"] = None) -> Optional[Interaction]:
+        plan = self.plan_action(tick, context)
+        return self.apply_planned_action(plan, context)
 
     def dream(self, world_context: "WorldContext") -> None:
         """

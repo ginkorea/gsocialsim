@@ -6,6 +6,7 @@ import random
 
 from gsocialsim.agents.agent import Agent
 from gsocialsim.agents.identity_state import IdentityState
+from gsocialsim.agents.agent import ActivityPreferences
 from gsocialsim.agents.emotion_state import EmotionState
 from gsocialsim.agents.reward_weights import RewardWeights
 from gsocialsim.types import AgentId, TopicId
@@ -176,6 +177,22 @@ def _sample_group_affiliations(rng: random.Random) -> dict[str, float]:
     return groups
 
 
+def _activity_preferences_from_big5(big5: Big5) -> ActivityPreferences:
+    def clamp(x: float) -> float:
+        return max(0.0, min(1.0, float(x)))
+
+    read = 0.2 + 0.5 * big5.openness + 0.2 * big5.conscientiousness + 0.1 * big5.neuroticism
+    write = 0.2 + 0.5 * big5.extraversion + 0.2 * big5.conscientiousness + 0.2 * (1.0 - big5.agreeableness)
+    react = 0.2 + 0.6 * big5.extraversion + 0.2 * big5.agreeableness
+    reflect = 0.2 + 0.6 * big5.openness + 0.2 * (1.0 - big5.extraversion) + 0.2 * big5.neuroticism
+    return ActivityPreferences(
+        read_propensity=clamp(read),
+        write_propensity=clamp(write),
+        react_propensity=clamp(react),
+        reflect_propensity=clamp(reflect),
+    )
+
+
 def generate_agent(
     agent_id: AgentId,
     seed: int,
@@ -192,6 +209,7 @@ def generate_agent(
 
     agent = Agent(id=agent_id, seed=seed)
     agent.personality = big5_to_reward_weights(big5)
+    agent.activity = _activity_preferences_from_big5(big5)
 
     # Identity state
     agent.identity = IdentityState(
