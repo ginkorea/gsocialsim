@@ -6,6 +6,8 @@
 #include <utility>
 #include <vector>
 
+#include "types.h"
+
 // -----------------------------
 // Module 1: Kernel (Phase Contract)
 // -----------------------------
@@ -28,10 +30,10 @@ struct WorldContext {
     std::string current_phase = "INIT";
     bool in_consolidation = false;
 
-    // Placeholder buffers (Module 0 will define types)
-    std::unordered_map<int, std::vector<int>> stimuli_by_tick;
-    std::unordered_map<int, std::vector<int>> posted_by_tick;
-    std::vector<std::pair<int, int>> deferred_belief_deltas;
+    // Core buffers (Module 0)
+    std::unordered_map<int, std::vector<Stimulus>> stimuli_by_tick;
+    std::unordered_map<int, std::vector<Content>> posted_by_tick;
+    std::vector<std::pair<AgentId, BeliefDelta>> deferred_belief_deltas;
 
     void begin_phase(int tick, const std::string& phase) {
         current_tick = tick;
@@ -44,12 +46,12 @@ struct WorldContext {
         posted_by_tick.erase(tick);
     }
 
-    void queue_belief_delta(int agent_id, int delta_id) {
-        deferred_belief_deltas.emplace_back(agent_id, delta_id);
+    void queue_belief_delta(const AgentId& agent_id, const BeliefDelta& delta) {
+        deferred_belief_deltas.emplace_back(agent_id, delta);
     }
 
-    std::vector<std::pair<int, int>> pop_all_belief_deltas() {
-        std::vector<std::pair<int, int>> out;
+    std::vector<std::pair<AgentId, BeliefDelta>> pop_all_belief_deltas() {
+        std::vector<std::pair<AgentId, BeliefDelta>> out;
         out.swap(deferred_belief_deltas);
         return out;
     }

@@ -8,12 +8,23 @@ int main(int argc, char** argv) {
 
     WorldKernel kernel;
     kernel.ingest_fn = [](int t, WorldContext& ctx) {
-        // placeholder: push a dummy stimulus id for visibility
-        ctx.stimuli_by_tick[t].push_back(t);
+        // placeholder: push a dummy stimulus for visibility
+        Stimulus s;
+        s.id = "stim_" + std::to_string(t);
+        s.tick = t;
+        s.source = "SOURCE";
+        s.topic = "T_Original";
+        s.stance = 0.1;
+        ctx.stimuli_by_tick[t].push_back(s);
     };
     kernel.act_fn = [](int t, WorldContext& ctx) {
-        // placeholder: post one dummy content id
-        ctx.posted_by_tick[t].push_back(1000 + t);
+        // placeholder: post one dummy content
+        Content c;
+        c.id = "content_" + std::to_string(t);
+        c.author_id = "AGENT";
+        c.topic = "T_Original";
+        c.stance = -0.1;
+        ctx.posted_by_tick[t].push_back(c);
     };
     kernel.perceive_fn = [](int, WorldContext&) {};
     kernel.consolidate_fn = [](int, WorldContext&) {};

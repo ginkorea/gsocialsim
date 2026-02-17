@@ -4,7 +4,7 @@ Goal: port Python features into a standalone C++ engine, one module at a time, w
 phase-contract kernel, deterministic runs, and batch-friendly execution.
 
 ## Module 0: Core Types (current)
-- Status: scaffold
+- Status: in progress
 - Contents: identifiers, basic structs, shared utilities
 - Next: define `AgentId`, `TopicId`, `ContentId`, `Belief`, `Impression`, `Content`
 
