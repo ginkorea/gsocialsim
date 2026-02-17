@@ -36,6 +36,7 @@ struct GeoWorld {
     int h3_resolution = 6;
     int agent_scale = 10;
     std::string population_csv_path = "data/geo/h3_population.csv";
+    bool population_loaded = false;
 
     GeoPopulationSampler population;
     std::unordered_map<AgentId, GeoLocation> agent_home;

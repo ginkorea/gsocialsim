@@ -93,7 +93,7 @@ static inline void refresh_agent_cache(WorldKernel& kernel) {
 void WorldKernel::start() {
     if (started) return;
     rng.seed(seed);
-    if (geo.enable_life_cycle) {
+    if (geo.enable_life_cycle && !geo.population_loaded) {
         geo.load_population_csv();
     }
     started = true;

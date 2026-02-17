@@ -111,11 +111,12 @@ int main(int argc, char** argv) {
         kernel.geo.load_population_csv();
     }
 
+    kernel.start();
     auto setup_end = std::chrono::steady_clock::now();
     double setup_elapsed = std::chrono::duration<double>(setup_end - setup_start).count();
 
     const int log_every = std::max(1, ticks / 10);
-    auto start = std::chrono::steady_clock::now();
+    auto sim_start = std::chrono::steady_clock::now();
     for (int t = 0; t < ticks; ++t) {
         kernel.step(1);
         if ((t + 1) % log_every == 0 || t == 0) {
@@ -123,12 +124,13 @@ int main(int argc, char** argv) {
         }
     }
     auto end = std::chrono::steady_clock::now();
-    double elapsed = std::chrono::duration<double>(end - start).count();
+    double sim_elapsed = std::chrono::duration<double>(end - sim_start).count();
+    double total_elapsed = std::chrono::duration<double>(end - setup_start).count();
 
     std::cout << "setup time: " << setup_elapsed << "s\n";
-    std::cout << "simulation time: " << elapsed << "s\n";
-    std::cout << "total time: " << (setup_elapsed + elapsed) << "s\n";
-    std::cout << "gsocialsim_cpp: kernel ran " << ticks << " ticks in " << elapsed << "s\n";
+    std::cout << "simulation time: " << sim_elapsed << "s\n";
+    std::cout << "total time: " << total_elapsed << "s\n";
+    std::cout << "gsocialsim_cpp: kernel ran " << ticks << " ticks in " << sim_elapsed << "s\n";
 
     if (enable_timing) {
         auto report = kernel.timing_report();

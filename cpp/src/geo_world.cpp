@@ -102,6 +102,7 @@ GeoLocation GeoPopulationSampler::cell_location(const std::string& cell_id) cons
 void GeoWorld::load_population_csv() {
     population.h3_resolution = h3_resolution;
     population.load_h3_population_csv(population_csv_path);
+    population_loaded = true;
 }
 
 void GeoWorld::ensure_agent(const AgentId& agent_id, std::mt19937& rng) {
