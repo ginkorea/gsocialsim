@@ -12,7 +12,7 @@ static void usage() {
     std::cout << "Usage: gsocialsim_cpp --stimuli <path> --ticks <n> --agents <n> "
                  "[--timing] [--timing-out <path>] [--timing-top <n>] "
                  "[--parallel-workers <n>] [--no-parallel] [--seed <n>] "
-                 "[--avg-following <n>]\n";
+                 "[--avg-following <n>] [--analytics] [--analytics-out <path>]\n";
 }
 
 static bool parse_int(const std::string& v, int& out) {
@@ -68,6 +68,8 @@ int main(int argc, char** argv) {
     bool enable_parallel = true;
     int seed = 123;
     int avg_following = 50;
+    bool enable_analytics = false;
+    std::string analytics_path = "analytics.csv";
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -91,6 +93,10 @@ int main(int argc, char** argv) {
             parse_int(argv[++i], seed);
         } else if (arg == "--avg-following" && i + 1 < argc) {
             parse_int(argv[++i], avg_following);
+        } else if (arg == "--analytics") {
+            enable_analytics = true;
+        } else if (arg == "--analytics-out" && i + 1 < argc) {
+            analytics_path = argv[++i];
         } else if (arg == "--help" || arg == "-h") {
             usage();
             return 0;
@@ -106,6 +112,8 @@ int main(int argc, char** argv) {
     }
     kernel.seed = static_cast<uint32_t>(seed);
     kernel.rng.seed(kernel.seed);
+    kernel.enable_analytics = enable_analytics;
+    kernel.analytics_path = analytics_path;
     if (!stimuli_path.empty()) {
         kernel.stimulus_engine.register_data_source(std::make_shared<CsvDataSource>(stimuli_path));
     }

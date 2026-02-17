@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -124,6 +125,15 @@ struct WorldKernel {
     std::vector<AgentId> agent_id_cache;
     std::vector<Agent*> agent_ptr_cache;
     std::vector<double> remaining_cache;
+
+    // Analytics (lightweight)
+    bool enable_analytics = false;
+    std::string analytics_path = "analytics.csv";
+    std::vector<std::string> analytics_buffer;
+    size_t analytics_flush_every = 1000;
+    std::mutex analytics_mutex;
+    void analytics_log(int tick, const std::string& type, const std::string& payload);
+    void analytics_flush();
 
     // Hooks for future modules (agent logic, stimuli ingestion, etc.)
     std::function<void(int, WorldContext&)> ingest_fn;

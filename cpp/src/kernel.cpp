@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <chrono>
 #include <deque>
+#include <fstream>
+#include <sstream>
+#include <mutex>
 #include <thread>
 
 static inline double clamp01(double v) {
@@ -59,6 +62,29 @@ void WorldKernel::_record_timing(const std::string& name, double seconds) {
     stat.total += seconds;
     stat.count += 1;
     if (seconds > stat.max) stat.max = seconds;
+}
+
+void WorldKernel::analytics_log(int tick, const std::string& type, const std::string& payload) {
+    if (!enable_analytics) return;
+    std::ostringstream os;
+    os << tick << "," << type << "," << payload;
+    std::lock_guard<std::mutex> lock(analytics_mutex);
+    analytics_buffer.push_back(os.str());
+}
+
+void WorldKernel::analytics_flush() {
+    if (!enable_analytics) return;
+    std::vector<std::string> local;
+    {
+        std::lock_guard<std::mutex> lock(analytics_mutex);
+        if (analytics_buffer.empty()) return;
+        local.swap(analytics_buffer);
+    }
+    std::ofstream out(analytics_path, std::ios::app);
+    if (!out.is_open()) return;
+    for (const auto& line : local) {
+        out << line << "\n";
+    }
 }
 
 std::vector<std::tuple<std::string, double, size_t, double>> WorldKernel::timing_report() const {
@@ -410,6 +436,18 @@ void WorldKernel::_perceive_batch(int t) {
                 trust = clamp01(trust + mutual_trust_weight * next->mutual_score);
                 auto plan = agent.plan_perception(content, trust, next->proximity, true, std::nullopt);
                 agent.apply_perception_plan_local(plan, rem, &out);
+                if (enable_analytics && plan.exposed) {
+                    std::ostringstream os;
+                    os << "viewer=" << agent.id
+                       << "|author=" << content.author_id
+                       << "|content=" << content.id
+                       << "|topic=" << content.topic
+                       << "|exposed=1"
+                       << "|consumed=" << (plan.consumed_roll ? 1 : 0)
+                       << "|proximity=" << next->proximity
+                       << "|mutual=" << next->mutual_score;
+                    analytics_log(t, "impression", os.str());
+                }
                 agent.time_remaining = rem;
             }
             remaining_cache[i] = rem;
@@ -449,7 +487,17 @@ void WorldKernel::_consolidate(int t) {
     for (const auto& item : deltas) {
         auto* agent = agents.get(item.first);
         if (!agent) continue;
+        if (enable_analytics) {
+            std::ostringstream os;
+            os << "agent=" << item.first
+               << "|topic=" << item.second.topic_id
+               << "|stance_delta=" << item.second.stance_delta
+               << "|confidence_delta=" << item.second.confidence_delta;
+            analytics_log(t, "belief_delta", os.str());
+        }
         agent->apply_belief_delta(item.second);
     }
     if (consolidate_fn) consolidate_fn(t, context);
+
+    analytics_flush();
 }
