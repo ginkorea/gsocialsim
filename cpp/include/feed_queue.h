@@ -22,6 +22,7 @@ public:
     size_t size() const;
     FeedItem pop();
     std::vector<FeedItem> drain();
+    void clear();
 
 private:
     struct Compare {

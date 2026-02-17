@@ -116,6 +116,7 @@ public:
     void enqueue_content(const Content& content, int tick, int current_tick, double engagement);
     void enqueue_content(const Content* content, int tick, int current_tick, double engagement);
     std::optional<FeedItem> dequeue_next_content();
+    void clear_feed();
 
     void dream();
     void consolidate_daily();

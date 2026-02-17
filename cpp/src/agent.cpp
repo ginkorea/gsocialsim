@@ -488,6 +488,10 @@ std::optional<FeedItem> Agent::dequeue_next_content() {
     return feed_queue.pop();
 }
 
+void Agent::clear_feed() {
+    feed_queue.clear();
+}
+
 static size_t topic_to_dim(const std::string& topic, size_t dims) {
     if (dims == 0) return 0;
     return std::hash<std::string>{}(topic) % dims;

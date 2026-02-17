@@ -115,6 +115,10 @@ void WorldKernel::_perceive_batch(int t) {
         all_agents.push_back(kv.first);
     }
 
+    for (auto& kv : agents.agents) {
+        kv.second.clear_feed();
+    }
+
     std::deque<Content> tick_content;
     auto add_content = [&](const Content& content) -> const Content* {
         tick_content.push_back(content);

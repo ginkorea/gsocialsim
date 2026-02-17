@@ -47,3 +47,9 @@ std::vector<FeedItem> FeedPriorityQueue::drain() {
     }
     return out;
 }
+
+void FeedPriorityQueue::clear() {
+    while (!heap_.empty()) {
+        heap_.pop();
+    }
+}
