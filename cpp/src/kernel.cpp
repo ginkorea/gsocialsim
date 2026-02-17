@@ -1,6 +1,7 @@
 #include "kernel.h"
 
 #include <algorithm>
+#include <chrono>
 #include <deque>
 #include <thread>
 
@@ -48,6 +49,47 @@ static Content stimulus_to_content(const Stimulus& stim) {
     return c;
 }
 
+static inline double elapsed_seconds(std::chrono::steady_clock::time_point start,
+                                     std::chrono::steady_clock::time_point end) {
+    return std::chrono::duration<double>(end - start).count();
+}
+
+void WorldKernel::_record_timing(const std::string& name, double seconds) {
+    auto& stat = timing[name];
+    stat.total += seconds;
+    stat.count += 1;
+    if (seconds > stat.max) stat.max = seconds;
+}
+
+std::vector<std::tuple<std::string, double, size_t, double>> WorldKernel::timing_report() const {
+    std::vector<std::tuple<std::string, double, size_t, double>> out;
+    out.reserve(timing.size());
+    for (const auto& kv : timing) {
+        const auto& stat = kv.second;
+        out.emplace_back(kv.first, stat.total, stat.count,
+                         stat.count ? (stat.total / static_cast<double>(stat.count)) : 0.0);
+    }
+    std::sort(out.begin(), out.end(), [](const auto& a, const auto& b) {
+        return std::get<1>(a) > std::get<1>(b);
+    });
+    return out;
+}
+
+static inline void refresh_agent_cache(WorldKernel& kernel) {
+    if (kernel.agent_ptr_cache.size() == kernel.agents.agents.size()) {
+        return;
+    }
+    kernel.agent_ptr_cache.clear();
+    kernel.agent_id_cache.clear();
+    kernel.agent_ptr_cache.reserve(kernel.agents.agents.size());
+    kernel.agent_id_cache.reserve(kernel.agents.agents.size());
+    for (auto& kv : kernel.agents.agents) {
+        kernel.agent_id_cache.push_back(kv.first);
+        kernel.agent_ptr_cache.push_back(&kv.second);
+    }
+    kernel.remaining_cache.assign(kernel.agent_ptr_cache.size(), 0.0);
+}
+
 void WorldKernel::start() {
     if (started) return;
     started = true;
@@ -59,30 +101,68 @@ void WorldKernel::step(int num_ticks) {
 
     for (int i = 0; i < num_ticks; ++i) {
         int t = clock.t;
-        _reset_tick_budgets(t);
+        auto tick_start = std::chrono::steady_clock::now();
+
+        if (enable_timing) {
+            auto s = std::chrono::steady_clock::now();
+            _reset_tick_budgets(t);
+            _record_timing("tick/reset_budgets", elapsed_seconds(s, std::chrono::steady_clock::now()));
+        } else {
+            _reset_tick_budgets(t);
+        }
 
         context.begin_phase(t, "INGEST");
-        _ingest(t);
+        if (enable_timing) {
+            auto s = std::chrono::steady_clock::now();
+            _ingest(t);
+            _record_timing("phase/ingest", elapsed_seconds(s, std::chrono::steady_clock::now()));
+        } else {
+            _ingest(t);
+        }
 
         context.begin_phase(t, "ACT");
-        _act_batch(t);
+        if (enable_timing) {
+            auto s = std::chrono::steady_clock::now();
+            _act_batch(t);
+            _record_timing("phase/act_batch", elapsed_seconds(s, std::chrono::steady_clock::now()));
+        } else {
+            _act_batch(t);
+        }
 
         context.begin_phase(t, "PERCEIVE");
-        _perceive_batch(t);
+        if (enable_timing) {
+            auto s = std::chrono::steady_clock::now();
+            _perceive_batch(t);
+            _record_timing("phase/perceive_batch", elapsed_seconds(s, std::chrono::steady_clock::now()));
+        } else {
+            _perceive_batch(t);
+        }
 
         context.begin_phase(t, "CONSOLIDATE");
-        _consolidate(t);
+        if (enable_timing) {
+            auto s = std::chrono::steady_clock::now();
+            _consolidate(t);
+            _record_timing("phase/consolidate", elapsed_seconds(s, std::chrono::steady_clock::now()));
+        } else {
+            _consolidate(t);
+        }
 
         context.clear_tick_buffers(t);
         clock.advance(1);
+
+        if (enable_timing) {
+            _record_timing("tick", elapsed_seconds(tick_start, std::chrono::steady_clock::now()));
+        }
     }
 }
 
 void WorldKernel::_reset_tick_budgets(int /*t*/) {
+    refresh_agent_cache(*this);
     double minutes_per_tick = static_cast<double>(clock.seconds_per_tick) / 60.0;
-    for (auto& kv : agents.agents) {
-        kv.second.reset_time(minutes_per_tick);
-        context.set_time_budget(kv.first, minutes_per_tick);
+    for (size_t i = 0; i < agent_ptr_cache.size(); ++i) {
+        Agent& agent = *agent_ptr_cache[i];
+        agent.reset_time(minutes_per_tick);
+        context.set_time_budget(agent.id, minutes_per_tick);
     }
 }
 
@@ -95,8 +175,9 @@ void WorldKernel::_ingest(int t) {
 }
 
 void WorldKernel::_act_batch(int t) {
-    for (auto& kv : agents.agents) {
-        Agent& agent = kv.second;
+    refresh_agent_cache(*this);
+    for (auto* agent_ptr : agent_ptr_cache) {
+        Agent& agent = *agent_ptr;
         PlannedAction plan = agent.plan_action(t);
         if (!plan.interaction.has_value()) continue;
         if (!agent.apply_planned_action(plan, &context)) continue;
@@ -109,19 +190,16 @@ void WorldKernel::_act_batch(int t) {
 }
 
 void WorldKernel::_perceive_batch(int t) {
-    std::vector<AgentId> all_agents;
-    all_agents.reserve(agents.agents.size());
-    for (const auto& kv : agents.agents) {
-        all_agents.push_back(kv.first);
+    refresh_agent_cache(*this);
+    for (auto* agent_ptr : agent_ptr_cache) {
+        agent_ptr->clear_feed();
     }
 
-    for (auto& kv : agents.agents) {
-        kv.second.clear_feed();
-    }
-
-    std::deque<Content> tick_content;
+    size_t total_content = context.posted_by_tick[t].size() + context.stimuli_by_tick[t].size();
+    std::vector<Content> tick_content;
+    tick_content.reserve(total_content);
     auto add_content = [&](const Content& content) -> const Content* {
-        tick_content.push_back(content);
+        tick_content.emplace_back(content);
         return &tick_content.back();
     };
 
@@ -138,10 +216,8 @@ void WorldKernel::_perceive_batch(int t) {
                 agent->enqueue_content(ptr, t, t, content.social_proof);
             }
         } else {
-            for (const auto& rid : all_agents) {
-                if (auto* agent = agents.get(rid)) {
-                    agent->enqueue_content(ptr, t, t, content.social_proof);
-                }
+            for (auto* agent : agent_ptr_cache) {
+                agent->enqueue_content(ptr, t, t, content.social_proof);
             }
         }
     }
@@ -160,37 +236,28 @@ void WorldKernel::_perceive_batch(int t) {
                 agent->enqueue_content(ptr, t, t, content.social_proof);
             }
         } else {
-            for (const auto& rid : all_agents) {
-                if (auto* agent = agents.get(rid)) {
-                    agent->enqueue_content(ptr, t, t, content.social_proof);
-                }
+            for (auto* agent : agent_ptr_cache) {
+                agent->enqueue_content(ptr, t, t, content.social_proof);
             }
         }
     }
 
-    std::vector<Agent*> agent_list;
-    agent_list.reserve(agents.agents.size());
-    for (auto& kv : agents.agents) {
-        agent_list.push_back(&kv.second);
-    }
-
-    std::vector<double> remaining(agent_list.size(), 0.0);
-    for (size_t i = 0; i < agent_list.size(); ++i) {
-        const AgentId& aid = agent_list[i]->id;
+    for (size_t i = 0; i < agent_ptr_cache.size(); ++i) {
+        const AgentId& aid = agent_ptr_cache[i]->id;
         auto it = context.time_remaining_by_agent.find(aid);
-        remaining[i] = (it == context.time_remaining_by_agent.end()) ? 0.0 : it->second;
+        remaining_cache[i] = (it == context.time_remaining_by_agent.end()) ? 0.0 : it->second;
     }
 
     size_t workers = enable_parallel ? (parallel_workers ? parallel_workers : std::thread::hardware_concurrency()) : 1;
     if (workers == 0) workers = 1;
-    if (workers > agent_list.size()) workers = agent_list.size();
+    if (workers > agent_ptr_cache.size()) workers = agent_ptr_cache.size();
 
     std::vector<std::vector<std::pair<AgentId, BeliefDelta>>> thread_deltas(workers);
 
     auto process_range = [&](size_t start, size_t end, std::vector<std::pair<AgentId, BeliefDelta>>& out) {
         for (size_t i = start; i < end; ++i) {
-            Agent& agent = *agent_list[i];
-            double rem = remaining[i];
+            Agent& agent = *agent_ptr_cache[i];
+            double rem = remaining_cache[i];
             if (rem <= 0.0) continue;
             while (rem > 0.0) {
                 auto next = agent.dequeue_next_content();
@@ -207,19 +274,19 @@ void WorldKernel::_perceive_batch(int t) {
                 agent.apply_perception_plan_local(plan, rem, &out);
                 agent.time_remaining = rem;
             }
-            remaining[i] = rem;
+            remaining_cache[i] = rem;
         }
     };
 
-    if (workers <= 1 || agent_list.size() < 2) {
-        process_range(0, agent_list.size(), thread_deltas[0]);
+    if (workers <= 1 || agent_ptr_cache.size() < 2) {
+        process_range(0, agent_ptr_cache.size(), thread_deltas[0]);
     } else {
         std::vector<std::thread> threads;
         threads.reserve(workers);
-        size_t chunk = (agent_list.size() + workers - 1) / workers;
+        size_t chunk = (agent_ptr_cache.size() + workers - 1) / workers;
         for (size_t w = 0; w < workers; ++w) {
             size_t start = w * chunk;
-            size_t end = std::min(agent_list.size(), start + chunk);
+            size_t end = std::min(agent_ptr_cache.size(), start + chunk);
             if (start >= end) break;
             threads.emplace_back(process_range, start, end, std::ref(thread_deltas[w]));
         }
@@ -232,8 +299,8 @@ void WorldKernel::_perceive_batch(int t) {
         }
     }
 
-    for (size_t i = 0; i < agent_list.size(); ++i) {
-        context.time_remaining_by_agent[agent_list[i]->id] = remaining[i];
+    for (size_t i = 0; i < agent_ptr_cache.size(); ++i) {
+        context.time_remaining_by_agent[agent_ptr_cache[i]->id] = remaining_cache[i];
     }
 
     if (perceive_fn) perceive_fn(t, context);

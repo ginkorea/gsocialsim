@@ -83,6 +83,14 @@ struct WorldKernel {
     bool started = false;
     bool enable_parallel = true;
     size_t parallel_workers = 0;
+    bool enable_timing = false;
+
+    struct TimingStat {
+        double total = 0.0;
+        double max = 0.0;
+        size_t count = 0;
+    };
+    std::unordered_map<std::string, TimingStat> timing;
 
     struct AgentPopulation {
         std::unordered_map<AgentId, Agent> agents;
@@ -99,6 +107,10 @@ struct WorldKernel {
     GlobalSocialReality gsr;
     StimulusIngestionEngine stimulus_engine;
 
+    std::vector<AgentId> agent_id_cache;
+    std::vector<Agent*> agent_ptr_cache;
+    std::vector<double> remaining_cache;
+
     // Hooks for future modules (agent logic, stimuli ingestion, etc.)
     std::function<void(int, WorldContext&)> ingest_fn;
     std::function<void(int, WorldContext&)> act_fn;
@@ -107,6 +119,7 @@ struct WorldKernel {
 
     void start();
     void step(int num_ticks);
+    std::vector<std::tuple<std::string, double, size_t, double>> timing_report() const;
 
 private:
     void _reset_tick_budgets(int t);
@@ -114,4 +127,5 @@ private:
     void _act_batch(int t);
     void _perceive_batch(int t);
     void _consolidate(int t);
+    void _record_timing(const std::string& name, double seconds);
 };
