@@ -67,6 +67,15 @@ The platform is intended for **research, experimentation, and counterfactual ana
 - Added `--print-network-stats` to report degree stats, density, reciprocity, isolates, and group metrics.
 - Influence from scrolled media is reduced (lower consumption/interaction and a scroll influence multiplier).
 
+### Ideas to Implement (Influence Dynamics)
+
+- Inertia: belief updates are resisted by a per-topic “mass” or stiffness term; small deltas decay instead of accumulate.
+- Critical velocity: once belief momentum exceeds a threshold, additional aligned influence becomes easier (nonlinear gain).
+- Rebound: restorative force toward a per-topic “core value” that prevents long-term drift.
+- Hysteresis: direction of change depends on whether the agent is already moving toward or away from a stance.
+- Trust gate: influence strength scales superlinearly with trust/credibility instead of linearly.
+- Literature grounding: add a short math note mapping influence dynamics to known models and parameter ranges.
+
 ---
 
 ## 4. Agents
