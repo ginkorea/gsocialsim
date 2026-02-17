@@ -34,6 +34,7 @@ struct WorldContext {
     std::unordered_map<int, std::vector<Stimulus>> stimuli_by_tick;
     std::unordered_map<int, std::vector<Content>> posted_by_tick;
     std::vector<std::pair<AgentId, BeliefDelta>> deferred_belief_deltas;
+    std::unordered_map<AgentId, double> time_remaining_by_agent;
 
     void begin_phase(int tick, const std::string& phase) {
         current_tick = tick;
@@ -54,6 +55,21 @@ struct WorldContext {
         std::vector<std::pair<AgentId, BeliefDelta>> out;
         out.swap(deferred_belief_deltas);
         return out;
+    }
+
+    void set_time_budget(const AgentId& agent_id, double minutes) {
+        time_remaining_by_agent[agent_id] = std::max(0.0, minutes);
+    }
+
+    bool spend_time(const AgentId& agent_id, double minutes) {
+        double amt = std::max(0.0, minutes);
+        auto it = time_remaining_by_agent.find(agent_id);
+        if (it == time_remaining_by_agent.end()) {
+            return true;
+        }
+        if (it->second < amt) return false;
+        it->second -= amt;
+        return true;
     }
 };
 

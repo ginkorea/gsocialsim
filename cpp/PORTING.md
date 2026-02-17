@@ -3,8 +3,8 @@
 Goal: port Python features into a standalone C++ engine, one module at a time, with a clean
 phase-contract kernel, deterministic runs, and batch-friendly execution.
 
-## Module 0: Core Types (current)
-- Status: in progress
+## Module 0: Core Types
+- Status: complete
 - Contents: identifiers, basic structs, shared utilities
 - Next: define `AgentId`, `TopicId`, `ContentId`, `Belief`, `Impression`, `Content`
 
@@ -12,11 +12,13 @@ phase-contract kernel, deterministic runs, and batch-friendly execution.
 - Target: C++ `WorldKernel`
 - Scope: clock, phase ordering, buffers, queue of belief deltas
 - Output: deterministic step loop, no Python dependencies
+- Status: complete
 
 ## Module 2: Agents
 - Target: Agent state + behavior
 - Scope: identity, beliefs, attention, policy, budgeted time
 - Output: `plan_action`, `plan_perception`, `apply_*` in C++
+- Status: complete
 
 ## Module 3: Stimuli Pipeline
 - Target: CSV ingestion and stimuli scheduling

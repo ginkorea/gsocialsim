@@ -8,6 +8,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_executable(gsocialsim_cpp
     src/main.cpp
     src/kernel.cpp
+    src/agent.cpp
+    src/utils.cpp
 )
 
 target_include_directories(gsocialsim_cpp PRIVATE include)
