@@ -1,6 +1,13 @@
 import argparse
+import sys
+from pathlib import Path
 import random
 from typing import Any, Dict
+
+ROOT = Path(__file__).resolve().parent
+PY_SRC = ROOT / "python" / "src"
+if PY_SRC.exists():
+    sys.path.insert(0, str(PY_SRC))
 
 from gsocialsim.kernel.world_kernel import WorldKernel
 from gsocialsim.agents.agent import Agent

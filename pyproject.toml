@@ -7,7 +7,7 @@ name = "gsocialsim"
 version = "0.1.0"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = {"" = "python/src"}
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["python/src"]

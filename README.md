@@ -355,7 +355,7 @@ The guiding question:
 
 ```
 cpp/                # C++ engine + CLI
-src/gsocialsim/
+python/src/gsocialsim/
 ├── agents/          # agent state, beliefs, attention, personality
 ├── analytics/       # metrics and attribution
 ├── evolution/       # evolutionary system

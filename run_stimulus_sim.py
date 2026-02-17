@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+PY_SRC = ROOT / "python" / "src"
+if PY_SRC.exists():
+    sys.path.insert(0, str(PY_SRC))
+
 from gsocialsim.kernel.world_kernel import WorldKernel
 from gsocialsim.agents.agent import Agent
 from gsocialsim.types import AgentId, TopicId
