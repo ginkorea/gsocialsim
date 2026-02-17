@@ -448,7 +448,36 @@ void Agent::apply_perception_plan(const PerceptionPlan& plan, WorldContext* cont
     apply_belief_delta(plan.delta.value());
 }
 
+void Agent::apply_perception_plan_local(
+    const PerceptionPlan& plan,
+    double& remaining_minutes,
+    std::vector<std::pair<AgentId, BeliefDelta>>* out_deltas
+) {
+    if (!plan.exposed) return;
+    if (remaining_minutes < plan.exposure_cost) return;
+    remaining_minutes -= plan.exposure_cost;
+    remember_impression(plan.impression);
+
+    if (!plan.consumed_roll) return;
+    if (remaining_minutes < plan.consumption_extra_cost) return;
+    remaining_minutes -= plan.consumption_extra_cost;
+
+    daily_impressions_consumed.push_back(plan.impression);
+
+    if (!plan.delta.has_value()) return;
+    if (out_deltas) {
+        out_deltas->emplace_back(id, plan.delta.value());
+    } else {
+        apply_belief_delta(plan.delta.value());
+    }
+}
+
 void Agent::enqueue_content(const Content& content, int tick, int current_tick, double engagement) {
+    feed_queue.push(&content, tick, current_tick, engagement);
+}
+
+void Agent::enqueue_content(const Content* content, int tick, int current_tick, double engagement) {
+    if (!content) return;
     feed_queue.push(content, tick, current_tick, engagement);
 }
 

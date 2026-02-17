@@ -6,6 +6,10 @@
 #include <utility>
 #include <vector>
 
+#include "agent.h"
+#include "global_social_reality.h"
+#include "network.h"
+#include "stimulus_ingestion.h"
 #include "types.h"
 
 // -----------------------------
@@ -77,6 +81,23 @@ struct WorldKernel {
     SimClock clock;
     WorldContext context;
     bool started = false;
+    bool enable_parallel = true;
+    size_t parallel_workers = 0;
+
+    struct AgentPopulation {
+        std::unordered_map<AgentId, Agent> agents;
+
+        void add_agent(const Agent& agent) { agents.insert_or_assign(agent.id, agent); }
+        Agent* get(const AgentId& agent_id) {
+            auto it = agents.find(agent_id);
+            return it == agents.end() ? nullptr : &it->second;
+        }
+    };
+
+    AgentPopulation agents;
+    NetworkLayer network;
+    GlobalSocialReality gsr;
+    StimulusIngestionEngine stimulus_engine;
 
     // Hooks for future modules (agent logic, stimuli ingestion, etc.)
     std::function<void(int, WorldContext&)> ingest_fn;

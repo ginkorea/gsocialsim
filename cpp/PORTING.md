@@ -28,6 +28,7 @@ phase-contract kernel, deterministic runs, and batch-friendly execution.
 ## Module 4: Social Graph + Trust
 - Target: directed follower graph + trust updates
 - Scope: follow edges, edge trust, global relationship state
+- Status: complete
 
 ## Module 5: Physical World
 - Target: geo schedules + time budgets

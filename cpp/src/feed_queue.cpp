@@ -14,7 +14,8 @@ static double recency_score(int tick, int current_tick) {
     return 1.0 / (1.0 + static_cast<double>(age));
 }
 
-void FeedPriorityQueue::push(const Content& content, int tick, int current_tick, double engagement) {
+void FeedPriorityQueue::push(const Content* content, int tick, int current_tick, double engagement) {
+    if (!content) return;
     FeedItem item;
     item.content = content;
     item.tick = tick;

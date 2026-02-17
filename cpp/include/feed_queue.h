@@ -6,7 +6,7 @@
 #include "types.h"
 
 struct FeedItem {
-    Content content;
+    const Content* content = nullptr;
     int tick = 0;
     double engagement = 0.0;  // per-agent or global proxy (e.g., social_proof)
     double score = 0.0;
@@ -17,7 +17,7 @@ public:
     FeedPriorityQueue(double recency_weight = 0.4, double engagement_weight = 0.6)
         : recency_weight_(recency_weight), engagement_weight_(engagement_weight) {}
 
-    void push(const Content& content, int tick, int current_tick, double engagement);
+    void push(const Content* content, int tick, int current_tick, double engagement);
     bool empty() const;
     size_t size() const;
     FeedItem pop();

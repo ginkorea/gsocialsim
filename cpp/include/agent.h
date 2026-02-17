@@ -107,17 +107,24 @@ public:
 
     bool apply_planned_action(const PlannedAction& plan, WorldContext* context = nullptr);
     void apply_perception_plan(const PerceptionPlan& plan, WorldContext* context = nullptr);
+    void apply_perception_plan_local(
+        const PerceptionPlan& plan,
+        double& remaining_minutes,
+        std::vector<std::pair<AgentId, BeliefDelta>>* out_deltas = nullptr
+    );
 
     void enqueue_content(const Content& content, int tick, int current_tick, double engagement);
+    void enqueue_content(const Content* content, int tick, int current_tick, double engagement);
     std::optional<FeedItem> dequeue_next_content();
 
     void dream();
     void consolidate_daily();
 
+    void apply_belief_delta(const BeliefDelta& delta);
+
 private:
     bool spend_time(double minutes);
     void remember_impression(const Impression& imp);
-    void apply_belief_delta(const BeliefDelta& delta);
     void nudge_salience(const TopicId& topic, double delta);
     void nudge_knowledge(const TopicId& topic, double delta);
 };
