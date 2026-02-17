@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "feed_queue.h"
 #include "types.h"
 
 struct WorldContext;
@@ -81,6 +82,8 @@ public:
     std::deque<ContentId> recent_impressions;
     size_t max_recent_impressions = 200;
 
+    FeedPriorityQueue feed_queue;
+
     AttentionSystem attention;
     BeliefUpdateEngine belief_engine;
     BanditPolicy policy;
@@ -104,6 +107,9 @@ public:
 
     bool apply_planned_action(const PlannedAction& plan, WorldContext* context = nullptr);
     void apply_perception_plan(const PerceptionPlan& plan, WorldContext* context = nullptr);
+
+    void enqueue_content(const Content& content, int tick, int current_tick, double engagement);
+    std::optional<FeedItem> dequeue_next_content();
 
     void dream();
     void consolidate_daily();

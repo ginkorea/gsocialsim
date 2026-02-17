@@ -448,6 +448,17 @@ void Agent::apply_perception_plan(const PerceptionPlan& plan, WorldContext* cont
     apply_belief_delta(plan.delta.value());
 }
 
+void Agent::enqueue_content(const Content& content, int tick, int current_tick, double engagement) {
+    feed_queue.push(content, tick, current_tick, engagement);
+}
+
+std::optional<FeedItem> Agent::dequeue_next_content() {
+    if (feed_queue.empty()) {
+        return std::nullopt;
+    }
+    return feed_queue.pop();
+}
+
 static size_t topic_to_dim(const std::string& topic, size_t dims) {
     if (dims == 0) return 0;
     return std::hash<std::string>{}(topic) % dims;
