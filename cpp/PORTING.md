@@ -23,6 +23,7 @@ phase-contract kernel, deterministic runs, and batch-friendly execution.
 ## Module 3: Stimuli Pipeline
 - Target: CSV ingestion and stimuli scheduling
 - Scope: parse CSV into tick-indexed stimuli, content build
+- Status: complete
 
 ## Module 4: Social Graph + Trust
 - Target: directed follower graph + trust updates
