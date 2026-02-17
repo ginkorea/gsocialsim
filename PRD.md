@@ -76,6 +76,23 @@ The platform is intended for **research, experimentation, and counterfactual ana
 - Trust gate: influence strength scales superlinearly with trust/credibility instead of linearly.
 - Literature grounding: add a short math note mapping influence dynamics to known models and parameter ranges.
 
+### Notes for Tomorrow (Influence Math)
+
+- Evidence accumulator with decay (multi‑hit requirement):
+  `E_t = λ E_{t-1} + w_i * s_i`, apply belief update only if `|E_t| > θ`.
+  Use `λ ~ 0.85–0.98` and tune `θ` so single exposures rarely move beliefs.
+- Inertia + rebound (damped spring to core value):
+  `v_{t+1} = ρ v_t + η * influence - k * (b_t - b0)`, `b_{t+1} = b_t + v_{t+1}`.
+  `b0` is a per-topic baseline; `k` controls how strongly beliefs revert.
+- Critical velocity (nonlinear gain):
+  `η_eff = η * (1 + κ * sigmoid(|v_t| - v0))` makes movement easier once momentum builds.
+- Bounded confidence gate:
+  suppress or invert influence when `|Δstance|` exceeds a threshold `τ`.
+- Habituation per source:
+  `w_i = w_i / (1 + α * n_exposures_from_source)` to reduce repeated exposure power.
+- Trust gate (superlinear):
+  `trust_effect = trust^γ` (γ in 2–4) so low trust yields near‑zero influence.
+
 ---
 
 ## 4. Agents
