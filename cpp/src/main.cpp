@@ -67,6 +67,7 @@ int main(int argc, char** argv) {
         }
     }
 
+    auto setup_start = std::chrono::steady_clock::now();
     WorldKernel kernel;
     kernel.enable_timing = enable_timing;
     kernel.enable_parallel = enable_parallel;
@@ -110,6 +111,9 @@ int main(int argc, char** argv) {
         kernel.geo.load_population_csv();
     }
 
+    auto setup_end = std::chrono::steady_clock::now();
+    double setup_elapsed = std::chrono::duration<double>(setup_end - setup_start).count();
+
     const int log_every = std::max(1, ticks / 10);
     auto start = std::chrono::steady_clock::now();
     for (int t = 0; t < ticks; ++t) {
@@ -121,6 +125,9 @@ int main(int argc, char** argv) {
     auto end = std::chrono::steady_clock::now();
     double elapsed = std::chrono::duration<double>(end - start).count();
 
+    std::cout << "setup time: " << setup_elapsed << "s\n";
+    std::cout << "simulation time: " << elapsed << "s\n";
+    std::cout << "total time: " << (setup_elapsed + elapsed) << "s\n";
     std::cout << "gsocialsim_cpp: kernel ran " << ticks << " ticks in " << elapsed << "s\n";
 
     if (enable_timing) {
