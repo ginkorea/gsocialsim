@@ -51,8 +51,8 @@ static double base_interact(MediaType mt) {
 
 static double intake_consume_mult(IntakeMode mode) {
     switch (mode) {
-        case IntakeMode::SCROLL: return 1.00;
-        case IntakeMode::SEEK: return 1.15;
+        case IntakeMode::SCROLL: return 0.60;
+        case IntakeMode::SEEK: return 1.00;
         case IntakeMode::PHYSICAL: return 1.20;
         case IntakeMode::DEEP_FOCUS: return 1.40;
         default: return 1.0;
@@ -61,7 +61,7 @@ static double intake_consume_mult(IntakeMode mode) {
 
 static double intake_interact_mult(IntakeMode mode) {
     switch (mode) {
-        case IntakeMode::SCROLL: return 1.00;
+        case IntakeMode::SCROLL: return 0.70;
         case IntakeMode::SEEK: return 0.90;
         case IntakeMode::PHYSICAL: return 0.75;
         case IntakeMode::DEEP_FOCUS: return 0.60;
@@ -184,6 +184,7 @@ BeliefDelta BeliefUpdateEngine::update(
     proximity = clamp01(proximity);
     double multiplier = (proximity > 0.0) ? (1.0 + 9.0 * proximity) : 1.0;
     double trust_effect = (proximity > 0.0) ? std::min(1.0, trust + 0.15 * proximity) : trust;
+    double scroll_influence_mult = (proximity > 0.0) ? 1.0 : 0.35;
 
     if (social_proof > 0.0) {
         multiplier *= (1.0 + 0.5 * social_proof);
@@ -195,8 +196,9 @@ BeliefDelta BeliefUpdateEngine::update(
     }
 
     if (!current) {
-        double stance_delta = impression.stance_signal * trust_effect * multiplier;
-        double conf_delta = (0.1 * trust_effect * multiplier) + (is_self_source ? (0.03 * trust_effect) : 0.0);
+        double stance_delta = impression.stance_signal * trust_effect * multiplier * scroll_influence_mult;
+        double conf_delta = (0.1 * trust_effect * multiplier * scroll_influence_mult) +
+            (is_self_source ? (0.03 * trust_effect * scroll_influence_mult) : 0.0);
         return {impression.topic, stance_delta, conf_delta};
     }
 
@@ -207,8 +209,8 @@ BeliefDelta BeliefUpdateEngine::update(
     bool is_threatening = impression.identity_threat > 0.5;
 
     double base = 0.10;
-    double stance_change = stance_diff * base * trust_effect * multiplier * credibility_mult * primal_mult;
-    double conf_change = 0.02 * trust_effect * multiplier * credibility_mult * primal_mult;
+    double stance_change = stance_diff * base * trust_effect * multiplier * credibility_mult * primal_mult * scroll_influence_mult;
+    double conf_change = 0.02 * trust_effect * multiplier * credibility_mult * primal_mult * scroll_influence_mult;
 
     if (is_confirming) {
         stance_change *= 1.1;
@@ -220,8 +222,8 @@ BeliefDelta BeliefUpdateEngine::update(
     }
 
     if (is_threatening && is_opposed) {
-        stance_change = -stance_diff * base * trust_effect * multiplier * 0.6;
-        conf_change += 0.05 * trust_effect * multiplier;
+        stance_change = -stance_diff * base * trust_effect * multiplier * 0.6 * scroll_influence_mult;
+        conf_change += 0.05 * trust_effect * multiplier * scroll_influence_mult;
     } else if (is_opposed) {
         double openness = clamp01(1.0 - identity_rigidity);
         double persuasive = trust_effect * credibility_mult;

@@ -56,6 +56,19 @@ The platform is intended for **research, experimentation, and counterfactual ana
 
 ---
 
+## Status (2026-02-17)
+
+- C++ analytics now defaults to summary mode to avoid huge CSVs; detailed mode retained for visualizations.
+- C++ logs now include impression stance and interaction events for attribution and rendering.
+- Added C++ `state.json` export (agents, following, stimuli) plus `render_from_cpp.py` to reuse Python visualizers.
+- Visualization edges are now colored by influence direction (toward vs away), and agents are colored by political lean.
+- Graph layout stabilized: physics runs to settle, then freezes; default layout spread increased with tunable options.
+- Network generation defaults to sparse grouped structure with outliers; supports `groups|random|geo` modes.
+- Added `--print-network-stats` to report degree stats, density, reciprocity, isolates, and group metrics.
+- Influence from scrolled media is reduced (lower consumption/interaction and a scroll influence multiplier).
+
+---
+
 ## 4. Agents
 
 ### 4.1 Persistent Agent Model

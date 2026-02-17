@@ -14,6 +14,17 @@ static inline double clamp01(double v) {
     return v;
 }
 
+static std::string interaction_verb_to_string(InteractionVerb verb) {
+    switch (verb) {
+        case InteractionVerb::CREATE: return "create";
+        case InteractionVerb::LIKE: return "like";
+        case InteractionVerb::FORWARD: return "forward";
+        case InteractionVerb::COMMENT: return "comment";
+        case InteractionVerb::REPLY: return "reply";
+        default: return "unknown";
+    }
+}
+
 static std::optional<double> parse_opt_double(const std::unordered_map<std::string, std::string>& metadata,
                                               const std::string& key) {
     auto it = metadata.find(key);
@@ -248,6 +259,21 @@ void WorldKernel::_act_batch(int t) {
         if (!plan.interaction.has_value()) continue;
         if (!agent.apply_planned_action(plan, &context)) continue;
         const auto& interaction = plan.interaction.value();
+        if (enable_analytics) {
+            std::ostringstream os;
+            os << "agent=" << interaction.agent_id
+               << "|verb=" << interaction_verb_to_string(interaction.verb);
+            if (interaction.target_stimulus_id.has_value()) {
+                os << "|target=" << interaction.target_stimulus_id.value();
+            }
+            if (interaction.original_content.has_value()) {
+                const auto& c = interaction.original_content.value();
+                os << "|content=" << c.id
+                   << "|topic=" << c.topic
+                   << "|stance=" << c.stance;
+            }
+            analytics_log(t, "interaction", os.str());
+        }
         if (interaction.original_content.has_value()) {
             context.posted_by_tick[t].push_back(interaction.original_content.value());
         }
@@ -475,6 +501,7 @@ void WorldKernel::_perceive_batch(int t) {
                        << "|author=" << content.author_id
                        << "|content=" << content.id
                        << "|topic=" << content.topic
+                       << "|stance=" << content.stance
                        << "|exposed=1"
                        << "|consumed=" << (plan.consumed_roll ? 1 : 0)
                        << "|proximity=" << next->proximity

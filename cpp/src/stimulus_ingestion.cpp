@@ -11,6 +11,10 @@ const Stimulus* StimulusIngestionEngine::get_stimulus(const std::string& stimulu
     return &it->second;
 }
 
+const std::unordered_map<std::string, Stimulus>& StimulusIngestionEngine::stimuli_store() const {
+    return stimuli_store_;
+}
+
 std::vector<Stimulus> StimulusIngestionEngine::tick(int current_tick) {
     std::vector<Stimulus> newly_added;
     for (const auto& source : data_sources_) {

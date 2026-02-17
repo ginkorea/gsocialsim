@@ -12,6 +12,7 @@ class StimulusIngestionEngine {
 public:
     void register_data_source(std::shared_ptr<DataSource> source);
     const Stimulus* get_stimulus(const std::string& stimulus_id) const;
+    const std::unordered_map<std::string, Stimulus>& stimuli_store() const;
     std::vector<Stimulus> tick(int current_tick);
 
 private:

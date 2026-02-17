@@ -27,28 +27,13 @@ class FullGraphExporter(BaseExporter):
         output_path = req.output_path
 
         net = Network(height="100vh", width="100%", directed=True, notebook=False, cdn_resources="remote")
-        self._safe_set_options(net, """
-        var options = {
-          "physics": {
-            "enabled": true,
-            "barnesHut": {
-              "gravitationalConstant": -25000,
-              "centralGravity": 0.25,
-              "springLength": 180,
-              "springConstant": 0.04,
-              "damping": 0.5,
-              "avoidOverlap": 0.2
-            },
-            "stabilization": {
-              "enabled": true,
-              "iterations": 1500,
-              "updateInterval": 50,
-              "fit": true
-            }
-          },
-          "interaction": {"hover": true, "tooltipDelay": 80}
-        }
-        """)
+        layout = self._layout_settings(req.extra)
+        self._apply_stable_layout(
+            net,
+            enable_physics=layout["physics"],
+            spread=layout["spread"],
+            seed=layout["seed"],
+        )
 
         # 1) Agent nodes
         for agent in kernel.agents.agents.values():
@@ -91,6 +76,8 @@ class FullGraphExporter(BaseExporter):
 
         # 5) Influence edges (with external nodes)
         influence_counts: Dict[Tuple[str, str], int] = defaultdict(int)
+        influence_sign: Dict[Tuple[str, str], int] = defaultdict(int)
+        influence_sign_count: Dict[Tuple[str, str], int] = defaultdict(int)
         for crossing in kernel.world_context.analytics.crossings:
             for source_id, weight in crossing.attribution.items():
                 try:
@@ -99,6 +86,11 @@ class FullGraphExporter(BaseExporter):
                     w = 0.0
                 if w > 0:
                     influence_counts[(str(source_id), str(crossing.agent_id))] += 1
+                    edge_signs = getattr(crossing, "edge_signs", None)
+                    if edge_signs and str(source_id) in edge_signs:
+                        key = (str(source_id), str(crossing.agent_id))
+                        influence_sign[key] += int(edge_signs[str(source_id)])
+                        influence_sign_count[key] += 1
 
         for (source, target), count in influence_counts.items():
             if target in kernel.agents.agents:
@@ -112,7 +104,12 @@ class FullGraphExporter(BaseExporter):
                         shape="box",
                         size=14,
                     )
-                net.add_edge(source, target, color="#ff0000", width=min(10, 2 * count), title=f"Influenced {count} time(s)")
+                key = (source, target)
+                color = "#ff0000"
+                if influence_sign_count.get(key, 0) > 0:
+                    color = self._influence_color(influence_sign[key])
+                net.add_edge(source, target, color=color, width=min(10, 2 * count), title=f"Influenced {count} time(s)")
 
         net.save_graph(output_path)
+        self._freeze_after_stabilization(output_path)
         return output_path

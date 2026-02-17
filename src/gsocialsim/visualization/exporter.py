@@ -56,6 +56,109 @@ class BaseExporter(ABC):
         except Exception:
             return False
 
+    @staticmethod
+    def _influence_color(sign: int) -> str:
+        if sign > 0:
+            return "#2ca02c"
+        if sign < 0:
+            return "#d62728"
+        return "#999999"
+
+    @classmethod
+    def _layout_settings(cls, extra: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        extra = extra or {}
+        try:
+            spread = float(extra.get("layout_spread", 1.35))
+        except Exception:
+            spread = 1.35
+        try:
+            seed = int(extra.get("layout_seed", 42))
+        except Exception:
+            seed = 42
+        physics = bool(extra.get("layout_physics", True))
+        spread = max(0.5, min(3.0, spread))
+        return {"spread": spread, "seed": seed, "physics": physics}
+
+    @classmethod
+    def _apply_stable_layout(
+        cls,
+        net: Network,
+        *,
+        enable_physics: bool = False,
+        spread: float = 1.35,
+        seed: int = 42,
+    ) -> None:
+        spread = max(0.5, min(3.0, float(spread)))
+        grav = -20000.0 * spread
+        spring_length = 220.0 * spread
+        central_gravity = 0.15 / spread
+        options_js = f"""
+        var options = {{
+          "layout": {{
+            "improvedLayout": true,
+            "randomSeed": {seed}
+          }},
+          "interaction": {{
+            "hover": true,
+            "tooltipDelay": 80,
+            "navigationButtons": true
+          }},
+          "edges": {{
+            "smooth": {{
+              "enabled": true,
+              "type": "continuous",
+              "roundness": 0.18
+            }}
+          }},
+          "physics": {{
+            "enabled": {str(enable_physics).lower()},
+            "barnesHut": {{
+              "gravitationalConstant": {grav},
+              "centralGravity": {central_gravity},
+              "springLength": {spring_length},
+              "springConstant": 0.03,
+              "damping": 0.8,
+              "avoidOverlap": 0.2
+            }},
+            "stabilization": {{
+              "enabled": true,
+              "iterations": 2000,
+              "updateInterval": 50,
+              "fit": true
+            }},
+            "minVelocity": 0.1,
+            "maxVelocity": 30
+          }}
+        }}
+        """
+        cls._safe_set_options(net, options_js)
+
+    @staticmethod
+    def _freeze_after_stabilization(output_path: str) -> None:
+        try:
+            with open(output_path, "r", encoding="utf-8") as fh:
+                lines = fh.readlines()
+        except Exception:
+            return
+
+        inject_line = (
+            "network.once(\"stabilizationIterationsDone\", function () { "
+            "network.setOptions({physics: false}); });\n"
+        )
+        if any(inject_line.strip() in line for line in lines):
+            return
+
+        for i, line in enumerate(lines):
+            if "var network = new vis.Network" in line:
+                lines.insert(i + 1, inject_line)
+                break
+
+        try:
+            with open(output_path, "w", encoding="utf-8") as fh:
+                fh.writelines(lines)
+        except Exception:
+            return
+
     @classmethod
     def _ensure_node(
         cls,

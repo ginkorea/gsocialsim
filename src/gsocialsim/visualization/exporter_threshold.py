@@ -32,6 +32,13 @@ class ThresholdExporter(BaseExporter):
         min_vis = int(extra.get("min_node_visibility", 5))
 
         net = Network(height="100vh", width="100%", directed=True, notebook=False, cdn_resources="remote")
+        layout = self._layout_settings(req.extra)
+        self._apply_stable_layout(
+            net,
+            enable_physics=layout["physics"],
+            spread=layout["spread"],
+            seed=layout["seed"],
+        )
         self._safe_set_options(net, """
         var options = {
           "physics": {
@@ -51,6 +58,8 @@ class ThresholdExporter(BaseExporter):
 
         # Aggregate influence
         influence_counts: Dict[Tuple[str, str], int] = defaultdict(int)
+        influence_sign: Dict[Tuple[str, str], int] = defaultdict(int)
+        influence_sign_count: Dict[Tuple[str, str], int] = defaultdict(int)
         for crossing in kernel.world_context.analytics.crossings:
             for source_id, weight in crossing.attribution.items():
                 try:
@@ -59,6 +68,11 @@ class ThresholdExporter(BaseExporter):
                     w = 0.0
                 if w > 0:
                     influence_counts[(str(source_id), str(crossing.agent_id))] += 1
+                    edge_signs = getattr(crossing, "edge_signs", None)
+                    if edge_signs and str(source_id) in edge_signs:
+                        key = (str(source_id), str(crossing.agent_id))
+                        influence_sign[key] += int(edge_signs[str(source_id)])
+                        influence_sign_count[key] += 1
 
         # Node visibility score
         vis: Dict[str, int] = defaultdict(int)
@@ -110,7 +124,12 @@ class ThresholdExporter(BaseExporter):
             if not self._node_exists(net, tgt):
                 self._ensure_node(net, tgt, label=tgt, color="#cccccc", shape="dot", size=18)
 
-            net.add_edge(src, tgt, color="#ff0000", width=min(10, 2 * c), title=f"Influenced {c} time(s)")
+            key = (src, tgt)
+            color = "#ff0000"
+            if influence_sign_count.get(key, 0) > 0:
+                color = self._influence_color(influence_sign[key])
+            net.add_edge(src, tgt, color=color, width=min(10, 2 * c), title=f"Influenced {c} time(s)")
 
         net.save_graph(output_path)
+        self._freeze_after_stabilization(output_path)
         return output_path
