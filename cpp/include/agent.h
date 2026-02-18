@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "belief_dynamics.h"
 #include "feed_queue.h"
 #include "types.h"
 
@@ -48,6 +49,7 @@ public:
     Impression evaluate(const Content& content, double proximity = 0.0) const;
 };
 
+// Legacy BeliefUpdateEngine (deprecated in favor of BeliefDynamicsEngine)
 class BeliefUpdateEngine {
 public:
     BeliefDelta update(
@@ -85,7 +87,7 @@ public:
     FeedPriorityQueue feed_queue;
 
     AttentionSystem attention;
-    BeliefUpdateEngine belief_engine;
+    BeliefDynamicsEngine belief_engine;  // Phase 3: Advanced influence dynamics
     BanditPolicy policy;
 
     std::vector<Impression> daily_impressions_consumed;

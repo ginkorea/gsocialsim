@@ -43,6 +43,12 @@ struct Belief {
     double confidence = 0.0;
     double salience = 0.5;
     double knowledge = 0.5;
+
+    // Advanced influence dynamics (Phase 3)
+    double momentum = 0.0;              // Velocity/inertia for belief change
+    double core_value = 0.0;            // Rebound anchor (stable baseline stance)
+    double evidence_accumulator = 0.0;  // Multi-hit requirement tracker
+    int exposure_count = 0;             // Habituation tracking (per-topic)
 };
 
 struct RewardVector {

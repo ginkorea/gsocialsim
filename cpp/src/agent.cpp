@@ -382,14 +382,23 @@ PerceptionPlan Agent::plan_perception(
     double consumption_extra_cost = std::max(0.0, attention_cost - exposure_cost);
 
     auto it = beliefs.find(content.topic);
-    const Belief* cur = (it == beliefs.end()) ? nullptr : &it->second;
-    bool has_belief = (cur != nullptr);
-    double old_stance = has_belief ? cur->stance : 0.0;
+    bool has_belief = (it != beliefs.end());
+    double old_stance = has_belief ? it->second.stance : 0.0;
 
     std::optional<BeliefDelta> delta;
     if (consumed_roll && compute_delta) {
         bool is_self_source = (content.author_id == id);
-        delta = belief_engine.update(cur, impression, trust, identity.identity_rigidity, is_self_source, proximity);
+
+        // Get or create belief for this topic
+        if (!has_belief) {
+            // Initialize new belief with core_value = 0 (neutral anchor)
+            beliefs[impression.topic] = Belief{};
+            it = beliefs.find(impression.topic);
+        }
+
+        // Pass belief by reference (BeliefDynamicsEngine modifies it)
+        delta = belief_engine.compute_update(it->second, impression, trust,
+                                             identity.identity_rigidity, is_self_source, proximity);
     }
 
     plan.impression = impression;

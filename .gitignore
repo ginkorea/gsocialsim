@@ -23,3 +23,11 @@ venv/
 
 # Egg info
 *.egg-info/
+
+# C++ build artifacts
+cpp/build/
+cpp/cmake-build-*/
+
+# Data and reports (large files)
+data/
+reports/
