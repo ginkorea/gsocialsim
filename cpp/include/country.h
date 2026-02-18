@@ -1,5 +1,6 @@
 #pragma once
 
+#include "identity_space.h"
 #include "types.h"
 #include <string>
 #include <vector>
@@ -82,6 +83,9 @@ struct Country {
     double urban_percentage;
     double internet_penetration;
     double social_media_penetration;
+
+    // Dimensional identity space configuration
+    IdentitySpaceConfig identity_space_config;
 };
 
 // Diaspora segment - dual identity communities
@@ -142,17 +146,7 @@ struct InternationalActor {
     std::string state_affiliation;        // If yes, which state?
 };
 
-// Multi-dimensional identity space (replaces single [-1,+1] ideology)
-struct PoliticalIdentity {
-    double economic_left_right;           // [-1, +1]: socialist <-> capitalist
-    double social_progressive_traditional; // [-1, +1]: progressive <-> traditionalist
-    double libertarian_authoritarian;     // [-1, +1]: libertarian <-> authoritarian
-    double cosmopolitan_nationalist;      // [-1, +1]: globalist <-> nationalist
-    double secular_religious;             // [-1, +1]: secular <-> religious
-
-    // Country-specific dimensions can be added dynamically
-    std::unordered_map<std::string, double> additional_dimensions;
-};
+// PoliticalIdentity is now defined in identity_space.h
 
 // Topic definition with scope
 struct TopicDefinition {

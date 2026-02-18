@@ -9,9 +9,11 @@
 
 #include "belief_dynamics.h"
 #include "feed_queue.h"
+#include "identity_space.h"
 #include "types.h"
 
 struct WorldContext;
+class IdentitySpace;
 
 struct ActivityPreferences {
     double read_propensity = 0.5;
@@ -108,6 +110,15 @@ struct AgentDemographics {
     bool parent = false;
     bool veteran = false;
 
+    // Multi-dimensional political identity
+    PoliticalIdentity political_identity;
+
+    // Country context
+    std::string country_id;                    // "USA", "IND", "BRA", etc.
+
+    // Cached identity coordinates (resolved by IdentitySpace)
+    AgentIdentityCoords identity_coords;
+
     // Segment assignment
     std::string primary_segment_id;            // Best-matching population segment
     double segment_fit_score = 0.0;            // [0,1] how well agent matches segment
@@ -155,6 +166,9 @@ public:
     // Phase 6: Full demographic and psychographic profiles
     AgentDemographics demographics;
     AgentPsychographics psychographics;
+
+    // Dimensional identity similarity engine (set at init, owned by Country/Sim)
+    const IdentitySpace* identity_space = nullptr;
 
     double time_remaining = 0.0;
     std::unordered_map<TopicId, Belief> beliefs;

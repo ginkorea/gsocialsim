@@ -23,6 +23,7 @@ add_executable(gsocialsim_cpp
     src/feed_queue.cpp
     src/geo_world.cpp
     src/country.cpp
+    src/identity_space.cpp
     src/utils.cpp
 )
 

@@ -45,6 +45,7 @@ add_executable(test_agent_demographics
     ../src/feed_queue.cpp
     ../src/geo_world.cpp
     ../src/country.cpp
+    ../src/identity_space.cpp
     ../src/utils.cpp
 )
 

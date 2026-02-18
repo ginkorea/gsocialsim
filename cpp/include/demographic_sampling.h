@@ -5,6 +5,8 @@
 #include "agent.h"
 #include "population_layer.h"
 
+class IdentitySpace;
+
 // Helper functions for generating agent demographics from population segments
 
 class DemographicSampler {
@@ -18,6 +20,12 @@ public:
     AgentDemographics generate_demographics(
         const PopulationSegment& segment,
         const std::string& cell_id);
+
+    // Generate demographics and resolve identity coordinates
+    AgentDemographics generate_demographics(
+        const PopulationSegment& segment,
+        const std::string& cell_id,
+        const IdentitySpace& identity_space);
 
     // Generate psychographics from segment
     AgentPsychographics generate_psychographics(const PopulationSegment& segment);

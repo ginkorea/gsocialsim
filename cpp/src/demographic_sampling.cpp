@@ -1,4 +1,5 @@
 #include "demographic_sampling.h"
+#include "identity_space.h"
 #include <algorithm>
 #include <cmath>
 
@@ -118,6 +119,18 @@ AgentDemographics DemographicSampler::generate_demographics(
     demo.primary_segment_id = segment.id;
     demo.segment_fit_score = 0.85 + sample_uniform(-0.1, 0.1);  // High fit with variance
 
+    return demo;
+}
+
+// Generate demographics and resolve identity coordinates
+AgentDemographics DemographicSampler::generate_demographics(
+    const PopulationSegment& segment,
+    const std::string& cell_id,
+    const IdentitySpace& identity_space) {
+
+    AgentDemographics demo = generate_demographics(segment, cell_id);
+    demo.country_id = identity_space.config().country_id;
+    demo.identity_coords = identity_space.resolve(demo);
     return demo;
 }
 

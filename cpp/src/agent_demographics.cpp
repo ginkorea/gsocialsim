@@ -1,63 +1,32 @@
 #include "agent.h"
+#include "identity_space.h"
 #include <cmath>
 #include <algorithm>
-
-// Forward declaration from country.cpp
-double get_religious_similarity(const std::string& religion1, const std::string& religion2);
 
 // ============================================================================
 // Agent Demographics: Homophily and Influence Weighting
 // ============================================================================
 
-// Compute demographic similarity between agents
+// Compute demographic similarity between agents using dimensional identity space
 double Agent::compute_similarity(const Agent& other) const {
-    double similarity_score = 0.0;
-    double total_weight = 0.0;
+    // Use the dimensional identity space engine if available
+    if (identity_space) {
+        // Use cached coordinates if available, otherwise resolve on the fly
+        const AgentIdentityCoords& coords_a = demographics.identity_coords.empty()
+            ? identity_space->resolve(demographics)
+            : demographics.identity_coords;
+        const AgentIdentityCoords& coords_b = other.demographics.identity_coords.empty()
+            ? identity_space->resolve(other.demographics)
+            : other.demographics.identity_coords;
 
-    // 1. Age similarity (closer ages = higher similarity)
-    double age_diff = std::abs(demographics.age - other.demographics.age);
-    double age_similarity = std::exp(-age_diff / 20.0);  // 20-year half-life
-    similarity_score += 0.10 * age_similarity;
-    total_weight += 0.10;
-
-    // 2. Geography match
-    if (demographics.geography_type == other.demographics.geography_type) {
-        similarity_score += 0.15;
+        return identity_space->compute_similarity(coords_a, coords_b, demographics, other.demographics);
     }
-    total_weight += 0.15;
 
-    // 3. Education match
-    if (demographics.education_level == other.demographics.education_level) {
-        similarity_score += 0.10;
-    }
-    total_weight += 0.10;
-
-    // 4. Race match (strong homophily)
-    if (demographics.race_ethnicity == other.demographics.race_ethnicity) {
-        similarity_score += 0.20;
-    }
-    total_weight += 0.20;
-
-    // 5. Gender match
-    if (demographics.gender == other.demographics.gender) {
-        similarity_score += 0.05;
-    }
-    total_weight += 0.05;
-
-    // 6. Religion similarity (graduated measure: Protestant-Catholic closer than Catholic-Hindu)
-    double religion_similarity = get_religious_similarity(demographics.religion, other.demographics.religion);
-    similarity_score += 0.15 * religion_similarity;
-    total_weight += 0.15;
-
-    // 7. Political ideology similarity (strongest factor)
-    double ideology_diff = std::abs(demographics.political_ideology -
-                                     other.demographics.political_ideology);
-    double ideology_similarity = std::exp(-ideology_diff / 0.5);  // Sharp decay
-    similarity_score += 0.25 * ideology_similarity;
-    total_weight += 0.25;
-
-    // Normalize to [0,1]
-    return similarity_score / total_weight;
+    // Fallback: create a temporary default identity space
+    static const IdentitySpace default_space(IdentitySpace::create_default("USA"));
+    auto coords_a = default_space.resolve(demographics);
+    auto coords_b = default_space.resolve(other.demographics);
+    return default_space.compute_similarity(coords_a, coords_b, demographics, other.demographics);
 }
 
 // Compute influence weight from source to this agent
