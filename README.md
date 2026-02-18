@@ -120,32 +120,62 @@ These are abstracted as a bounded persuasion multiplier.
 
 ### Belief Update & Crossing Detection
 
-Beliefs evolve incrementally through exposure and interaction.
+Beliefs evolve through an **11-step physics-inspired pipeline**:
 
-When a belief crosses a configured threshold:
+1. **Trust gate** (superlinear): low trust yields near-zero influence
+2. **Bounded confidence**: reject signals too far from current stance
+3. **Habituation**: diminishing returns from repeated exposure
+4. **Base influence**: trust x credibility x primal activation x proximity
+5. **Identity defense**: backfire effect, confirmation bias, openness gating
+6. **Evidence accumulation**: multi-hit gate -- single exposures rarely move beliefs
+7. **Inertia and momentum**: persistent velocity with decay
+8. **Critical velocity**: nonlinear gain once momentum builds (tipping point)
+9. **Rebound force**: damped spring pulling toward core values
+10. **Stance update**: combine momentum, learning rate, and rebound
+11. **Confidence update**: confirming signals increase, opposing decrease
 
-- the event is detected
-- prior and post states are recorded
-- attribution is triggered
-- causal credit is assigned
+When a belief crosses a configured threshold, the event is detected, prior and post states are recorded, attribution is triggered, and causal credit is assigned.
 
 Belief change is not assumed. It must be *earned*.
+
+See **[INFLUENCE_MATH.md](INFLUENCE_MATH.md)** for complete formal notation, diagrams, and parameter tables.
+
+---
+
+## Dimensional Identity & Demographics
+
+Agents carry rich demographic profiles (age, race/ethnicity, religion, education, income, gender, geography, political ideology) that drive **homophily-based influence weighting**.
+
+All identity categories are embedded onto continuous coordinate spaces (1-5D per category) and similarity is computed through a unified codepath:
+
+```
+    similarity(a, b) = weighted_sum_d[ exp( -dist(a_d, b_d) / decay_d ) ]
+```
+
+Key design features:
+
+- **Religion**: 2D (tradition family x devotional intensity). Protestant and Catholic are close; Catholic and Hindu are distant. Devotion partially compensates across traditions but does not override tradition distance.
+- **Race/Ethnicity**: 2D, fully country-configurable. US uses White/Black/Hispanic/Asian boundaries. India maps to caste/community (upper_caste, OBC, dalit, tribal). Brazil uses the color spectrum (branco/pardo/preto).
+- **Political Ideology**: 5D (economic, social, libertarian/authoritarian, cosmopolitan/nationalist, secular/religious governance). The strongest similarity factor.
+- **Geography, Education, Gender, Income, Age**: 1D sliders, same exponential decay codepath.
+- **Language**: 2D, optional. Active in multilingual countries (India).
+- **Weights are country-configurable** and auto-normalize at runtime.
+
+Factory defaults for USA, India, Brazil, UK, and France.
+
+See **[INFLUENCE_MATH.md](INFLUENCE_MATH.md)** for the full mathematical specification with coordinate maps, distance spot-checks, and parameter tables.
 
 ---
 
 ## Politics & Identity
 
-The model includes a lightweight political identity system:
+The model includes a multi-dimensional political identity system:
 
-- each agent has a `political_lean` in [-1, 1] and `partisanship` in [0, 1]
+- **5-axis political identity**: economic left-right, social progressive-traditional, libertarian-authoritarian, cosmopolitan-nationalist, secular-religious governance
+- **Scalar fallback**: single `political_ideology` in [-1, +1] is expanded to 5D via empirical correlations
 - topics can be marked with **political salience**
 - politically salient topics can raise **identity threat** and increase resistance
 - non-hostile disagreement can still reduce confidence and enable gradual belief change
-
-Default political topic seeds live in `gsocialsim.social.politics.DEFAULT_POLITICAL_TOPICS`
-and are used by `generate_agent(...)` to initialize left/right-leaning stances.
-
-See `docs/literature.md` for the default topic list and salience anchors.
 
 ---
 
@@ -204,7 +234,7 @@ Then use `--geo-pop data/geo/h3_population.csv` with visualizers.
 
 ## Literature Alignment (Selected)
 
-We align mechanics to established findings. A short mapping and citations live in `docs/literature.md`.
+We align mechanics to established findings. A short mapping and citations live in `docs/literature.md`. The full mathematical specification with formal notation lives in **[INFLUENCE_MATH.md](INFLUENCE_MATH.md)**.
 
 Selected references:
 - Kunda (1990), *Psychological Bulletin*
@@ -354,8 +384,25 @@ The guiding question:
 ## Project Structure
 
 ```
-cpp/                # C++ engine + CLI
-python/src/gsocialsim/
+cpp/                        # C++ engine (primary)
+├── include/
+│   ├── agent.h             # Agent state, demographics, psychographics
+│   ├── belief_dynamics.h   # 11-step influence dynamics engine
+│   ├── identity_space.h    # Dimensional identity similarity system
+│   ├── country.h           # Multi-country infrastructure
+│   ├── population_layer.h  # Hex-grid population dynamics
+│   ├── kernel.h            # World kernel and event scheduling
+│   └── ...
+├── src/
+│   ├── identity_space.cpp  # Country factory defaults (USA/IND/BRA/GBR/FRA)
+│   ├── belief_dynamics.cpp # Physics-inspired belief update pipeline
+│   ├── agent_demographics.cpp  # Similarity and influence weight
+│   ├── population_layer.cpp    # Population-level belief dynamics
+│   └── ...
+└── test/
+    └── test_agent_demographics.cpp  # 14 tests for dimensional system
+
+python/src/gsocialsim/      # Python visualization bridge
 ├── agents/          # agent state, beliefs, attention, personality
 ├── analytics/       # metrics and attribution
 ├── evolution/       # evolutionary system
@@ -367,6 +414,12 @@ python/src/gsocialsim/
 ├── stimuli/         # external stimuli and content ingestion
 ├── visualization/   # HTML exporters
 └── types.py
+
+docs/
+INFLUENCE_MATH.md            # Full mathematical specification
+GLOBAL_ARCHITECTURE.md       # Multi-country simulation design
+PRD.md                       # Product requirements document
+ROADMAP.md                   # Implementation roadmap
 ```
 
 ---

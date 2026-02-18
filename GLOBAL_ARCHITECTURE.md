@@ -49,18 +49,23 @@ Instead of US-specific segments (MAGA base, progressive activists), we define 15
 
 **Benefit**: Same underlying psychology/behavior patterns, different political/cultural expressions
 
-### 3. Religious Similarity Matrix
+### 3. Dimensional Identity Similarity System
 
 Addresses user requirement: "Protestant and Catholic are closer than Catholic and Hindu"
 
-```cpp
-get_religious_similarity("protestant", "catholic")  // 0.7
-get_religious_similarity("catholic", "hindu")       // 0.1
-get_religious_similarity("evangelical", "atheist")  // 0.0
+**Replaced**: The hardcoded 13x13 religion matrix has been replaced by a **2D coordinate embedding** (tradition family x devotional intensity). All identity categories now go through the same unified codepath.
+
+```
+    Religion similarity (via Euclidean distance + exp decay):
+    Protestant-Catholic distance:           0.11  (very close)
+    Catholic-Hindu distance:                0.55  (distant)
+    Devout evangelical-Atheist distance:    1.24  (very far)
 ```
 
-**Implemented in**: `cpp/src/country.cpp` with comprehensive similarity matrix
-**Integrated in**: `Agent::compute_similarity()` - replaces binary religion matching with graduated measure
+**Race/ethnicity** is also 2D and **country-configurable**: US uses race boundaries, India uses caste/community, Brazil uses color spectrum. See [INFLUENCE_MATH.md](INFLUENCE_MATH.md) for coordinate maps.
+
+**Implemented in**: `cpp/include/identity_space.h`, `cpp/src/identity_space.cpp`
+**Integrated in**: `Agent::compute_similarity()` via `IdentitySpace::compute_similarity()`
 
 ### 4. Cross-Border Information Flow
 
@@ -126,43 +131,49 @@ struct PoliticalIdentity {
 
 ## Implementation Status
 
-### ✅ Completed
+### Completed
 
-1. **Religious Similarity Matrix** (`cpp/src/country.cpp`)
-   - Comprehensive similarity scores between all major religions
-   - Integrated into homophily calculation
+1. **Dimensional Identity Similarity System** (`cpp/include/identity_space.h`, `cpp/src/identity_space.cpp`)
+   - Replaced hardcoded 13x13 religion matrix with 2D coordinate embedding
+   - All identity dimensions (religion, race, geography, education, gender, income, age, political ideology) through unified `exp(-dist/decay)` codepath
+   - Country-configurable coordinates, weights, and decay rates
+   - Factory defaults for USA, India, Brazil, UK, France
+   - 14 comprehensive tests
 
 2. **Country Infrastructure** (`cpp/include/country.h`)
-   - Country struct with demographics, culture, politics
+   - Country struct with demographics, culture, politics, IdentitySpaceConfig
    - GlobalGeoHierarchy class for managing multi-country geography
    - DiasporaSegment for dual-identity communities
    - InternationalActor for cross-border entities
    - TopicDefinition with scope (GLOBAL/REGIONAL/NATIONAL/LOCAL)
+   - PoliticalIdentity (5-axis) moved to identity_space.h
 
-3. **Example Configuration** (`data/countries_example.yaml`)
+3. **Agent Demographics** (`cpp/include/agent.h`, `cpp/src/agent_demographics.cpp`)
+   - AgentDemographics with 25+ fields including country_id, political_identity, identity_coords
+   - AgentPsychographics with Big 5, social media behavior, influence dynamics
+   - `compute_similarity()` as thin wrapper over `IdentitySpace::compute_similarity()`
+   - `compute_influence_weight()` with homophily-based amplification/attenuation
+
+4. **Example Configuration** (`data/countries_example.yaml`)
    - 5 countries defined (USA, UK, India, Brazil, France)
-   - Cultural distance matrices
-   - Geopolitical tension mapping
-   - Language compatibility
-   - Diaspora examples (Indian-Americans, Mexican-Americans)
-   - International actors (BBC, RT, UN)
-   - Global/regional/national topics
+   - Cultural distance matrices, geopolitical tension, language compatibility
+   - Diaspora examples, international actors, global/regional/national topics
 
-4. **Build Integration**
-   - country.cpp added to main and test builds
-   - All tests passing with religious similarity
+5. **Build Integration**
+   - identity_space.cpp and country.cpp in main and test builds
+   - All 14 demographic tests passing
 
-### 🔄 Next Steps
+### Next Steps
 
 1. **Integrate Country System into WorldKernel**
    - Add GlobalGeoHierarchy to WorldContext
    - Load country definitions from YAML/JSON
-   - Initialize agents with country context
+   - Initialize agents with country context and IdentitySpace
 
-2. **Extend Agent Demographics**
-   - Add country_id field to AgentDemographics
-   - Map agents to countries via H3 cells
-   - Use PoliticalIdentity instead of single ideology axis
+2. **JSON-Loaded Identity Profiles**
+   - Load identity_profiles/<country_id>.json at runtime
+   - Replace factory defaults with configurable profiles
+   - Support per-simulation weight overrides
 
 3. **Cross-Border Content Delivery**
    - Extend Content struct with InternationalContent fields
@@ -339,26 +350,32 @@ geopolitical_tension:
 
 ## Migration Path from US-Centric Design
 
-1. **Phase 1** (Completed): Core infrastructure (Country, GlobalGeoHierarchy, religious similarity)
-2. **Phase 2**: Integrate into WorldKernel, load country configs
-3. **Phase 3**: Extend agent demographics with country context
-4. **Phase 4**: Cross-border content delivery and cultural distance effects
-5. **Phase 5**: Diaspora and international actor systems
-6. **Phase 6**: Multi-country simulation validation (model known phenomena)
+1. **Phase 1** (Complete): Core infrastructure (Country, GlobalGeoHierarchy)
+2. **Phase 2** (Complete): Dimensional identity similarity system with country-configurable coordinates
+3. **Phase 3** (Complete): Agent demographics with country_id, PoliticalIdentity, identity_coords
+4. **Phase 4**: Integrate into WorldKernel, load country configs from JSON
+5. **Phase 5**: Cross-border content delivery and cultural distance effects
+6. **Phase 6**: Diaspora and international actor systems
+7. **Phase 7**: Multi-country simulation validation (model known phenomena)
 
 ---
 
 ## Files Added/Modified
 
 **New Files**:
+- `cpp/include/identity_space.h` - DimensionalPosition, IdentityDimensionConfig, IdentitySpace, PoliticalIdentity
+- `cpp/src/identity_space.cpp` - Country factory defaults (USA, IND, BRA, GBR, FRA), resolve(), compute_similarity()
 - `cpp/include/country.h` - Core country/international infrastructure
-- `cpp/src/country.cpp` - Implementation with religious similarity matrix
+- `cpp/src/country.cpp` - GlobalGeoHierarchy implementation
 - `data/countries_example.yaml` - Example 5-country configuration
 - `GLOBAL_ARCHITECTURE.md` - This document
+- `INFLUENCE_MATH.md` - Complete mathematical specification
 
 **Modified Files**:
-- `cpp/src/agent_demographics.cpp` - Uses religious similarity instead of binary matching
-- `cpp/CMakeLists.txt` - Added country.cpp to build
-- `cpp/test/CMakeLists.txt` - Added country.cpp to test build
+- `cpp/include/agent.h` - Added identity_coords, country_id, political_identity, IdentitySpace pointer
+- `cpp/src/agent_demographics.cpp` - Thin wrapper over IdentitySpace engine
+- `cpp/src/country.cpp` - Removed RELIGIOUS_SIMILARITY matrix (replaced by dimensional coordinates)
+- `cpp/include/demographic_sampling.h` / `cpp/src/demographic_sampling.cpp` - Overload with identity resolution
+- `cpp/CMakeLists.txt` + `cpp/test/CMakeLists.txt` - Added identity_space.cpp
 
-**Tests**: All existing tests pass with new religious similarity measure
+**Tests**: 14 tests covering dimensional distances, country configs, codepath uniformity, weight normalization

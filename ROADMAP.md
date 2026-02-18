@@ -8,9 +8,9 @@ This roadmap tracks the implementation of missing features in the Synthetic Soci
 
 ## Status Overview
 
-### Completed ✅
+### Completed
 - Core types (AgentId, TopicId, ContentId, Belief, Impression, Content)
-- WorldKernel with 4-phase contract (INGEST → ACT → PERCEIVE → CONSOLIDATE)
+- WorldKernel with 4-phase contract (INGEST -> ACT -> PERCEIVE -> CONSOLIDATE)
 - Agent state (identity, beliefs, attention, policy, budgets)
 - Stimuli pipeline (CSV ingestion)
 - Social graph + trust (NetworkGraph with directed edges, trust values)
@@ -20,14 +20,16 @@ This roadmap tracks the implementation of missing features in the Synthetic Soci
 - Analytics (summary/detailed modes, CSV export)
 - **Phase 1: Subscription Service** (2026-02-18) - Opt-in feed semantics with CREATOR/TOPIC/OUTLET/COMMUNITY subscriptions
 - **Phase 2: Multi-Layer Network Manager** (2026-02-18) - Abstract NetworkLayer, BroadcastFeed, DirectMessage, PlatformMechanics, DeliveryRecord
-- **Phase 3: Advanced Influence Dynamics** (2026-02-18) - Inertia, rebound, critical velocity, evidence accumulation, trust gates, habituation, bounded confidence
+- **Phase 3: Advanced Influence Dynamics** (2026-02-18) - 11-step physics-inspired pipeline: inertia, rebound, critical velocity, evidence accumulation, trust gates, habituation, bounded confidence
 - **Phase 4: Population Layer** (2026-02-18) - Hex-grid cells, segment mix, belief distributions, CUDA-ready struct-of-arrays
+- **Phase 6: Agent Demographics & Microsegments** (2026-02-18) - 25 population segments, AgentDemographics, AgentPsychographics, Big 5 personality, homophily-based influence
+- **Phase 7: Dimensional Identity Similarity** (2026-02-18) - Unified continuous coordinate system for all identity dimensions, country-configurable, replaces binary matching and hardcoded religion matrix
+- **Global Architecture** (2026-02-18) - Multi-country infrastructure, 5 country defaults, diaspora communities, international actors, PoliticalIdentity 5-axis
 
-### In Progress 🚧
-- None
-
-### Planned 📋
-- Phase 5: CUDA Backend (Optional)
+### Planned
+- Phase 5: CUDA Backend (Optional, deferred)
+- Phase 8: JSON-loaded identity profiles (country configs from file, replaces factory defaults)
+- Phase 9: Cross-border content delivery with cultural distance decay
 
 ---
 
@@ -339,14 +341,85 @@ struct PopulationCellArrays {
 
 ---
 
+## Phase 6: Agent Demographics & Microsegments (Complete)
+
+**Priority**: HIGH
+**Status**: Complete (2026-02-18)
+**Goal**: Rich agent demographics with psychographic profiles, microsegment-based generation, and homophily-driven influence.
+
+### New Components
+- `cpp/include/demographic_sampling.h` / `cpp/src/demographic_sampling.cpp`
+- `cpp/src/agent_demographics.cpp` (rewritten)
+- `cpp/test/test_agent_demographics.cpp`
+
+### Key Features
+- **AgentDemographics**: 25+ fields (age, race, religion, religiosity, education, income, gender, geography, political ideology, occupation, media diet, etc.)
+- **AgentPsychographics**: Big 5 personality, social media behavior, influence dynamics, social graph position
+- **DemographicSampler**: Generates realistic agent profiles from population segments with appropriate variance
+- **Homophily-based influence weighting**: demographic similarity drives in-group amplification / out-group attenuation
+- **Content targeting**: filter content delivery by age, gender, ideology, segment, behavioral traits
+
+### Success Criteria
+- [x] Demographic sampling produces realistic distributions
+- [x] Psychographic traits correlate with segment profiles
+- [x] Similar agents have similarity > 0.8
+- [x] Very different agents have similarity < 0.5
+- [x] In-group influence weight > out-group weight
+
+---
+
+## Phase 7: Dimensional Identity Similarity (Complete)
+
+**Priority**: HIGH
+**Status**: Complete (2026-02-18)
+**Goal**: Replace fragmented similarity computation (binary match, hardcoded religion matrix) with a unified dimensional system.
+
+### New Components
+- `cpp/include/identity_space.h`
+- `cpp/src/identity_space.cpp`
+
+### Key Features
+- **Unified codepath**: All identity categories through `exp(-dist/decay)` -- one formula for everything
+- **Country-configurable**: Factory defaults for USA, IND, BRA, GBR, FRA with different coordinate maps and weights
+- **Religion 2D**: Tradition family (x) x devotional intensity (y), with y overridden by per-agent religiosity
+- **Race/Ethnicity 2D**: US race boundaries, India caste/community, Brazil color spectrum
+- **Political Ideology 5D**: Economic, social, libertarian, cosmopolitan, secular_religious
+- **Auto-normalization**: Weights summing to any value produce correct [0,1] similarity
+- **14 tests**: Religion distances, country configs, geography ordering, codepath uniformity, weight normalization
+
+### Removed
+- 180-line `RELIGIOUS_SIMILARITY` matrix from `country.cpp`
+- `get_religious_similarity()` function
+- Binary match logic for geography, education, gender in `compute_similarity()`
+
+### Mathematical Specification
+Full formal notation with coordinate maps, diagrams, and parameter tables in [INFLUENCE_MATH.md](INFLUENCE_MATH.md).
+
+### Success Criteria
+- [x] Protestant-Catholic distance < 0.15, Catholic-Hindu > 0.50
+- [x] Urban-Suburban < Urban-Rural
+- [x] Similar agents similarity > 0.85
+- [x] Very different agents similarity < 0.30
+- [x] India caste coordinates produce different distances than US race coordinates
+- [x] All dimensions through same exp(-dist/decay) codepath
+- [x] Auto-normalization correct for arbitrary weight sums
+
+---
+
 ## Critical Files Reference
 
 ### Core Integration Files
-- **cpp/include/kernel.h** (lines 35-81, 118) - WorldContext, NetworkManager
-- **cpp/src/kernel.cpp** (lines 284-430) - `_perceive_batch()` rewrite
-- **cpp/include/types.h** (lines 41-46) - Extended Belief struct
-- **cpp/src/agent.cpp** (lines 168-236) - BeliefDynamicsEngine integration
-- **cpp/include/network.h** (lines 37-40) - Abstract NetworkLayer base
+- **cpp/include/kernel.h** - WorldContext, NetworkManager
+- **cpp/src/kernel.cpp** - `_perceive_batch()`, phase dispatch
+- **cpp/include/types.h** - Belief struct with momentum/evidence fields
+- **cpp/include/agent.h** - Agent, AgentDemographics, AgentPsychographics
+- **cpp/include/identity_space.h** - DimensionalPosition, IdentitySpace, PoliticalIdentity
+- **cpp/src/identity_space.cpp** - Country factory defaults, coordinate resolution, similarity computation
+- **cpp/include/belief_dynamics.h** - InfluenceDynamicsConfig, BeliefDynamicsEngine
+- **cpp/src/belief_dynamics.cpp** - 11-step belief update pipeline
+- **cpp/src/agent_demographics.cpp** - compute_similarity(), compute_influence_weight()
+- **cpp/src/agent.cpp** - AttentionSystem, BeliefUpdateEngine, dream(), consolidate_identity()
+- **cpp/include/network.h** - Abstract NetworkLayer base
 
 ---
 

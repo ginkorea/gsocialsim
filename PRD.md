@@ -56,75 +56,33 @@ The platform is intended for **research, experimentation, and counterfactual ana
 
 ---
 
-## Status (2026-02-17)
+## Status (2026-02-18)
 
-- C++ analytics now defaults to summary mode to avoid huge CSVs; detailed mode retained for visualizations.
-- C++ logs now include impression stance and interaction events for attribution and rendering.
-- Added C++ `state.json` export (agents, following, stimuli) plus `render_from_cpp.py` to reuse Python visualizers.
-- Visualization edges are now colored by influence direction (toward vs away), and agents are colored by political lean.
-- Graph layout stabilized: physics runs to settle, then freezes; default layout spread increased with tunable options.
-- Network generation defaults to sparse grouped structure with outliers; supports `groups|random|geo` modes.
-- Added `--print-network-stats` to report degree stats, density, reciprocity, isolates, and group metrics.
-- Influence from scrolled media is reduced (lower consumption/interaction and a scroll influence multiplier).
+### Completed Systems
+- **Phase 1**: Subscription service with opt-in feed semantics (CREATOR/TOPIC/OUTLET/COMMUNITY)
+- **Phase 2**: Multi-layer network manager (BroadcastFeed, DirectMessage, DeliveryRecords)
+- **Phase 3**: Advanced influence dynamics (11-step physics-inspired pipeline)
+- **Phase 4**: Population layer with hex-grid cells, segment mixes, CUDA-ready struct-of-arrays
+- **Phase 5**: CUDA backend (deferred, architecture ready)
+- **Phase 6**: Agent demographics and microsegment system (25 population segments, psychographics, Big 5)
+- **Phase 7**: Dimensional identity similarity system (replaces binary matching and religion matrix)
+- **Global architecture**: Multi-country simulation with 5 country defaults, diaspora, international actors
 
-### Ideas to Implement (Influence Dynamics)
+### Recent Changes
+- Replaced binary demographic matching and hardcoded 13x13 religion matrix with unified dimensional identity similarity engine
+- All identity categories (religion, race, geography, education, gender, income, age, political ideology) embedded onto continuous coordinate spaces
+- Country-configurable coordinates, weights, and decay rates (factory defaults for USA, IND, BRA, GBR, FRA)
+- 5D political identity (economic, social, libertarian, cosmopolitan, secular_religious)
+- Religion as 2D (tradition family x devotional intensity) with per-agent religiosity override
+- Race/ethnicity as 2D, country-specific (US race, India caste, Brazil color spectrum)
+- Full mathematical specification in [INFLUENCE_MATH.md](INFLUENCE_MATH.md)
 
-- Inertia: belief updates are resisted by a per-topic “mass” or stiffness term; small deltas decay instead of accumulate.
-- Critical velocity: once belief momentum exceeds a threshold, additional aligned influence becomes easier (nonlinear gain).
-- Rebound: restorative force toward a per-topic “core value” that prevents long-term drift.
-- Hysteresis: direction of change depends on whether the agent is already moving toward or away from a stance.
-- Trust gate: influence strength scales superlinearly with trust/credibility instead of linearly.
-- Literature grounding: add a short math note mapping influence dynamics to known models and parameter ranges.
-
-### Notes for Tomorrow (Influence Math)
-
-- Evidence accumulator with decay (multi‑hit requirement):
-  `E_t = λ E_{t-1} + w_i * s_i`, apply belief update only if `|E_t| > θ`.
-  Use `λ ~ 0.85–0.98` and tune `θ` so single exposures rarely move beliefs.
-- Inertia + rebound (damped spring to core value):
-  `v_{t+1} = ρ v_t + η * influence - k * (b_t - b0)`, `b_{t+1} = b_t + v_{t+1}`.
-  `b0` is a per-topic baseline; `k` controls how strongly beliefs revert.
-- Critical velocity (nonlinear gain):
-  `η_eff = η * (1 + κ * sigmoid(|v_t| - v0))` makes movement easier once momentum builds.
-- Bounded confidence gate:
-  suppress or invert influence when `|Δstance|` exceeds a threshold `τ`.
-- Habituation per source:
-  `w_i = w_i / (1 + α * n_exposures_from_source)` to reduce repeated exposure power.
-- Trust gate (superlinear):
-  `trust_effect = trust^γ` (γ in 2–4) so low trust yields near‑zero influence.
-
-### TODO (Next)
-
-- Population layer (hybrid): hex‑cell populations with segment mixes + optional micro‑matrix individuals for focused cells.
-- UML drift audit: conceptual vs implemented vs drift, then roadmap to converge.
-
-### UML Drift Audit (Conceptual vs Implemented)
-
-**Conceptual goal (UML source of truth)**
-- Full capability target in `diagrams/` (class/component/sequence).
-- Includes subscriptions, multi‑layer networks, platform mechanics, and now a population layer.
-
-**Implemented as designed (current repo)**
-- C++ kernel phases, agents, stimuli ingestion, follow graph + trust, optional geo.
-- Analytics: impressions, belief deltas, interactions (detailed) + summary mode.
-- Export bridge: `reports/state.json` + `reports/analytics.csv` + Python renderers.
-
-**Design drift (implemented but not in original UML)**
-- Analytics summary vs detailed mode.
-- C++ export pipeline + Python visualization bridge.
-- Network generation modes (grouped/random/geo + outliers/hubs).
-- Visualization stabilization (physics settle then freeze).
-
-**Gaps (conceptual UML not yet implemented)**
-- Subscription service + opt‑in feed semantics.
-- Multi‑layer network manager with platform mechanics and delivery records.
-- Population layer (segmented audiences) + CUDA backend.
-
-**Roadmap to converge**
-1. Update conceptual UML to reflect current export + network/visualization mechanics.
-2. Port subscription service + delivery records into C++.
-3. Implement population layer (hybrid: distributions + optional micro‑matrices).
-4. Add CUDA backend for population update engine.
+### Infrastructure
+- C++ analytics: summary/detailed modes, CSV export
+- Export bridge: `reports/state.json` + `reports/analytics.csv` + Python renderers
+- Visualization: agents-only, platform, bipartite, threshold, full graph (physics settle then freeze)
+- Network generation: sparse grouped structure with outliers; supports `groups|random|geo` modes
+- 14 test suite for dimensional identity system (distance spot-checks, country configs, codepath uniformity)
 
 ---
 
@@ -149,14 +107,15 @@ Most cycles result in **no visible action**, mirroring real human behavior.
 ### 4.2 Agent State
 
 #### Identity (Slow-Changing)
-- `identity_vector` (8–16 dimensions)
-- `identity_rigidity` ∈ [0,1]
+- `identity_vector` (8-16 dimensions)
+- `identity_rigidity` in [0,1]
 - `ingroup_labels`
 - `taboo_boundaries`
-- `political_lean` ∈ [-1,1]
-- `partisanship` ∈ [0,1]
-- `political_dimensions` (economic/social/security/environment/culture)
-- `demographics` (immutable group tags)
+- `political_identity` (5-axis: economic, social, libertarian, cosmopolitan, secular_religious)
+- `political_ideology` in [-1,1] (scalar, backward-compatible)
+- `demographics` (AgentDemographics: age, race, religion, education, income, gender, geography, etc.)
+- `identity_coords` (cached dimensional coordinates, resolved by IdentitySpace)
+- `country_id` (ISO code, determines which coordinate system to use)
 - `group_affiliations` (mutable group strengths)
 
 #### Beliefs (Topic-Based, Fast-Changing)
@@ -235,26 +194,41 @@ Impressions decay rapidly.
 
 ## 6. Belief Update & Conversion
 
-### 6.1 Belief Update Rules
+### 6.1 Belief Update Rules (11-Step Pipeline)
 
-Belief updates are bounded and depend on:
-- trust
-- confirmation bias
-- identity defense / backfire
-- repetition
-- social proof
-- relationship strength
-- primal activation (neuromarketing-style)
+Belief updates pass through an 11-step physics-inspired pipeline (see [INFLUENCE_MATH.md](INFLUENCE_MATH.md) for formal notation):
 
-Political salience can amplify identity threat and resistance.
+1. **Trust gate**: `trust^gamma` (superlinear, gamma=2.0) -- low trust yields near-zero influence
+2. **Bounded confidence**: reject if `|signal - stance| > tau` (tau=1.5)
+3. **Habituation**: `1/(1 + alpha*n)` -- diminishing returns from repeated exposure
+4. **Base influence**: trust x credibility x primal activation x proximity x scroll penalty
+5. **Identity defense**: backfire (reverse influence under identity threat), confirmation boost (1.1x), openness gating
+6. **Evidence accumulation**: `E_t = lambda*E_{t-1} + w*signal`, gate at threshold (theta=0.5) -- single exposures rarely move beliefs
+7. **Inertia and momentum**: `v = rho*v + eta*E` -- persistent velocity with decay (rho=0.85)
+8. **Critical velocity**: nonlinear gain once momentum exceeds threshold (kappa=2.0)
+9. **Rebound force**: `-k*(stance - core_value)` -- damped spring to baseline (k=0.05)
+10. **Stance update**: `stance += eta_eff*momentum + rebound`
+11. **Confidence update**: +0.04 (confirming) / -0.02 (opposing)
 
 ### 6.1.1 Politics & Polarization
 
-- Topics can be marked with `political_salience` ∈ [0,1].
-- Agents carry a `political_lean` and `partisanship` strength.
-- High political salience + high partisanship increases identity threat from opposing content.
-- Non-hostile disagreement can still reduce confidence and allow gradual change.
-- A default seed set of common political topics is provided for realistic initial distributions.
+- Agents carry a **5-axis political identity**: economic, social, libertarian/authoritarian, cosmopolitan/nationalist, secular/religious governance
+- Scalar `political_ideology` [-1, +1] is preserved for backward compatibility and expanded to 5D
+- Topics can be marked with `political_salience` in [0,1]
+- High political salience + high identity rigidity increases identity threat from opposing content
+- Non-hostile disagreement can still reduce confidence and allow gradual change
+
+### 6.1.2 Dimensional Identity Similarity
+
+Demographic similarity is computed through a unified dimensional system:
+
+- Every identity category embedded onto 1-5D continuous coordinates
+- Per-dimension: `exp(-euclidean_dist / decay_rate)`
+- Overall: weighted sum, auto-normalized
+- Country-configurable coordinates, weights, and decay rates
+- Factory defaults for USA, India, Brazil, UK, France
+
+Similarity drives **homophily-based influence weighting**: in-group (similarity > 0.7) amplifies influence up to 1.6x; out-group (similarity < 0.3) attenuates down to 0.3x.
 
 Beliefs do not random-walk.
 
