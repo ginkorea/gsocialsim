@@ -45,7 +45,7 @@ graph TD
   D -.-> Dm["Output<br/>W = base trust * h(S) * status"]
   E -.-> Em["Outputs<br/>stance, confidence<br/>evidence, momentum"]
 
-````
+```
 
 ---
 
