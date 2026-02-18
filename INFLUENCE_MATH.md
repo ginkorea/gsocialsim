@@ -25,16 +25,14 @@ This document provides the complete mathematical specification for gsocialsim's 
 
 Every piece of content flows through a multi-stage pipeline before it can change an agent's beliefs. The pipeline is designed so that belief change is rare, attributable, and causal.
 
-> GitHub Mermaid note: this diagram avoids `<br/>` and underscores in edge labels to prevent parse errors.
-
 ```mermaid
-flowchart TD
+graph TD
   A["Content"]
-  B["ATTENTION SYSTEM\n(Impression)"]
-  C["IDENTITY SPACE\n(Similarity)"]
-  D["INFLUENCE WEIGHT\n(Trust Gate)"]
-  E["BELIEF DYNAMICS ENGINE\n(11 steps)"]
-  F["DAILY CONSOLIDATE\n(Dream + Identity)"]
+  B["ATTENTION SYSTEM<br/>Impression"]
+  C["IDENTITY SPACE<br/>Similarity"]
+  D["INFLUENCE WEIGHT<br/>Trust Gate"]
+  E["BELIEF DYNAMICS ENGINE<br/>11 steps"]
+  F["DAILY CONSOLIDATE<br/>Dream + Identity"]
 
   A --> B
   B --> C
@@ -42,10 +40,11 @@ flowchart TD
   D --> E
   E --> F
 
-  B -->|consume prob\ninteract prob\nattention cost| C
-  C -->|S(a,b)| D
-  D -->|W = base trust * h(S) * status| E
-  E -->|stance, confidence,\nevidence, momentum| F
+  B -.-> Bm["Outputs<br/>consume prob<br/>interact prob<br/>attention cost"]
+  C -.-> Cm["Output<br/>S(a,b)"]
+  D -.-> Dm["Output<br/>W = base trust * h(S) * status"]
+  E -.-> Em["Outputs<br/>stance, confidence<br/>evidence, momentum"]
+
 ````
 
 ---
@@ -461,9 +460,7 @@ v_{t+1} = \rho \cdot v_t + \eta \cdot E_t
 \qquad \kappa = 2.0, \quad v_0 = 0.1
 ```
 
-```math
-\sigma(x) = \frac{1}{1 + e^{-x}}
-```
+![Critical velocity gain](docs/assets/critical_velocity_gain.svg)
 
 ### Step 9: Rebound Force (Damped Spring)
 
