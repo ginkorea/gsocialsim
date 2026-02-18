@@ -33,7 +33,21 @@ add_executable(test_population_layer
     ../src/utils.cpp
 )
 
+# Test: Agent Demographics
+add_executable(test_agent_demographics
+    test_agent_demographics.cpp
+    ../src/agent.cpp
+    ../src/agent_demographics.cpp
+    ../src/demographic_sampling.cpp
+    ../src/population_layer.cpp
+    ../src/belief_dynamics.cpp
+    ../src/content_targeting.cpp
+    ../src/geo_world.cpp
+    ../src/utils.cpp
+)
+
 # Compile options
 target_compile_options(test_subscription_service PRIVATE -O2)
 target_compile_options(test_belief_dynamics PRIVATE -O2)
 target_compile_options(test_population_layer PRIVATE -O2)
+target_compile_options(test_agent_demographics PRIVATE -O2)

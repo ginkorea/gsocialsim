@@ -18,6 +18,7 @@ add_executable(gsocialsim_cpp
     src/network_manager.cpp
     src/population_layer.cpp
     src/demographic_sampling.cpp
+    src/content_targeting.cpp
     src/global_social_reality.cpp
     src/feed_queue.cpp
     src/geo_world.cpp

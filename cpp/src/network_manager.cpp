@@ -62,7 +62,19 @@ std::vector<ContentId> BroadcastFeedNetwork::build_candidates(
         }
 
         if (is_subscribed) {
-            candidates.push_back(content.id);
+            // Phase 6: Check if content has targeting filters
+            if (content.targeting.has_value()) {
+                // Get viewer agent to check targeting
+                Agent* viewer_agent = ctx.agents.get(viewer);
+                if (viewer_agent && content.targeting->matches(*viewer_agent)) {
+                    // Targeting criteria met
+                    candidates.push_back(content.id);
+                }
+                // If targeting doesn't match, content is filtered out
+            } else {
+                // No targeting, add to candidates
+                candidates.push_back(content.id);
+            }
         }
     }
 

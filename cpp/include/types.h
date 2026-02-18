@@ -112,6 +112,30 @@ struct Impression {
     double relationship_strength_source = 0.0;
 };
 
+// Content targeting for microtargeted campaigns (Phase 6)
+struct ContentTargeting {
+    // Demographic filters
+    std::optional<std::string> target_age_cohort;      // "gen_z", "millennial", etc.
+    std::optional<std::string> target_geography;       // "urban_core", "suburban", etc.
+    std::optional<std::string> target_education;       // "high_school", "bachelors", etc.
+    std::optional<std::string> target_income;          // "low", "middle", etc.
+    std::optional<std::string> target_race;            // "white", "black", etc.
+    std::optional<std::string> target_gender;          // "male", "female", etc.
+    std::optional<std::string> target_religion;        // "evangelical", "atheist", etc.
+
+    // Psychographic filters
+    std::optional<double> min_political_ideology;      // [-1, +1] range
+    std::optional<double> max_political_ideology;
+    std::optional<std::string> target_segment;         // Specific segment ID
+
+    // Behavioral filters
+    std::optional<double> min_engagement_propensity;   // [0, 1]
+    std::optional<double> min_susceptibility;          // [0, 1]
+
+    // Check if agent matches all targeting criteria
+    bool matches(const class Agent& agent) const;
+};
+
 struct Content {
     ContentId id;
     AgentId author_id;
@@ -128,6 +152,9 @@ struct Content {
     std::optional<std::string> outlet_id;
     std::optional<std::string> community_id;
     std::unordered_map<std::string, std::string> provenance;
+
+    // Phase 6: Optional targeting specification for microtargeted content
+    std::optional<ContentTargeting> targeting;
 };
 
 enum class InteractionVerb {
