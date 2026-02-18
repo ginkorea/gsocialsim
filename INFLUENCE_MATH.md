@@ -23,22 +23,29 @@ This document provides the complete mathematical specification for gsocialsim's 
 
 ## 1. System Overview: The Influence Pipeline
 
-Every piece of content flows through a multi-stage pipeline before it can change an agent's beliefs. The pipeline is designed so that belief change is **rare, attributable, and causal**.
+Every piece of content flows through a multi-stage pipeline before it can change an agent's beliefs. The pipeline is designed so that belief change is rare, attributable, and causal.
+
+> GitHub Mermaid note: this diagram avoids `<br/>` and underscores in edge labels to prevent parse errors.
 
 ```mermaid
 flowchart TD
-  A[Content] --> B[ATTENTION SYSTEM<br/>(Impression)]
-  B --> C[IDENTITY SPACE<br/>(Similarity)]
-  C --> D[INFLUENCE WEIGHT<br/>(Trust Gate)]
-  D --> E[BELIEF DYNAMICS ENGINE<br/>(11 steps)]
-  E --> F[DAILY CONSOLIDATE<br/>(Dream + Identity)]
+  A["Content"]
+  B["ATTENTION SYSTEM\n(Impression)"]
+  C["IDENTITY SPACE\n(Similarity)"]
+  D["INFLUENCE WEIGHT\n(Trust Gate)"]
+  E["BELIEF DYNAMICS ENGINE\n(11 steps)"]
+  F["DAILY CONSOLIDATE\n(Dream + Identity)"]
 
-  B:::box -->|consumed_prob<br/>interact_prob<br/>attention_cost| C
-  C:::box -->|S(a,b)| D
-  D:::box -->|W = base_trust * h(S) * status| E
-  E:::box -->|stance, confidence, evidence, momentum| F
+  A --> B
+  B --> C
+  C --> D
+  D --> E
+  E --> F
 
-  classDef box fill:#1f2937,stroke:#6b7280,color:#e5e7eb;
+  B -->|consume prob\ninteract prob\nattention cost| C
+  C -->|S(a,b)| D
+  D -->|W = base trust * h(S) * status| E
+  E -->|stance, confidence,\nevidence, momentum| F
 ````
 
 ---
@@ -101,13 +108,13 @@ Or from full `PoliticalIdentity`:
 
 ### 2.3 Per-Dimension Similarity
 
-For dimension ( d ) with decay rate ( \tau_d ):
+For dimension d with decay rate τ_d:
 
 ```math
 s_d(a, b) = \exp\!\left(-\frac{\|\vec{p}_d^a - \vec{p}_d^b\|}{\tau_d}\right)
 ```
 
-where ( |\cdot| ) is Euclidean distance.
+where ‖·‖ is Euclidean distance.
 
 ### 2.4 Overall Similarity
 
@@ -247,33 +254,20 @@ The influence weight from source agent to target agent combines demographic simi
 
 ### 3.1 Similarity Computation
 
-This is the line that was breaking before due to `_` rendering. Using `\mathtt{...}` and escaping underscores fixes it.
-
 ```math
 S = \mathtt{IdentitySpace::compute\_similarity}(a, b)
 ```
 
 ### 3.2 Homophily Boost
 
-```text
-Homophily Boost
-     ^
-1.6  |                            ___________/
-     |                           /
-1.0  |        ==================/
-     |       /
-0.3  | ____/
-     +------+------+------+------+-------> Similarity
-     0.0   0.15   0.30   0.50   0.70   1.0
-          out-group    neutral    in-group
-```
+![Homophily boost piecewise](docs/assets/homophily_boost_piecewise.svg)
 
 ```math
 h(S) =
 \begin{cases}
-0.3 + S & \text{if } S < 0.3 \quad \text{(out-group attenuation)} \\
-1.0 & \text{if } 0.3 \le S \le 0.7 \quad \text{(neutral)} \\
-1.0 + 2(S - 0.7) & \text{if } S > 0.7 \quad \text{(in-group amplification)}
+0.3 + S & \text{if } S < 0.3 \\
+1.0 & \text{if } 0.3 \le S \le 0.7 \\
+1.0 + 2(S - 0.7) & \text{if } S > 0.7
 \end{cases}
 ```
 
@@ -321,9 +315,9 @@ W = \text{base\_trust} \cdot h(S) \cdot B_{\text{status}}
 
 ```math
 P_{\text{consume}} =
-\text{clamp}_{[0,1]}\!\Big(
+\text{clamp}_{[0,1]}\!\left(
 \text{base}_{\text{consume}}(m) \cdot \text{mult}_{\text{consume}}(i)
-\Big)
+\right)
 ```
 
 ### 4.4 Primal Activation
@@ -337,7 +331,7 @@ A_{\text{primal}} =
 \right)
 ```
 
-Trigger weights ( w(t) ):
+Trigger weights w(t):
 
 | Trigger                   | Weight |
 | ------------------------- | -----: |
@@ -356,31 +350,15 @@ Trigger weights ( w(t) ):
 
 **Source**: `belief_dynamics.h`, `belief_dynamics.cpp`
 
-This is the core influence engine. Each exposure to content passes through all 11 steps. Most exposures produce **no belief change** (evidence gate at step 6).
+This is the core influence engine. Each exposure to content passes through all 11 steps. Most exposures produce no belief change (evidence gate at step 6).
 
 ### Step 1: Trust Gate (Superlinear)
+
+![Trust gate curve](docs/assets/trust_gate_gamma2.svg)
 
 ```math
 t_g = \text{trust}^{\gamma}
 \qquad \gamma = 2.0
-```
-
-```text
-t_g
-1.0 |                                     *
-    |                                  *
-    |                              *
-    |                          *
-0.5 |                     *
-    |                 *
-    |            *
-    |       *
-0.0 |*
-    +------+------+------+------+------> trust
-    0.0   0.2    0.4    0.6    0.8   1.0
-
-gamma=2: trust^2 (superlinear gate)
-Low trust => near-zero influence
 ```
 
 ### Step 2: Bounded Confidence
@@ -395,22 +373,6 @@ Low trust => near-zero influence
 ```math
 w_h = \frac{1}{1 + \alpha \cdot n_{\text{exposures}}}
 \qquad \alpha = 0.05
-```
-
-```text
-w_h
-1.0 |*
-    | *
-    |  *
-0.8 |    *
-    |       *
-0.6 |            *
-    |                  *
-0.4 |                          *
-    |                                  *
-0.2 |
-    +------+------+------+------+-------> exposures
-    0      5      10     15     20     25
 ```
 
 ### Step 4: Base Influence Multiplier
@@ -454,17 +416,17 @@ M_{\text{scroll}} =
 
 ### Step 5: Identity Defense and Confirmation Bias
 
-Let ( \Delta s = s_{\text{signal}} - b_t ) (stance difference).
+Let Δs = s_signal - b_t (stance difference).
 
 ```math
 \Delta s' =
 \begin{cases}
 -0.4 \cdot \Delta s &
-\text{if identity\_threat} > 0.5 \text{ AND } |\Delta s| > 1.0 \quad \textbf{(backfire)} \\[6pt]
+\text{if identity\_threat} > 0.5 \text{ AND } |\Delta s| > 1.0 \\[6pt]
 1.1 \cdot \Delta s &
-\text{if } \Delta s \cdot b_t > 0 \quad \textbf{(confirmation boost)} \\[6pt]
+\text{if } \Delta s \cdot b_t > 0 \\[6pt]
 0.6 \cdot (1 - r_{\text{rig}}) \cdot \Delta s &
-\text{if } |\Delta s| > 1.0 \quad \textbf{(opposed, openness-gated)} \\[6pt]
+\text{if } |\Delta s| > 1.0 \\[6pt]
 \Delta s &
 \text{otherwise}
 \end{cases}
@@ -472,26 +434,16 @@ Let ( \Delta s = s_{\text{signal}} - b_t ) (stance difference).
 
 ### Step 6: Evidence Accumulation (Multi-Hit Gate)
 
+![Evidence threshold gate](docs/assets/evidence_threshold_gate.svg)
+
 ```math
 E_t = \lambda \cdot E_{t-1} + w \cdot \Delta s'
 \qquad \lambda = 0.90, \quad w = 0.1 \cdot M_{\text{base}}
 ```
 
 ```math
-\text{if } |E_t| < \theta \implies \textbf{NO STANCE UPDATE}
+\text{if } |E_t| < \theta \implies \text{NO STANCE UPDATE}
 \qquad \theta = 0.5
-```
-
-```text
-Evidence Accumulator
-    ^
-+0.5|. . . . . . . . . . .THRESHOLD. . . . . .  BELIEF
-    |                  /                          UPDATE
-    |                /   (evidence decays
-    |              /      between exposures)
- 0  |--*--*--*---*---------*--*--*--*-*--------> time
-    |  ^  ^  ^   ^         ^  ^  ^  ^ ^
--0.5|  exposures           exposures (opposing)
 ```
 
 ### Step 7: Inertia and Momentum
@@ -513,22 +465,6 @@ v_{t+1} = \rho \cdot v_t + \eta \cdot E_t
 \sigma(x) = \frac{1}{1 + e^{-x}}
 ```
 
-```text
-eta_eff
-0.30 |                                  ___________
-     |                               __/
-     |                            __/
-0.20 |                         __/
-     |                      __/
-     |                   __/
-0.10 |==================/
-     |
-     +------+------+------+------+-------> |momentum|
-     0.0   0.05   0.10   0.15   0.20   0.30
-                    ^
-               v_threshold
-```
-
 ### Step 9: Rebound Force (Damped Spring)
 
 ```math
@@ -536,7 +472,7 @@ F_{\text{rebound}} = -k \cdot (b_t - b_0)
 \qquad k = 0.05
 ```
 
-where ( b_0 ) is the agent's core value (baseline stance anchor).
+where b0 is the agent's core value (baseline stance anchor).
 
 ### Step 10: Final Stance Update
 
@@ -578,13 +514,13 @@ E_t \leftarrow 0.5 \cdot E_t
 
 The legacy engine is simpler (no evidence accumulation, momentum, or critical velocity). It is preserved for backward compatibility.
 
-### For new beliefs (no prior stance):
+### For new beliefs (no prior stance)
 
 ```math
 \Delta b = s_{\text{signal}} \cdot t_e \cdot M_{\text{prox}} \cdot M_{\text{scroll}}
 ```
 
-### For existing beliefs:
+### For existing beliefs
 
 ```math
 \Delta b =
@@ -607,7 +543,7 @@ Runs once per simulated day. Updates the agent's identity vector and rigidity ba
 w(I) = 0.2 + 0.5 \cdot I_{\text{threat}} + 0.3 \cdot I_{\text{arousal}} + 0.2 \cdot I_{\text{social\_proof}}
 ```
 
-Up to 30 impressions are sampled proportional to ( w(I) ).
+Up to 30 impressions are sampled proportional to w(I).
 
 ### 7.2 Rigidity Update
 
@@ -622,7 +558,7 @@ r_{t+1} =
 
 ### 7.3 Identity Vector Drift
 
-For each identity dimension ( j ):
+For each identity dimension j:
 
 ```math
 \text{push}_j =
@@ -634,11 +570,11 @@ For each identity dimension ( j ):
 \text{clamp}_{[-1,1]}\!\big(\vec{I}_{j,t} + 0.03 \cdot (1 - r_t) \cdot \text{push}_j\big)
 ```
 
-where ( h(t_i) ) maps topic to dimension via hash.
+where h(t_i) maps topic to dimension via hash.
 
 ### 7.4 Ingroup Label Formation
 
-If ( |\vec{I}_j| > 0.75 ): add `ingroup_dim_j` to labels with 10% probability per tick. Once formed, ingroup labels are persistent.
+If |I_j| > 0.75: add `ingroup_dim_j` to labels with 10% probability per tick. Once formed, ingroup labels are persistent.
 
 ---
 
@@ -650,7 +586,7 @@ Also runs daily. Processes all consumed impressions to drift beliefs, salience, 
 
 ### 8.1 Salience and Knowledge Nudge
 
-For each topic ( t ) with ( c ) exposures:
+For each topic t with c exposures:
 
 ```math
 \Delta \text{salience}_t = 0.02 \cdot \min(10, c)
@@ -689,14 +625,14 @@ For large-scale simulation, populations are modeled as belief distributions in h
 
 Each cell-topic pair has:
 
-* ( \mu ) : mean stance ( \in [-1, +1] )
-* ( \sigma^2 ) : variance
-* ( v ) : momentum
-* ( b_0 ) : core value
+* μ: mean stance in [-1, +1]
+* σ²: variance
+* v: momentum
+* b0: core value
 
 ### 9.2 Exposure Aggregation
 
-For ( N ) exposures to topic ( t ) in cell ( c ):
+For N exposures to topic t in cell c:
 
 ```math
 \bar{I} = \frac{\sum_i (s_i - \mu) \cdot w_i}{\sum_i w_i}
@@ -710,30 +646,9 @@ For ( N ) exposures to topic ( t ) in cell ( c ):
 \bar{r} = \sum_k \omega_k \cdot r_k
 ```
 
-where ( \omega_k ) are segment mix weights, ( \chi_k ) is susceptibility, ( r_k ) is identity rigidity.
+where ω_k are segment mix weights, χ_k is susceptibility, r_k is identity rigidity.
 
 ### 9.4 Population Belief Update
-
-```text
-POPULATION UPDATE (per cell, per topic)
-========================================
-
-Exposures --> Aggregate Influence (I_bar)
-                    |
-                    v
-[1] Momentum:   v' = 0.85 * v + 0.10 * I_bar * chi_bar
-                    |
-                    v
-[2] Rebound:    F  = -0.05 * (mu - b0)
-                    |
-                    v
-[3] Stance:     mu' = clamp( mu + eta*(1 - r_bar)*v' + F ,  -1, +1 )
-                    |
-                    v
-[4] Variance:   sigma'^2 = max( 0.05,  sigma^2 - 0.01 * W_total )
-```
-
-Formally:
 
 ```math
 v_{t+1} = 0.85 \cdot v_t + 0.10 \cdot \bar{I} \cdot \bar{\chi}
@@ -772,18 +687,20 @@ N_{\text{engaged}} = N_{\text{consumed}} \cdot 0.2
 
 ### 10.1 Belief Dynamics Parameters
 
-| Parameter                     | Symbol      | Default | Range   | Effect                                   |
-| ----------------------------- | ----------- | ------: | ------- | ---------------------------------------- |
-| `inertia_rho`                 | ( \rho )    |    0.85 | [0, 1]  | Momentum persistence (higher = stickier) |
-| `learning_rate_base`          | ( \eta )    |    0.10 | [0, 1]  | Base rate of belief change               |
-| `rebound_k`                   | ( k )       |    0.05 | [0, 1]  | Spring strength to core value            |
-| `critical_velocity_threshold` | ( v_0 )     |    0.10 | [0, 1]  | Momentum threshold for gain boost        |
-| `critical_kappa`              | ( \kappa )  |     2.0 | [0, 10] | Nonlinear momentum gain multiplier       |
-| `evidence_decay_lambda`       | ( \lambda ) |    0.90 | [0, 1]  | Evidence persistence between ticks       |
-| `evidence_threshold`          | ( \theta )  |    0.50 | [0, 2]  | Multi-hit gate (higher = harder to move) |
-| `trust_exponent_gamma`        | ( \gamma )  |     2.0 | [1, 4]  | Trust superlinearity (1 = linear)        |
-| `habituation_alpha`           | ( \alpha )  |    0.05 | [0, 1]  | Diminishing returns per exposure         |
-| `bounded_confidence_tau`      | ( \tau )    |    1.50 | [0, 2]  | Max stance gap for acceptance            |
+> GitHub note: symbols are Unicode here to avoid raw LaTeX in tables. The full math definitions are above.
+
+| Parameter                     | Symbol | Default | Range   | Effect                                   |
+| ----------------------------- | ------ | ------: | ------- | ---------------------------------------- |
+| `inertia_rho`                 | ρ      |    0.85 | [0, 1]  | Momentum persistence (higher = stickier) |
+| `learning_rate_base`          | η      |    0.10 | [0, 1]  | Base rate of belief change               |
+| `rebound_k`                   | k      |    0.05 | [0, 1]  | Spring strength to core value            |
+| `critical_velocity_threshold` | v₀     |    0.10 | [0, 1]  | Momentum threshold for gain boost        |
+| `critical_kappa`              | κ      |     2.0 | [0, 10] | Nonlinear momentum gain multiplier       |
+| `evidence_decay_lambda`       | λ      |    0.90 | [0, 1]  | Evidence persistence between ticks       |
+| `evidence_threshold`          | θ      |    0.50 | [0, 2]  | Multi-hit gate (higher = harder to move) |
+| `trust_exponent_gamma`        | γ      |     2.0 | [1, 4]  | Trust superlinearity (1 = linear)        |
+| `habituation_alpha`           | α      |    0.05 | [0, 1]  | Diminishing returns per exposure         |
+| `bounded_confidence_tau`      | τ      |    1.50 | [0, 2]  | Max stance gap for acceptance            |
 
 ### 10.2 Identity Dimension Weights (USA Default)
 
