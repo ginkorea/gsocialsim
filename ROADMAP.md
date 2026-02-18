@@ -25,11 +25,15 @@ This roadmap tracks the implementation of missing features in the Synthetic Soci
 - **Phase 6: Agent Demographics & Microsegments** (2026-02-18) - 25 population segments, AgentDemographics, AgentPsychographics, Big 5 personality, homophily-based influence
 - **Phase 7: Dimensional Identity Similarity** (2026-02-18) - Unified continuous coordinate system for all identity dimensions, country-configurable, replaces binary matching and hardcoded religion matrix
 - **Global Architecture** (2026-02-18) - Multi-country infrastructure, 5 country defaults, diaspora communities, international actors, PoliticalIdentity 5-axis
+- **Phase 8: Cross-Border Factors** (2026-02-18) - Reach vs credibility decomposition, language accessibility model, cultural distance decay
+- **Phase 9: Media Diet** (2026-02-18) - Budget conservation (shares sum to 1.0), saturation curve, diaspora split, shift-toward rebalancing
+- **Phase 10: Actor Capabilities** (2026-02-18) - 7 international actor profiles, credibility bounds, production/targeting/amplification model
+- **Phase 11: Scenario Harness** (2026-02-18) - 16 deterministic invariant tests covering cross-border, media diet, actor capabilities, and end-to-end scenarios
 
 ### Planned
 - Phase 5: CUDA Backend (Optional, deferred)
-- Phase 8: JSON-loaded identity profiles (country configs from file, replaces factory defaults)
-- Phase 9: Cross-border content delivery with cultural distance decay
+- Phase 12: JSON-loaded identity profiles (country configs from file, replaces factory defaults)
+- Phase 13: Event-driven media diet adaptation (media shifts triggered by crisis events, exposure patterns)
 
 ---
 
@@ -406,6 +410,117 @@ Full formal notation with coordinate maps, diagrams, and parameter tables in [IN
 
 ---
 
+## Phase 8: Cross-Border Factors (Complete)
+
+**Priority**: HIGH
+**Status**: ✅ Complete (2026-02-18)
+**Goal**: Decompose cross-border content delivery into independent reach and credibility multipliers.
+
+### New Components
+- `cpp/include/cross_border.h`
+- `cpp/src/cross_border.cpp`
+
+### Key Features
+- **Reach vs credibility decomposition**: `effective_influence = base * reach_mult * credibility_mult`
+- **Reach multiplier** `[0, 1]`: cultural distance decay, language accessibility, amplification budget, inauthenticity boost
+- **Credibility multiplier** `[0, 1]`: geopolitical tension penalty, state affiliation penalty, viewer institutional trust modulation
+- **Language accessibility model**: Same country=1.0, shared official=1.0, shared common=0.85, translated=quality×0.7, English lingua franca=proficiency×0.8, no shared language=0.05
+- **Source-type trust modulation**: State propaganda credibility drops with high viewer trust; international media credibility rises
+
+### Success Criteria
+- [x] Same-country content: reach ≥ 0.9, credibility ≥ 0.8
+- [x] High-tension cross-border: credibility ≤ 0.5
+- [x] Untranslated foreign content: reach ≤ 0.15
+- [x] US-UK shared language = 1.0, RUS-USA < 0.15
+- [x] State propaganda credibility < regular media credibility
+
+---
+
+## Phase 9: Media Diet (Complete)
+
+**Priority**: HIGH
+**Status**: ✅ Complete (2026-02-18)
+**Goal**: Budget-conserving media consumption model with saturation curve for diaspora and domestic agents.
+
+### New Components
+- `cpp/include/media_diet.h`
+- `cpp/src/media_diet.cpp`
+
+### Key Features
+- **Budget conservation**: All media shares (residence + origin + international) sum to 1.0
+- **Saturation curve**: `effective(share) = 1 - exp(-k × share)`, k=3.0 default
+- **Split advantage**: Diversified media is more information-efficient (2 × sat(0.5) = 1.55 > sat(1.0) = 0.95)
+- **Domestic factory**: Residence share dominates, small international pool
+- **Diaspora factory**: Origin + residence + international from DiasporaSegment consumption rates
+- **Shift-toward**: Event-driven rebalancing capped at ±0.3 with automatic re-normalization
+
+### Success Criteria
+- [x] Budget conservation holds (shares sum to 1.0 within epsilon)
+- [x] Saturation marginal returns decrease monotonically
+- [x] Diaspora diet: residence > origin share
+- [x] Shift preserves budget conservation
+
+---
+
+## Phase 10: Actor Capabilities (Complete)
+
+**Priority**: HIGH
+**Status**: ✅ Complete (2026-02-18)
+**Goal**: Formal capability model bounding what international actors can produce, target, and credibly deliver.
+
+### New Components
+- `cpp/include/actor_capabilities.h`
+- `cpp/src/actor_capabilities.cpp`
+
+### Key Features
+- **ActorCapabilities struct**: production_capacity, content_quality, targeting_precision, credibility_floor/ceiling, amplification_budget, language coverage
+- **Credibility bounds**: `get_credibility()` returns value in `[floor, ceiling]` per country, with per-country overrides
+- **7 factory profiles**:
+  1. International media (BBC-like): high quality, moderate targeting, high credibility ceiling
+  2. State media (RT-like): high production, high targeting, low credibility ceiling, inauthentic accounts
+  3. Multilateral org (UN-like): low production, highest quality, high credibility
+  4. Regional org (EU-like): moderate production, regional targeting
+  5. Global NGO (Greenpeace-like): moderate production, high credibility
+  6. Multinational corp: high production, moderate quality, low credibility ceiling
+  7. Global celebrity: low production, very high reach
+- **Production model**: Scales by active countries and language count
+- **Targeting effectiveness**: precision × internet penetration × social media penetration × inauthenticity boost
+
+### Success Criteria
+- [x] Credibility always in [floor, ceiling]
+- [x] Total production bounded (< 500 units)
+- [x] State media: higher targeting but lower credibility ceiling than international media
+- [x] All 7 profiles pass validation
+
+---
+
+## Phase 11: Scenario Harness (Complete)
+
+**Priority**: HIGH
+**Status**: ✅ Complete (2026-02-18)
+**Goal**: Deterministic test framework for global architecture invariants.
+
+### New Components
+- `cpp/include/scenario_harness.h`
+- `cpp/src/scenario_harness.cpp`
+- `cpp/test/test_global_architecture.cpp`
+
+### Key Features
+- **ScenarioHarness class**: Register/run_all/print_results pattern
+- **16 deterministic scenarios** covering:
+  - CrossBorder (5): same_country baseline, high_tension credibility, untranslated reach, language barrier, state propaganda penalty
+  - MediaDiet (4): budget conservation, saturation diminishing returns, diaspora split, shift preserves budget
+  - ActorCapabilities (4): credibility bounds, production bounded, state vs media comparison, profile validation
+  - End-to-end (3): Russian interference model, international media coverage tiers, diaspora consumption efficiency
+- **Helper infrastructure**: `build_test_geo()` creates 4-country hierarchy (USA, RUS, GBR, IND) with cultural distances, geopolitical tensions, language configs, and Indian-American diaspora segment
+
+### Success Criteria
+- [x] All 16 scenarios pass
+- [x] No regressions in existing 14 demographic tests
+- [x] Deterministic under fixed parameters
+
+---
+
 ## Critical Files Reference
 
 ### Core Integration Files
@@ -420,6 +535,22 @@ Full formal notation with coordinate maps, diagrams, and parameter tables in [IN
 - **cpp/src/agent_demographics.cpp** - compute_similarity(), compute_influence_weight()
 - **cpp/src/agent.cpp** - AttentionSystem, BeliefUpdateEngine, dream(), consolidate_identity()
 - **cpp/include/network.h** - Abstract NetworkLayer base
+
+### Global Architecture Files
+- **cpp/include/country.h** - Country, DiasporaSegment, InternationalActor, GlobalGeoHierarchy
+- **cpp/src/country.cpp** - GlobalGeoHierarchy implementation, cultural distance, geopolitical tension
+- **cpp/include/cross_border.h** - CrossBorderFactors, reach/credibility computation
+- **cpp/src/cross_border.cpp** - Language accessibility, trust modulation, state propaganda penalty
+- **cpp/include/media_diet.h** - MediaDiet, MediaSource, MediaDietFactory
+- **cpp/src/media_diet.cpp** - Budget conservation, saturation curve, diaspora factory
+- **cpp/include/actor_capabilities.h** - ActorCapabilities, ActorCapabilityFactory
+- **cpp/src/actor_capabilities.cpp** - 7 factory profiles, production model, targeting effectiveness
+- **cpp/include/scenario_harness.h** - ScenarioHarness, 16 scenario declarations
+- **cpp/src/scenario_harness.cpp** - Full scenario implementations with build_test_geo()
+
+### Test Files
+- **cpp/test/test_agent_demographics.cpp** - 14 tests for dimensional identity system
+- **cpp/test/test_global_architecture.cpp** - 16 tests for cross-border, media diet, actor capabilities
 
 ---
 

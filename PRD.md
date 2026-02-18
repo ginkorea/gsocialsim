@@ -67,22 +67,27 @@ The platform is intended for **research, experimentation, and counterfactual ana
 - **Phase 6**: Agent demographics and microsegment system (25 population segments, psychographics, Big 5)
 - **Phase 7**: Dimensional identity similarity system (replaces binary matching and religion matrix)
 - **Global architecture**: Multi-country simulation with 5 country defaults, diaspora, international actors
+- **Phase 8**: Cross-border factors with reach vs credibility decomposition, language accessibility model
+- **Phase 9**: Media diet with budget conservation, saturation curve, diaspora split
+- **Phase 10**: Actor capabilities with 7 international actor profiles, credibility bounds, production model
+- **Phase 11**: Scenario harness with 16 deterministic invariant tests
 
 ### Recent Changes
-- Replaced binary demographic matching and hardcoded 13x13 religion matrix with unified dimensional identity similarity engine
-- All identity categories (religion, race, geography, education, gender, income, age, political ideology) embedded onto continuous coordinate spaces
-- Country-configurable coordinates, weights, and decay rates (factory defaults for USA, IND, BRA, GBR, FRA)
-- 5D political identity (economic, social, libertarian, cosmopolitan, secular_religious)
-- Religion as 2D (tradition family x devotional intensity) with per-agent religiosity override
-- Race/ethnicity as 2D, country-specific (US race, India caste, Brazil color spectrum)
-- Full mathematical specification in [INFLUENCE_MATH.md](INFLUENCE_MATH.md)
+- Cross-border content delivery decomposed into independent reach and credibility multipliers
+- Language accessibility model: shared official/common languages, translation quality, English lingua franca
+- Media diet with budget conservation (all shares sum to 1.0) and saturation curve for diminishing returns
+- Diaspora media consumption from origin + residence + international with automatic normalization
+- 7 international actor capability profiles (international media, state media, multilateral org, regional org, global NGO, multinational corp, global celebrity)
+- Actor credibility bounded by floor/ceiling with per-country overrides
+- 16 deterministic scenario tests covering cross-border, media diet, actor capabilities, and end-to-end invariants
+- Full mathematical specification for all new systems in [INFLUENCE_MATH.md](INFLUENCE_MATH.md)
 
 ### Infrastructure
 - C++ analytics: summary/detailed modes, CSV export
 - Export bridge: `reports/state.json` + `reports/analytics.csv` + Python renderers
 - Visualization: agents-only, platform, bipartite, threshold, full graph (physics settle then freeze)
 - Network generation: sparse grouped structure with outliers; supports `groups|random|geo` modes
-- 14 test suite for dimensional identity system (distance spot-checks, country configs, codepath uniformity)
+- 30 tests total: 14 for dimensional identity system + 16 for global architecture invariants
 
 ---
 
@@ -377,6 +382,31 @@ Physical interactions:
 - dominate belief crossing events
 
 Physical influence is limited in reach but dominant in effect.
+
+---
+
+## 9.5 Cross-Border Content Delivery
+
+Content crossing national borders passes through a **reach vs credibility decomposition**:
+
+- **Reach multiplier** `[0, 1]`: cultural distance decay, language accessibility, amplification budget
+- **Credibility multiplier** `[0, 1]`: geopolitical tension, state affiliation penalty, viewer institutional trust
+
+```
+effective_influence = base_influence * reach_mult * credibility_mult
+```
+
+**Media Diet**: Every agent has a media consumption budget that sums to 1.0:
+- Domestic agents: residence share + small international pool
+- Diaspora agents: origin + residence + international, normalized from DiasporaSegment consumption rates
+- Saturation curve (`1 - exp(-k * share)`) gives diminishing returns, making diversified consumption more efficient
+
+**International Actors**: Formal capability profiles bounding production, targeting, and credibility:
+- 7 actor types: international media, state media, multilateral org, regional org, global NGO, multinational corp, global celebrity
+- Credibility bounded by `[floor, ceiling]` per actor type with per-country overrides
+- State media has higher targeting precision but lower credibility ceiling than independent media
+
+See [GLOBAL_ARCHITECTURE.md](GLOBAL_ARCHITECTURE.md) and [INFLUENCE_MATH.md](INFLUENCE_MATH.md) for full specification.
 
 ---
 
