@@ -162,6 +162,8 @@ void WorldKernel::start() {
     if (geo.enable_life_cycle && !geo.population_loaded) {
         geo.load_population_csv();
     }
+    // Phase 6: Initialize agent pointer in context for demographic targeting
+    context.agents = &agents;
     started = true;
 }
 

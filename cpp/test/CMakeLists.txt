@@ -42,6 +42,7 @@ add_executable(test_agent_demographics
     ../src/population_layer.cpp
     ../src/belief_dynamics.cpp
     ../src/content_targeting.cpp
+    ../src/feed_queue.cpp
     ../src/geo_world.cpp
     ../src/utils.cpp
 )

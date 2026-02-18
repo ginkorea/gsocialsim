@@ -65,7 +65,7 @@ std::vector<ContentId> BroadcastFeedNetwork::build_candidates(
             // Phase 6: Check if content has targeting filters
             if (content.targeting.has_value()) {
                 // Get viewer agent to check targeting
-                Agent* viewer_agent = ctx.agents.get(viewer);
+                Agent* viewer_agent = ctx.agents ? ctx.agents->get(viewer) : nullptr;
                 if (viewer_agent && content.targeting->matches(*viewer_agent)) {
                     // Targeting criteria met
                     candidates.push_back(content.id);

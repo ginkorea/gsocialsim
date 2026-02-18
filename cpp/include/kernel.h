@@ -35,6 +35,17 @@ struct SimClock {
     void advance(int dt) { t += dt; }
 };
 
+// Agent population container (moved outside WorldKernel for forward declaration)
+struct AgentPopulation {
+    std::unordered_map<AgentId, Agent> agents;
+
+    void add_agent(const Agent& agent) { agents.insert_or_assign(agent.id, agent); }
+    Agent* get(const AgentId& agent_id) {
+        auto it = agents.find(agent_id);
+        return it == agents.end() ? nullptr : &it->second;
+    }
+};
+
 struct WorldContext {
     int current_tick = 0;
     std::string current_phase = "INIT";
@@ -51,6 +62,9 @@ struct WorldContext {
 
     // Population layer (Module: Population)
     PopulationLayer population;
+
+    // Phase 6: Agent access for demographic targeting (set by WorldKernel)
+    AgentPopulation* agents = nullptr;
 
     void begin_phase(int tick, const std::string& phase) {
         current_tick = tick;
@@ -112,16 +126,6 @@ struct WorldKernel {
         size_t count = 0;
     };
     std::unordered_map<std::string, TimingStat> timing;
-
-    struct AgentPopulation {
-        std::unordered_map<AgentId, Agent> agents;
-
-        void add_agent(const Agent& agent) { agents.insert_or_assign(agent.id, agent); }
-        Agent* get(const AgentId& agent_id) {
-            auto it = agents.find(agent_id);
-            return it == agents.end() ? nullptr : &it->second;
-        }
-    };
 
     AgentPopulation agents;
     NetworkManager* network_manager = nullptr;
