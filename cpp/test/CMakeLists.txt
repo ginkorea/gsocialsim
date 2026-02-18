@@ -49,8 +49,28 @@ add_executable(test_agent_demographics
     ../src/utils.cpp
 )
 
+# Test: Global Architecture (CrossBorder, MediaDiet, ActorCapabilities, Scenarios)
+add_executable(test_global_architecture
+    test_global_architecture.cpp
+    ../src/cross_border.cpp
+    ../src/media_diet.cpp
+    ../src/actor_capabilities.cpp
+    ../src/scenario_harness.cpp
+    ../src/country.cpp
+    ../src/identity_space.cpp
+    ../src/agent.cpp
+    ../src/agent_demographics.cpp
+    ../src/belief_dynamics.cpp
+    ../src/content_targeting.cpp
+    ../src/feed_queue.cpp
+    ../src/geo_world.cpp
+    ../src/population_layer.cpp
+    ../src/utils.cpp
+)
+
 # Compile options
 target_compile_options(test_subscription_service PRIVATE -O2)
 target_compile_options(test_belief_dynamics PRIVATE -O2)
 target_compile_options(test_population_layer PRIVATE -O2)
 target_compile_options(test_agent_demographics PRIVATE -O2)
+target_compile_options(test_global_architecture PRIVATE -O2)

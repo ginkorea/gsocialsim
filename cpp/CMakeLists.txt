@@ -24,6 +24,10 @@ add_executable(gsocialsim_cpp
     src/geo_world.cpp
     src/country.cpp
     src/identity_space.cpp
+    src/cross_border.cpp
+    src/media_diet.cpp
+    src/actor_capabilities.cpp
+    src/scenario_harness.cpp
     src/utils.cpp
 )
 
