@@ -12,7 +12,9 @@
 #include "geo_world.h"
 #include "global_social_reality.h"
 #include "network.h"
+#include "network_manager.h"
 #include "stimulus_ingestion.h"
+#include "subscription_service.h"
 #include "types.h"
 
 // -----------------------------
@@ -42,6 +44,9 @@ struct WorldContext {
     std::unordered_map<int, std::vector<Content>> posted_by_tick;
     std::vector<std::pair<AgentId, BeliefDelta>> deferred_belief_deltas;
     std::unordered_map<AgentId, double> time_remaining_by_agent;
+
+    // Subscription service (Module: Subscriptions)
+    SubscriptionService subscriptions;
 
     void begin_phase(int tick, const std::string& phase) {
         current_tick = tick;
@@ -115,7 +120,8 @@ struct WorldKernel {
     };
 
     AgentPopulation agents;
-    NetworkLayer network;
+    NetworkManager* network_manager = nullptr;
+    NetworkLayer network;  // Kept for backward compatibility (aliases broadcast_feed graph)
     GlobalSocialReality gsr;
     StimulusIngestionEngine stimulus_engine;
     GeoWorld geo;

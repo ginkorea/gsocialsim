@@ -298,51 +298,101 @@ void WorldKernel::_perceive_batch(int t) {
     std::unordered_map<AgentId, const Content*> latest_post_by_author;
     latest_post_by_author.reserve(context.posted_by_tick[t].size());
 
+    // Helper to collect all subscribers for a piece of content
+    auto collect_subscribers = [&](const Content& content) -> std::unordered_set<AgentId> {
+        std::unordered_set<AgentId> recipients;
+
+        // 1. Subscribers to this creator
+        auto creator_subs = context.subscriptions.get_subscribers(SubscriptionType::CREATOR, content.author_id);
+        recipients.insert(creator_subs.begin(), creator_subs.end());
+
+        // 2. Subscribers to this topic
+        if (!content.topic.empty()) {
+            auto topic_subs = context.subscriptions.get_subscribers(SubscriptionType::TOPIC, content.topic);
+            recipients.insert(topic_subs.begin(), topic_subs.end());
+        }
+
+        // 3. Subscribers to this outlet
+        if (content.outlet_id.has_value() && !content.outlet_id->empty()) {
+            auto outlet_subs = context.subscriptions.get_subscribers(SubscriptionType::OUTLET, *content.outlet_id);
+            recipients.insert(outlet_subs.begin(), outlet_subs.end());
+        }
+
+        // 4. Subscribers to this community
+        if (content.community_id.has_value() && !content.community_id->empty()) {
+            auto community_subs = context.subscriptions.get_subscribers(SubscriptionType::COMMUNITY, *content.community_id);
+            recipients.insert(community_subs.begin(), community_subs.end());
+        }
+
+        // 5. Always deliver to author (self-viewing)
+        recipients.insert(content.author_id);
+
+        return recipients;
+    };
+
     for (const auto& content : context.posted_by_tick[t]) {
         const Content* ptr = add_content(content);
         latest_post_by_author[content.author_id] = ptr;
-        const auto& followers = network.graph.get_followers_ref(content.author_id);
-        if (!followers.empty()) {
-            for (const auto& rid : followers) {
-                if (auto* agent = agents.get(rid)) {
-                    double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
-                    double mutual_raw = 0.0;
-                    if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
-                        mutual_raw = *mv;
-                    }
-                    double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
-                    agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
+
+        // Subscription-based delivery
+        auto recipients = collect_subscribers(content);
+        for (const auto& recipient_id : recipients) {
+            if (auto* agent = agents.get(recipient_id)) {
+                double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
+                double mutual_raw = 0.0;
+                if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
+                    mutual_raw = *mv;
                 }
+                double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
+
+                // Apply subscription strength as a multiplier
+                double sub_strength = 1.0;
+                if (recipient_id != content.author_id) {
+                    // Check subscription strength (use max if subscribed via multiple channels)
+                    sub_strength = std::max({
+                        context.subscriptions.get_subscription_strength(recipient_id, SubscriptionType::CREATOR, content.author_id),
+                        content.topic.empty() ? 0.0 : context.subscriptions.get_subscription_strength(recipient_id, SubscriptionType::TOPIC, content.topic),
+                        content.outlet_id.has_value() ? context.subscriptions.get_subscription_strength(recipient_id, SubscriptionType::OUTLET, *content.outlet_id) : 0.0,
+                        content.community_id.has_value() ? context.subscriptions.get_subscription_strength(recipient_id, SubscriptionType::COMMUNITY, *content.community_id) : 0.0
+                    });
+                }
+
+                // Enqueue with subscription strength modulating social proof
+                double effective_social_proof = content.social_proof * sub_strength;
+                agent->enqueue_content(ptr, t, t, effective_social_proof, proximity, mutual_score);
             }
-            if (auto* agent = agents.get(content.author_id)) {
-                agent->enqueue_content(ptr, t, t, content.social_proof, 1.0, 1.0);
-            }
-        } else {
-            // Unfollowed authors are not broadcast; discovery path handles them.
         }
     }
 
     for (const auto& stim : context.stimuli_by_tick[t]) {
         Content content = stimulus_to_content(stim);
         const Content* ptr = add_content(content);
-        const auto& followers = network.graph.get_followers_ref(content.author_id);
-        if (!followers.empty()) {
-            for (const auto& rid : followers) {
-                if (auto* agent = agents.get(rid)) {
-                    double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
-                    double mutual_raw = 0.0;
-                    if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
-                        mutual_raw = *mv;
-                    }
-                    double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
-                    agent->enqueue_content(ptr, t, t, content.social_proof, proximity, mutual_score);
+
+        // Subscription-based delivery for stimuli
+        auto recipients = collect_subscribers(content);
+        for (const auto& recipient_id : recipients) {
+            if (auto* agent = agents.get(recipient_id)) {
+                double proximity = geo.enable_life_cycle ? geo.proximity(agent->id, content.author_id) : 0.0;
+                double mutual_raw = 0.0;
+                if (auto mv = network.graph.get_edge_mutual(agent->id, content.author_id)) {
+                    mutual_raw = *mv;
                 }
+                double mutual_score = mutual_norm > 0.0 ? clamp01(mutual_raw / mutual_norm) : 0.0;
+
+                // Apply subscription strength
+                double sub_strength = 1.0;
+                if (recipient_id != content.author_id) {
+                    sub_strength = std::max({
+                        context.subscriptions.get_subscription_strength(recipient_id, SubscriptionType::CREATOR, content.author_id),
+                        content.topic.empty() ? 0.0 : context.subscriptions.get_subscription_strength(recipient_id, SubscriptionType::TOPIC, content.topic),
+                        content.outlet_id.has_value() ? context.subscriptions.get_subscription_strength(recipient_id, SubscriptionType::OUTLET, *content.outlet_id) : 0.0,
+                        content.community_id.has_value() ? context.subscriptions.get_subscription_strength(recipient_id, SubscriptionType::COMMUNITY, *content.community_id) : 0.0
+                    });
+                }
+
+                double effective_social_proof = content.social_proof * sub_strength;
+                agent->enqueue_content(ptr, t, t, effective_social_proof, proximity, mutual_score);
             }
-            if (auto* agent = agents.get(content.author_id)) {
-                agent->enqueue_content(ptr, t, t, content.social_proof, 1.0, 1.0);
-            }
-        } else {
-            // Unfollowed authors are not broadcast; discovery path handles them.
         }
     }
 

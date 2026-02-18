@@ -11,7 +11,9 @@ add_executable(gsocialsim_cpp
     src/agent.cpp
     src/data_source.cpp
     src/stimulus_ingestion.cpp
+    src/subscription_service.cpp
     src/network.cpp
+    src/network_manager.cpp
     src/global_social_reality.cpp
     src/feed_queue.cpp
     src/geo_world.cpp

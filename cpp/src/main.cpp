@@ -723,6 +723,37 @@ int main(int argc, char** argv) {
         kernel.geo.load_population_csv();
     }
 
+    // Initialize network manager with multiple layers
+    std::cout << "Initializing network manager...\n";
+    auto network_mgr = std::make_unique<NetworkManager>();
+
+    // Create broadcast feed network (main social feed)
+    auto broadcast_feed = std::make_unique<BroadcastFeedNetwork>("broadcast_feed");
+    // Share the graph from kernel.network for backward compatibility
+    broadcast_feed->graph = kernel.network.graph;
+    network_mgr->register_layer(std::move(broadcast_feed));
+
+    // Create direct message network
+    auto direct_msg = std::make_unique<DirectMessageNetwork>("direct_message");
+    network_mgr->register_layer(std::move(direct_msg));
+
+    kernel.network_manager = network_mgr.release();
+    std::cout << "Registered 2 network layers: broadcast_feed, direct_message\n";
+
+    // Initialize subscriptions: auto-subscribe all agents to creators they follow
+    // This maintains backward compatibility with the old broadcast model
+    std::cout << "Initializing subscriptions...\n";
+    size_t subscription_count = 0;
+    for (const auto& [agent_id, agent] : kernel.agents.agents) {
+        const auto& following = kernel.network.graph.get_following_ref(agent_id);
+        for (const auto& followed_id : following) {
+            // Subscribe to creator with strength 1.0
+            kernel.context.subscriptions.subscribe(agent_id, SubscriptionType::CREATOR, followed_id, 1.0, 0);
+            subscription_count++;
+        }
+    }
+    std::cout << "Created " << subscription_count << " creator subscriptions\n";
+
     kernel.start();
     auto setup_end = std::chrono::steady_clock::now();
     double setup_elapsed = std::chrono::duration<double>(setup_end - setup_start).count();
