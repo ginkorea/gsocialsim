@@ -2,6 +2,9 @@
 #include <cmath>
 #include <algorithm>
 
+// Forward declaration from country.cpp
+double get_religious_similarity(const std::string& religion1, const std::string& religion2);
+
 // ============================================================================
 // Agent Demographics: Homophily and Influence Weighting
 // ============================================================================
@@ -41,10 +44,9 @@ double Agent::compute_similarity(const Agent& other) const {
     }
     total_weight += 0.05;
 
-    // 6. Religion match (very strong homophily)
-    if (demographics.religion == other.demographics.religion) {
-        similarity_score += 0.15;
-    }
+    // 6. Religion similarity (graduated measure: Protestant-Catholic closer than Catholic-Hindu)
+    double religion_similarity = get_religious_similarity(demographics.religion, other.demographics.religion);
+    similarity_score += 0.15 * religion_similarity;
     total_weight += 0.15;
 
     // 7. Political ideology similarity (strongest factor)
