@@ -740,6 +740,16 @@ int main(int argc, char** argv) {
     kernel.network_manager = network_mgr.release();
     std::cout << "Registered 2 network layers: broadcast_feed, direct_message\n";
 
+    // Initialize population layer if geo is enabled
+    if (kernel.geo.enable_life_cycle && kernel.geo.population_loaded) {
+        std::cout << "Initializing population layer...\n";
+        kernel.context.population.initialize_from_geo(kernel.geo);
+        kernel.context.population.initialize_default_segments();
+        std::cout << "Population layer: " << kernel.context.population.num_cells() << " cells, "
+                  << kernel.context.population.num_segments() << " segments, "
+                  << kernel.context.population.total_population() << " total population\n";
+    }
+
     // Initialize subscriptions: auto-subscribe all agents to creators they follow
     // This maintains backward compatibility with the old broadcast model
     std::cout << "Initializing subscriptions...\n";

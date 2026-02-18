@@ -13,6 +13,7 @@
 #include "global_social_reality.h"
 #include "network.h"
 #include "network_manager.h"
+#include "population_layer.h"
 #include "stimulus_ingestion.h"
 #include "subscription_service.h"
 #include "types.h"
@@ -47,6 +48,9 @@ struct WorldContext {
 
     // Subscription service (Module: Subscriptions)
     SubscriptionService subscriptions;
+
+    // Population layer (Module: Population)
+    PopulationLayer population;
 
     void begin_phase(int tick, const std::string& phase) {
         current_tick = tick;
