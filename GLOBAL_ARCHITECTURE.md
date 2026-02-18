@@ -67,21 +67,33 @@ Addresses user requirement: "Protestant and Catholic are closer than Catholic an
 **Implemented in**: `cpp/include/identity_space.h`, `cpp/src/identity_space.cpp`
 **Integrated in**: `Agent::compute_similarity()` via `IdentitySpace::compute_similarity()`
 
-### 4. Cross-Border Information Flow
+### 4. Cross-Border Information Flow (Reach vs Credibility)
 
-**InternationalContent** struct enables:
-- Origin country tracking
-- Translation and language barriers
-- Cultural distance decay (reach decreases with cultural distance)
-- Country-specific credibility
+Cross-border content delivery is decomposed into two independent multipliers via `CrossBorderFactors`:
 
-**Example**: RT (Russia Today) article on Ukraine
-- High credibility in Russia (0.70)
-- Low credibility in USA/UK (0.10-0.15)
-- Moderate credibility in non-Western countries (0.35-0.40)
-- Targets specific demographic segments in each country
+- **`reach_mult`** -- probability that content is *seen* (cultural distance decay, language barriers, platform penetration, amplification budget)
+- **`credibility_mult`** -- how *believable* the content is once seen (geopolitical tension, state affiliation penalty, viewer institutional trust, source type)
 
-### 5. Diaspora Communities
+```
+effective_influence = base_influence * reach_mult * credibility_mult
+```
+
+**Invariants** (enforced by 16 scenario tests):
+- Same-country: `reach_mult >= 0.9`, `credibility_mult >= 0.8`
+- High tension (>= 0.7) + state propaganda: `credibility_mult <= 0.5`
+- Untranslated foreign language: `reach_mult <= 0.15`
+- Both multipliers in `[0, 1]`
+
+**Language accessibility model** computes a `[0, 1]` factor from: shared official/common languages, translation quality, English proficiency as lingua franca.
+
+**Example**: RT (Russia Today) article targeting US
+- Reach: ~0.24 (cultural distance 0.70, but English content + amplification budget)
+- Credibility for high-trust viewer: ~0.25 (state propaganda + high tension)
+- Credibility for low-trust viewer: ~0.40 (less skeptical of alternative narratives)
+
+**Implemented in**: `cpp/include/cross_border.h`, `cpp/src/cross_border.cpp`
+
+### 5. Diaspora Communities & Media Diet
 
 **DiasporaSegment** models:
 - Dual identity (origin + residence country)
@@ -89,26 +101,57 @@ Addresses user requirement: "Protestant and Catholic are closer than Catholic an
 - Transnational topics (immigration, remittances)
 - Language bilingualism
 
+**MediaDiet** formalizes attention allocation with **budget conservation**:
+
+```
+origin_share + residence_share + sum(international_shares) = 1.0
+```
+
+- All allocations sum to exactly 1.0 (enforced by `validate()` and `normalize()`)
+- **Saturation model**: `effective(share) = 1 - exp(-k * share)` -- diminishing returns mean a 50/50 split yields more total information than 100/0
+- `shift_toward()` allows event-driven rebalancing while preserving budget
+
 **Example**: Indian-Americans
 - Origin: India, Residence: USA
-- Consumes 40% Indian media, 80% US media
-- Identity strength: 70% Indian, 80% American (not mutually exclusive)
-- Topics: Kashmir, H1B visas, India-US relations
+- Normalized budget: 32% Indian media, 64% US media, 4% international
+- Effective intake (saturation k=3): Indian 0.62, US 0.85, international 0.11
+- Total effective: 1.58 (vs 0.95 for single-source at 100%)
 
-### 6. International Actors
+**Implemented in**: `cpp/include/media_diet.h`, `cpp/src/media_diet.cpp`
 
-**Types**:
-- INTERNATIONAL_MEDIA: BBC, CNN, Al Jazeera, RT
+### 6. International Actors & Capability Model
+
+**Actor Types**:
+- INTERNATIONAL_MEDIA: BBC, CNN, Al Jazeera, Reuters
 - INTERNATIONAL_ORG: UN, WHO, IMF
 - REGIONAL_ORG: EU Commission, African Union
-- FOREIGN_STATE_MEDIA: RT, CGTN, Al Jazeera
+- FOREIGN_STATE_MEDIA: RT, CGTN, PressTV
+- GLOBAL_NGO: Greenpeace, Human Rights Watch
+- MULTINATIONAL_CORP: Apple, BP, Nestle
 - GLOBAL_CELEBRITY: Pope, Greta Thunberg
 
-**Key Properties**:
-- Credibility varies by country
-- Reach varies by country
-- State affiliation affects trust
-- Multi-language content production
+**ActorCapabilities** formalizes each actor type's properties:
+- `production_capacity` -- content items per tick (bounded [0, 100])
+- `targeting_precision` -- microtargeting ability [0, 1]
+- `content_quality` -- baseline quality [0, 1]
+- `credibility_floor` / `credibility_ceiling` -- prevents unrealistic credibility
+- `amplification_budget` -- resources for paid promotion
+- `can_use_inauthentic_accounts` -- state actors / troll farms only
+- Multi-language content production with per-language quality
+
+**7 factory profiles** with distinct characteristics:
+
+| Property | Int'l Media | State Media | Multilateral | Celebrity |
+|----------|------------|-------------|-------------|-----------|
+| Production | 50/tick | 80/tick | 5/tick | 3/tick |
+| Quality | 0.75 | 0.45 | 0.85 | 0.50 |
+| Targeting | 0.30 | 0.75 | 0.10 | 0.20 |
+| Cred ceiling | 0.90 | 0.70 | 0.85 | 0.75 |
+| Inauthenticity | No | Yes | No | No |
+
+**Invariant**: State media has higher targeting precision but lower credibility ceiling than international media.
+
+**Implemented in**: `cpp/include/actor_capabilities.h`, `cpp/src/actor_capabilities.cpp`
 
 ### 7. Multi-Dimensional Political Identity
 
@@ -154,14 +197,40 @@ struct PoliticalIdentity {
    - `compute_similarity()` as thin wrapper over `IdentitySpace::compute_similarity()`
    - `compute_influence_weight()` with homophily-based amplification/attenuation
 
-4. **Example Configuration** (`data/countries_example.yaml`)
+4. **Cross-Border Factors** (`cpp/include/cross_border.h`, `cpp/src/cross_border.cpp`)
+   - Reach vs credibility decomposition for cross-border content delivery
+   - Language accessibility model (shared languages, translation quality, lingua franca)
+   - Cultural distance decay on reach, geopolitical tension on credibility
+   - State propaganda credibility penalty, institutional trust modulation
+   - 5 scenario tests validating invariants
+
+5. **Media Diet System** (`cpp/include/media_diet.h`, `cpp/src/media_diet.cpp`)
+   - Budget conservation: all media shares sum to 1.0
+   - Saturation curve with diminishing returns: `effective = 1 - exp(-k * share)`
+   - Factory methods for domestic and diaspora diets
+   - Event-driven rebalancing via `shift_toward()`
+   - 4 scenario tests validating invariants
+
+6. **Actor Capabilities** (`cpp/include/actor_capabilities.h`, `cpp/src/actor_capabilities.cpp`)
+   - Formal capability model: production, quality, targeting, credibility bounds
+   - 7 factory profiles (international media, state media, multilateral, regional, NGO, corp, celebrity)
+   - Credibility floor/ceiling enforcement prevents unrealistic outcomes
+   - Content production and targeting effectiveness computation
+   - 4 scenario tests validating invariants
+
+7. **Scenario Test Harness** (`cpp/include/scenario_harness.h`, `cpp/src/scenario_harness.cpp`)
+   - 16 deterministic scenario tests covering all global architecture invariants
+   - 3 end-to-end scenarios (Russian interference, international media coverage, diaspora consumption)
+   - CI-assertable: returns exit code 1 on any failure
+
+8. **Example Configuration** (`data/countries_example.yaml`)
    - 5 countries defined (USA, UK, India, Brazil, France)
    - Cultural distance matrices, geopolitical tension, language compatibility
    - Diaspora examples, international actors, global/regional/national topics
 
-5. **Build Integration**
-   - identity_space.cpp and country.cpp in main and test builds
-   - All 14 demographic tests passing
+9. **Build Integration**
+   - All source files in main and test builds
+   - 14 demographic tests + 16 global architecture tests, all passing
 
 ### Next Steps
 
@@ -175,21 +244,20 @@ struct PoliticalIdentity {
    - Replace factory defaults with configurable profiles
    - Support per-simulation weight overrides
 
-3. **Cross-Border Content Delivery**
-   - Extend Content struct with InternationalContent fields
-   - Apply cultural distance decay to reach
-   - Language barrier penalties
-   - Country-specific credibility modulation
+3. **Wire CrossBorderFactors into Content Delivery**
+   - Apply `compute_cross_border_factors()` in feed ranking / content routing
+   - MediaDiet-weighted content sampling during agent perception
+   - ActorCapabilities-driven content generation per tick
 
 4. **Diaspora Agent Generation**
    - Sample diaspora segments during population initialization
-   - Dual media subscription (origin + residence country)
+   - Assign MediaDiet based on DiasporaSegment profile
    - Transnational topic salience
 
-5. **International Actor System**
-   - Create international actor types in actor system
-   - Variable credibility by viewer country
-   - Multi-language content generation
+5. **International Actor Content Pipeline**
+   - Use ActorCapabilities to gate production rate, language, quality
+   - Route generated content through CrossBorderFactors per target country
+   - Track attribution back to international actors
 
 ---
 
@@ -246,36 +314,58 @@ struct PoliticalIdentity {
 
 ## Technical Patterns
 
-### Cultural Distance Decay
+### Cross-Border Reach vs Credibility Decomposition
 
 ```cpp
-double compute_cross_border_reach(
+CrossBorderFactors compute_cross_border_factors(
     const InternationalContent& content,
-    const Agent& viewer,
-    const GlobalGeoHierarchy& geo
-) {
-    double base_reach = content.base_reach;
+    const std::string& viewer_country_id,
+    double viewer_institutional_trust,
+    const GlobalGeoHierarchy& geo)
+{
+    CrossBorderFactors factors;
 
-    // Language barrier
-    if (content.requires_translation) {
-        base_reach *= content.translation_quality * 0.7;
+    if (content.origin_country == viewer_country_id) {
+        factors.reach_mult = 1.0;
+        factors.credibility_mult = 1.0;
+        return factors;
     }
 
-    // Cultural distance decay
-    double cultural_distance = geo.get_cultural_distance(
-        content.origin_country,
-        viewer.demographics.country_id
-    );
-    base_reach *= exp(-2.0 * cultural_distance);  // Sharp decay
+    // REACH: cultural distance + language + amplification
+    double cultural_reach = exp(-2.0 * cultural_distance);
+    double lang_access = compute_language_accessibility(...);
+    factors.reach_mult = clamp(cultural_reach * lang_access * amp_boost, 0, 1);
 
-    // Geopolitical tension reduces credibility
-    double tension = geo.get_geopolitical_tension(
-        content.origin_country,
-        viewer.demographics.country_id
-    );
-    double credibility_penalty = 1.0 - (tension * 0.5);
+    // CREDIBILITY: geopolitical tension + state affiliation + trust modulation
+    double base_cred = get_content_country_credibility(content, viewer, geo);
+    double trust_mod = /* varies by source type and viewer trust */;
+    factors.credibility_mult = clamp(base_cred * trust_mod, 0, 1);
 
-    return base_reach * credibility_penalty;
+    return factors;
+}
+```
+
+### Media Diet Saturation Model
+
+```cpp
+// Budget conservation: all shares sum to 1.0
+double saturation_curve(double share, double k = 3.0) {
+    return 1.0 - exp(-k * share);  // Diminishing returns
+}
+
+// A 50/50 split gives more total information than 100/0:
+//   2 * sat(0.5) = 2 * 0.78 = 1.55 > sat(1.0) = 0.95
+```
+
+### Actor Capability Bounds
+
+```cpp
+// Credibility is always clamped to [floor, ceiling]
+double ActorCapabilities::get_credibility(const std::string& country) const {
+    double cred = credibility_overrides.count(country)
+        ? credibility_overrides.at(country)
+        : (credibility_floor + credibility_ceiling) / 2.0;
+    return clamp(cred, credibility_floor, credibility_ceiling);
 }
 ```
 
@@ -284,25 +374,15 @@ double compute_cross_border_reach(
 ```cpp
 double compute_topic_salience_diaspora(
     const DiasporaSegment& segment,
-    const TopicDefinition& topic
-) {
+    const TopicDefinition& topic)
+{
     double salience = 0.0;
-
-    // Topic relevant to origin country?
-    if (topic.relevant_countries.count(segment.origin_country)) {
+    if (topic.relevant_countries.count(segment.origin_country))
         salience += segment.origin_identity_strength * 0.5;
-    }
-
-    // Topic relevant to residence country?
-    if (topic.relevant_countries.count(segment.residence_country)) {
+    if (topic.relevant_countries.count(segment.residence_country))
         salience += segment.residence_identity_strength * 0.5;
-    }
-
-    // Transnational topics get extra salience
-    if (is_transnational_topic(topic)) {
+    if (is_transnational_topic(topic))
         salience += 0.3;
-    }
-
     return clamp(salience, 0.0, 1.0);
 }
 ```
@@ -353,29 +433,37 @@ geopolitical_tension:
 1. **Phase 1** (Complete): Core infrastructure (Country, GlobalGeoHierarchy)
 2. **Phase 2** (Complete): Dimensional identity similarity system with country-configurable coordinates
 3. **Phase 3** (Complete): Agent demographics with country_id, PoliticalIdentity, identity_coords
-4. **Phase 4**: Integrate into WorldKernel, load country configs from JSON
-5. **Phase 5**: Cross-border content delivery and cultural distance effects
-6. **Phase 6**: Diaspora and international actor systems
-7. **Phase 7**: Multi-country simulation validation (model known phenomena)
+4. **Phase 4** (Complete): Cross-border factors -- reach vs credibility decomposition
+5. **Phase 5** (Complete): Media diet system -- budget conservation and saturation for diaspora
+6. **Phase 6** (Complete): Actor capabilities -- formal model with 7 profiles and credibility bounds
+7. **Phase 7** (Complete): Scenario test harness -- 16 deterministic invariant tests
+8. **Phase 8**: Integrate into WorldKernel, load country configs from JSON
+9. **Phase 9**: Wire cross-border, media diet, and actor systems into content delivery pipeline
+10. **Phase 10**: Multi-country simulation validation (model known phenomena)
 
 ---
 
-## Files Added/Modified
+## Files
 
-**New Files**:
-- `cpp/include/identity_space.h` - DimensionalPosition, IdentityDimensionConfig, IdentitySpace, PoliticalIdentity
-- `cpp/src/identity_space.cpp` - Country factory defaults (USA, IND, BRA, GBR, FRA), resolve(), compute_similarity()
-- `cpp/include/country.h` - Core country/international infrastructure
-- `cpp/src/country.cpp` - GlobalGeoHierarchy implementation
+**Identity & Demographics**:
+- `cpp/include/identity_space.h` / `cpp/src/identity_space.cpp` - Dimensional identity similarity engine
+- `cpp/include/agent.h` / `cpp/src/agent_demographics.cpp` - Agent demographics and influence weight
+- `cpp/include/demographic_sampling.h` / `cpp/src/demographic_sampling.cpp` - Population sampling
+
+**Country Infrastructure**:
+- `cpp/include/country.h` / `cpp/src/country.cpp` - Country, GlobalGeoHierarchy, DiasporaSegment, InternationalActor
 - `data/countries_example.yaml` - Example 5-country configuration
+
+**Global Architecture Hardening**:
+- `cpp/include/cross_border.h` / `cpp/src/cross_border.cpp` - CrossBorderFactors, language accessibility
+- `cpp/include/media_diet.h` / `cpp/src/media_diet.cpp` - MediaDiet, saturation curve, budget conservation
+- `cpp/include/actor_capabilities.h` / `cpp/src/actor_capabilities.cpp` - ActorCapabilities, 7 factory profiles
+- `cpp/include/scenario_harness.h` / `cpp/src/scenario_harness.cpp` - 16 scenario tests
+
+**Documentation**:
 - `GLOBAL_ARCHITECTURE.md` - This document
 - `INFLUENCE_MATH.md` - Complete mathematical specification
+- `PRD.md` - Product requirements document
+- `ROADMAP.md` - Implementation roadmap
 
-**Modified Files**:
-- `cpp/include/agent.h` - Added identity_coords, country_id, political_identity, IdentitySpace pointer
-- `cpp/src/agent_demographics.cpp` - Thin wrapper over IdentitySpace engine
-- `cpp/src/country.cpp` - Removed RELIGIOUS_SIMILARITY matrix (replaced by dimensional coordinates)
-- `cpp/include/demographic_sampling.h` / `cpp/src/demographic_sampling.cpp` - Overload with identity resolution
-- `cpp/CMakeLists.txt` + `cpp/test/CMakeLists.txt` - Added identity_space.cpp
-
-**Tests**: 14 tests covering dimensional distances, country configs, codepath uniformity, weight normalization
+**Tests**: 14 demographic tests + 16 global architecture scenarios = 30 total

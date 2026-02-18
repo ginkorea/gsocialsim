@@ -167,6 +167,27 @@ See **[INFLUENCE_MATH.md](INFLUENCE_MATH.md)** for the full mathematical specifi
 
 ---
 
+## Cross-Border Information Flow
+
+Content crossing national borders passes through a **reach vs credibility decomposition**:
+
+- **Reach multiplier** `[0, 1]`: cultural distance decay, language accessibility, amplification budget
+- **Credibility multiplier** `[0, 1]`: geopolitical tension, state affiliation penalty, viewer institutional trust
+
+```
+effective_influence = base_influence * reach_mult * credibility_mult
+```
+
+State propaganda from hostile countries has low credibility in target nations but can boost reach through amplification budgets and inauthentic accounts. Low institutional trust makes viewers more susceptible.
+
+**Media diet** for diaspora agents enforces **budget conservation** (all media shares sum to 1.0) with a **saturation curve** that gives diminishing returns, making diversified media consumption more information-efficient.
+
+**International actors** (BBC, RT, UN, Greenpeace, etc.) have formal **capability profiles** bounding production capacity, targeting precision, and credibility per country. State media has higher targeting but lower credibility ceiling than independent international media.
+
+See **[GLOBAL_ARCHITECTURE.md](GLOBAL_ARCHITECTURE.md)** for the full multi-country design and **[INFLUENCE_MATH.md](INFLUENCE_MATH.md)** for the formal math.
+
+---
+
 ## Politics & Identity
 
 The model includes a multi-dimensional political identity system:
@@ -390,6 +411,10 @@ cpp/                        # C++ engine (primary)
 │   ├── belief_dynamics.h   # 11-step influence dynamics engine
 │   ├── identity_space.h    # Dimensional identity similarity system
 │   ├── country.h           # Multi-country infrastructure
+│   ├── cross_border.h      # Reach vs credibility decomposition
+│   ├── media_diet.h        # Budget conservation and saturation model
+│   ├── actor_capabilities.h # International actor capability profiles
+│   ├── scenario_harness.h  # Deterministic scenario test framework
 │   ├── population_layer.h  # Hex-grid population dynamics
 │   ├── kernel.h            # World kernel and event scheduling
 │   └── ...
@@ -397,10 +422,15 @@ cpp/                        # C++ engine (primary)
 │   ├── identity_space.cpp  # Country factory defaults (USA/IND/BRA/GBR/FRA)
 │   ├── belief_dynamics.cpp # Physics-inspired belief update pipeline
 │   ├── agent_demographics.cpp  # Similarity and influence weight
+│   ├── cross_border.cpp    # CrossBorderFactors, language accessibility
+│   ├── media_diet.cpp      # MediaDiet factories, saturation curve
+│   ├── actor_capabilities.cpp  # 7 actor capability profiles
+│   ├── scenario_harness.cpp    # 16 scenario tests
 │   ├── population_layer.cpp    # Population-level belief dynamics
 │   └── ...
 └── test/
-    └── test_agent_demographics.cpp  # 14 tests for dimensional system
+    ├── test_agent_demographics.cpp  # 14 tests for dimensional system
+    └── test_global_architecture.cpp # 16 tests for global architecture
 
 python/src/gsocialsim/      # Python visualization bridge
 ├── agents/          # agent state, beliefs, attention, personality

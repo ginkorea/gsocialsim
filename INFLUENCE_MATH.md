@@ -17,7 +17,10 @@ This document provides the complete mathematical specification for gsocialsim's 
 7. [Identity Consolidation](#7-identity-consolidation)
 8. [Dream Consolidation](#8-dream-consolidation)
 9. [Population-Level Dynamics](#9-population-level-dynamics)
-10. [Parameter Reference](#10-parameter-reference)
+10. [Cross-Border Factors](#10-cross-border-factors)
+11. [Media Diet and Saturation](#11-media-diet-and-saturation)
+12. [Actor Capabilities](#12-actor-capabilities)
+13. [Parameter Reference](#13-parameter-reference)
 
 ---
 
@@ -680,9 +683,205 @@ N_{\text{engaged}} = N_{\text{consumed}} \cdot 0.2
 
 ---
 
-## 10. Parameter Reference
+## 10. Cross-Border Factors
 
-### 10.1 Belief Dynamics Parameters
+**Source**: `cross_border.h`, `cross_border.cpp`
+
+Cross-border content delivery decomposes into two independent multipliers: **reach** (who sees it) and **credibility** (who believes it).
+
+### 10.1 Reach Multiplier
+
+```math
+R = \text{clamp}_{[0,1]}\!\left(R_{\text{cultural}} \cdot R_{\text{lang}} \cdot R_{\text{amp}} \cdot R_{\text{inauth}}\right)
+```
+
+**Cultural distance decay** (sharp exponential):
+
+```math
+R_{\text{cultural}} = \exp(-2.0 \cdot d_{\text{cultural}})
+```
+
+**Language accessibility** `R_lang` in [0, 1]:
+
+| Condition | Value |
+|-----------|------:|
+| Same country | 1.00 |
+| Shared official language | 1.00 |
+| Shared common language | 0.85 |
+| Translated (quality q) | 0.7q |
+| English content, viewer proficiency p | 0.8p |
+| No shared language, no translation | 0.05 |
+
+**Amplification budget** (diminishing returns):
+
+```math
+R_{\text{amp}} = 1.0 + 0.3 \cdot (1 - e^{-\text{budget}})
+```
+
+**Inauthentic accounts**: R_inauth = 1.2 if used, else 1.0.
+
+### 10.2 Credibility Multiplier
+
+```math
+C = \text{clamp}_{[0,1]}\!\left(C_{\text{base}} \cdot C_{\text{trust}} \cdot C_{\text{target}}\right)
+```
+
+**Base credibility** (from per-country resonance map or derived):
+
+```math
+C_{\text{base}} =
+\begin{cases}
+\text{cultural\_resonance}[\text{country}] & \text{if available} \\
+1.0 - 0.6 \cdot d_{\text{tension}} & \text{otherwise}
+\end{cases}
+```
+
+State-sponsored content receives additional penalty:
+
+```math
+C_{\text{base}}^{\text{state}} = C_{\text{base}} \cdot (1 - 0.5 \cdot d_{\text{state\_tension}})
+```
+
+**Institutional trust modulation** (varies by content source type):
+
+| Source Type | Trust Modulation |
+|------------|-----------------|
+| STATE_PROPAGANDA | 1.0 - 0.4 * trust (high trust = more skeptical) |
+| INTERNATIONAL_MEDIA | 0.7 + 0.3 * trust |
+| MULTILATERAL_ORG | 0.5 + 0.5 * trust |
+| Default | 0.8 + 0.2 * trust |
+
+### 10.3 Effective Influence
+
+```math
+I_{\text{eff}} = I_{\text{base}} \cdot R \cdot C
+```
+
+### 10.4 Invariants
+
+| Condition | Constraint |
+|-----------|-----------|
+| Same country | R >= 0.9, C >= 0.8 |
+| High tension (>= 0.7) + state propaganda | C <= 0.5 |
+| Untranslated foreign language | R <= 0.15 |
+| All cross-border | R in [0, 1], C in [0, 1] |
+
+---
+
+## 11. Media Diet and Saturation
+
+**Source**: `media_diet.h`, `media_diet.cpp`
+
+### 11.1 Budget Conservation
+
+Every agent's media attention is allocated across sources with a hard budget constraint:
+
+```math
+\sum_i s_i = 1.0 \quad \text{where } s_i = \text{share for source } i
+```
+
+For diaspora agents: `s_origin + s_residence + s_international = 1.0`
+
+For domestic agents: `s_residence + s_international = 1.0`
+
+### 11.2 Saturation Curve
+
+Raw attention share does not equal effective information intake. Consuming 80% of media from one source yields less than 80% of available information due to diminishing returns:
+
+```math
+\text{effective}(s) = 1 - e^{-k \cdot s}
+\qquad k = 3.0 \text{ (default)}
+```
+
+```text
+Share     Effective (k=3)
+0.00      0.00
+0.10      0.26
+0.25      0.53
+0.50      0.78
+0.75      0.89
+1.00      0.95
+```
+
+### 11.3 Split Advantage
+
+A diversified media diet yields more total effective intake:
+
+```math
+\sum_i \text{effective}(s_i) > \text{effective}\!\left(\sum_i s_i\right) \quad \text{for } |i| > 1
+```
+
+Example: 50/50 split gives 2 * 0.78 = 1.55 total effective, vs single-source 0.95.
+
+### 11.4 Event-Driven Rebalancing
+
+`shift_toward(country, delta)` adjusts attention allocation while preserving budget conservation:
+
+```math
+s'_i = \frac{s_i + \delta_i}{\sum_j (s_j + \delta_j)}
+```
+
+---
+
+## 12. Actor Capabilities
+
+**Source**: `actor_capabilities.h`, `actor_capabilities.cpp`
+
+### 12.1 Capability Bounds
+
+Each international actor type has bounded capabilities that prevent unrealistic simulation outcomes:
+
+```math
+\text{production\_capacity} \in [0, 100] \text{ items/tick}
+```
+
+```math
+\text{targeting\_precision} \in [0, 1]
+```
+
+```math
+\text{credibility\_floor} \le \text{credibility}(\text{country}) \le \text{credibility\_ceiling}
+```
+
+### 12.2 Credibility Function
+
+```math
+\text{cred}(\text{country}) = \text{clamp}\!\left(
+\begin{cases}
+\text{override}[\text{country}] & \text{if set} \\
+\frac{\text{floor} + \text{ceiling}}{2} & \text{otherwise}
+\end{cases},\;
+\text{floor}, \;\text{ceiling}
+\right)
+```
+
+### 12.3 Factory Profile Comparison
+
+| Property | Int'l Media | State Media | Multilateral | NGO | Corp | Celebrity |
+|----------|----------:|----------:|----------:|----------:|----------:|----------:|
+| production | 50 | 80 | 5 | 15 | 20 | 3 |
+| quality | 0.75 | 0.45 | 0.85 | 0.70 | 0.60 | 0.50 |
+| targeting | 0.30 | 0.75 | 0.10 | 0.40 | 0.80 | 0.20 |
+| cred_floor | 0.20 | 0.05 | 0.15 | 0.10 | 0.10 | 0.05 |
+| cred_ceiling | 0.90 | 0.70 | 0.85 | 0.80 | 0.60 | 0.75 |
+| reach_base | 0.15 | 0.08 | 0.10 | 0.08 | 0.12 | 0.30 |
+| inauthentic | No | Yes | No | No | No | No |
+
+### 12.4 Targeting Effectiveness
+
+```math
+T_{\text{eff}} = T_{\text{precision}} \cdot p_{\text{internet}} \cdot p_{\text{social}} \cdot
+\begin{cases}
+1.3 & \text{if inauthentic accounts} \\
+1.0 & \text{otherwise}
+\end{cases}
+```
+
+---
+
+## 13. Parameter Reference
+
+### 13.1 Belief Dynamics Parameters
 
 > GitHub note: symbols are Unicode here to avoid raw LaTeX in tables. The full math definitions are above.
 
@@ -699,7 +898,7 @@ N_{\text{engaged}} = N_{\text{consumed}} \cdot 0.2
 | `habituation_alpha`           | α      |    0.05 | [0, 1]  | Diminishing returns per exposure         |
 | `bounded_confidence_tau`      | τ      |    1.50 | [0, 2]  | Max stance gap for acceptance            |
 
-### 10.2 Identity Dimension Weights (USA Default)
+### 13.2 Identity Dimension Weights (USA Default)
 
 | Dimension          | Weight | Decay | Dims |
 | ------------------ | -----: | ----: | ---: |
@@ -713,7 +912,7 @@ N_{\text{engaged}} = N_{\text{consumed}} \cdot 0.2
 | income             |      3 |  0.50 |   1D |
 | class_culture      |      0 |  0.50 |   1D |
 
-### 10.3 Country Weight Variations
+### 13.3 Country Weight Variations
 
 | Dimension          | USA | India | Brazil | UK | France |
 | ------------------ | --: | ----: | -----: | -: | -----: |
@@ -723,7 +922,7 @@ N_{\text{engaged}} = N_{\text{consumed}} \cdot 0.2
 | language           |   0 |    10 |      0 |  0 |      0 |
 | class_culture      |   0 |     0 |      0 |  8 |      0 |
 
-### 10.4 Influence Modulation Constants
+### 13.4 Influence Modulation Constants
 
 | Constant                   | Value | Where Used                      |
 | -------------------------- | ----: | ------------------------------- |
@@ -744,12 +943,20 @@ N_{\text{engaged}} = N_{\text{consumed}} \cdot 0.2
 
 ## Implementation Files
 
-| File                             | Contents                                                             |
-| -------------------------------- | -------------------------------------------------------------------- |
-| `cpp/include/identity_space.h`   | DimensionalPosition, IdentityDimensionConfig, IdentitySpace          |
-| `cpp/src/identity_space.cpp`     | Country factory defaults, resolve(), compute_similarity()            |
-| `cpp/include/belief_dynamics.h`  | InfluenceDynamicsConfig, BeliefDynamicsEngine                        |
-| `cpp/src/belief_dynamics.cpp`    | 11-step belief update pipeline                                       |
-| `cpp/src/agent_demographics.cpp` | compute_similarity(), compute_influence_weight()                     |
-| `cpp/src/agent.cpp`              | AttentionSystem, BeliefUpdateEngine, dream(), consolidate_identity() |
-| `cpp/src/population_layer.cpp`   | Population-level belief dynamics                                     |
+| File                                | Contents                                                             |
+| ----------------------------------- | -------------------------------------------------------------------- |
+| `cpp/include/identity_space.h`      | DimensionalPosition, IdentityDimensionConfig, IdentitySpace          |
+| `cpp/src/identity_space.cpp`        | Country factory defaults, resolve(), compute_similarity()            |
+| `cpp/include/belief_dynamics.h`     | InfluenceDynamicsConfig, BeliefDynamicsEngine                        |
+| `cpp/src/belief_dynamics.cpp`       | 11-step belief update pipeline                                       |
+| `cpp/src/agent_demographics.cpp`    | compute_similarity(), compute_influence_weight()                     |
+| `cpp/src/agent.cpp`                 | AttentionSystem, BeliefUpdateEngine, dream(), consolidate_identity() |
+| `cpp/src/population_layer.cpp`      | Population-level belief dynamics                                     |
+| `cpp/include/cross_border.h`        | CrossBorderFactors, language accessibility                           |
+| `cpp/src/cross_border.cpp`          | Reach/credibility decomposition, per-country credibility             |
+| `cpp/include/media_diet.h`          | MediaDiet, budget conservation, saturation curve                     |
+| `cpp/src/media_diet.cpp`            | Domestic/diaspora diet factories, shift_toward()                     |
+| `cpp/include/actor_capabilities.h`  | ActorCapabilities, 7 factory profiles                                |
+| `cpp/src/actor_capabilities.cpp`    | Profile defaults, production/targeting computation                   |
+| `cpp/include/scenario_harness.h`    | ScenarioHarness, 16 built-in scenario functions                      |
+| `cpp/src/scenario_harness.cpp`      | All scenario implementations and test geo setup                      |
