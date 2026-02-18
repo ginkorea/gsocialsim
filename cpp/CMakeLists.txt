@@ -9,6 +9,7 @@ add_executable(gsocialsim_cpp
     src/main.cpp
     src/kernel.cpp
     src/agent.cpp
+    src/agent_demographics.cpp
     src/belief_dynamics.cpp
     src/data_source.cpp
     src/stimulus_ingestion.cpp
@@ -16,6 +17,7 @@ add_executable(gsocialsim_cpp
     src/network.cpp
     src/network_manager.cpp
     src/population_layer.cpp
+    src/demographic_sampling.cpp
     src/global_social_reality.cpp
     src/feed_queue.cpp
     src/geo_world.cpp

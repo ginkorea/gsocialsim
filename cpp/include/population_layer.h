@@ -28,7 +28,22 @@ struct BeliefDistribution {
 struct PopulationSegment {
     std::string id;
 
-    // Identity traits
+    // Demographics (for segment characterization)
+    std::string age_cohort;              // "gen_z", "millennial", "gen_x", "boomer_plus"
+    std::string primary_geography;       // "urban_core", "suburban", "small_town", "rural"
+    std::string education_level;         // "high_school", "some_college", "bachelors", "graduate"
+    std::string income_bracket;          // "low", "middle", "upper_middle", "high"
+    double percent_white = 0.5;          // [0,1] racial composition
+    double percent_female = 0.5;         // [0,1] gender composition
+    std::string dominant_religion;       // "atheist", "evangelical", "catholic", "mainline_protestant", etc.
+
+    // Psychographics
+    double political_ideology = 0.0;     // [-1, +1] left to right
+    std::string political_label;         // "progressive", "liberal", "moderate", "conservative", "reactionary"
+    double institutional_trust = 0.5;    // [0,1] trust in institutions
+    std::string media_diet_type;         // "traditional", "social_native", "alt_media", "podcast_heavy", "mixed"
+
+    // Identity traits (existing)
     std::vector<double> identity_vector;  // 8-dimensional
     double identity_rigidity = 0.5;
     double attention_budget = 1.0;

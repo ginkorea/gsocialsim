@@ -68,6 +68,79 @@ public:
     void learn(const std::string& action_key, const RewardVector& reward);
 };
 
+// ============================================================================
+// Agent Demographics & Psychographics (Phase 6: Microsegments)
+// ============================================================================
+
+struct AgentDemographics {
+    // Core demographics
+    int age = 35;                              // Actual age (18-90)
+    std::string age_cohort;                    // "gen_z", "millennial", "gen_x", "boomer_plus"
+    std::string geography_type;                // "urban_core", "suburban", "small_town", "rural"
+    std::string home_cell_id;                  // H3 cell ID for geographic location
+
+    std::string education_level;               // "high_school", "some_college", "bachelors", "graduate"
+    std::string income_bracket;                // "low", "middle", "upper_middle", "high"
+    int income_annual = 50000;                 // Actual income (for targeting)
+
+    std::string race_ethnicity;                // "white", "black", "hispanic", "asian", "other", "multiracial"
+    std::string gender;                        // "male", "female", "non_binary"
+
+    std::string religion;                      // "atheist", "evangelical", "catholic", "mainline_protestant", etc.
+    double religiosity = 0.5;                  // [0,1] how religious (0=secular, 1=very devout)
+
+    // Political/ideological
+    double political_ideology = 0.0;           // [-1, +1] left to right
+    std::string political_label;               // "progressive", "liberal", "moderate", "conservative", "reactionary"
+    double institutional_trust = 0.5;          // [0,1] trust in government, media, science
+    double polarization = 0.5;                 // [0,1] how extreme/tribal
+
+    // Media consumption profile
+    std::string media_diet;                    // "traditional", "social_native", "alt_media", "podcast_heavy", "mixed"
+    double attention_budget = 1.0;             // [0,2] media consumption capacity
+    std::unordered_map<MediaType, double> consume_bias;    // Consumption multipliers
+    std::unordered_map<MediaType, double> interact_bias;   // Engagement multipliers
+
+    // Social identity
+    std::string occupation;                    // "student", "teacher", "engineer", "tradesperson", etc.
+    std::string union_membership;              // "none", "member", "household"
+    bool small_business_owner = false;
+    bool parent = false;
+    bool veteran = false;
+
+    // Segment assignment
+    std::string primary_segment_id;            // Best-matching population segment
+    double segment_fit_score = 0.0;            // [0,1] how well agent matches segment
+};
+
+struct AgentPsychographics {
+    // Personality traits (Big 5)
+    double openness = 0.5;                     // [0,1]
+    double conscientiousness = 0.5;            // [0,1]
+    double extraversion = 0.5;                 // [0,1]
+    double agreeableness = 0.5;                // [0,1]
+    double neuroticism = 0.5;                  // [0,1]
+
+    // Social media behavior
+    double posting_frequency = 1.0;            // Posts per day
+    double engagement_propensity = 0.5;        // [0,1] likelihood to comment/share
+    double virality_seeking = 0.5;             // [0,1] desire for viral content
+    double outrage_susceptibility = 0.5;       // [0,1] clickbait vulnerability
+
+    // Influence dynamics
+    double susceptibility = 0.5;               // [0,1] (from segment)
+    double identity_rigidity = 0.5;            // [0,1] resistance to belief change
+    double bounded_confidence_tau = 1.5;       // Threshold for rejecting divergent views
+    double trust_in_sources_base = 0.5;        // [0,1] default trust level
+
+    // Social graph position
+    int follower_count = 0;
+    int following_count = 0;
+    double centrality_score = 0.0;             // Network centrality (computed)
+    bool verified_status = false;
+    bool influencer_status = false;            // >10k followers
+};
+
 class Agent {
 public:
     AgentId id;
@@ -78,6 +151,10 @@ public:
     IdentityState identity;
     EmotionState emotion;
     RewardWeights personality;
+
+    // Phase 6: Full demographic and psychographic profiles
+    AgentDemographics demographics;
+    AgentPsychographics psychographics;
 
     double time_remaining = 0.0;
     std::unordered_map<TopicId, Belief> beliefs;
@@ -136,6 +213,10 @@ public:
     void consolidate_daily();
 
     void apply_belief_delta(const BeliefDelta& delta);
+
+    // Phase 6: Homophily and demographic influence
+    double compute_similarity(const Agent& other) const;
+    double compute_influence_weight(const Agent& source) const;
 
 private:
     bool spend_time(double minutes);
