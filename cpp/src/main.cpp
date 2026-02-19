@@ -4,6 +4,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <numeric>
 #include <string>
@@ -11,7 +12,10 @@
 #include <system_error>
 
 #include "data_source.h"
+#include "json.hpp"
 #include "kernel.h"
+
+using njson = nlohmann::json;
 
 static void usage() {
     std::cout << "Usage: gsocialsim_cpp --stimuli <path> --ticks <n> --agents <n> "
@@ -22,7 +26,8 @@ static void usage() {
                  "[--outlier-frac <f>] [--outlier-hub-frac <f>] [--outlier-hub-following <n>] "
                  "[--print-network-stats] "
                  "[--analytics] [--analytics-out <path>] [--analytics-mode <summary|detailed>] "
-                 "[--export-state] [--export-dir <path>]\n";
+                 "[--export-state] [--export-dir <path>] "
+                 "[--stream-json] [--config <path>]\n";
 }
 
 static bool parse_int(const std::string& v, int& out) {
@@ -241,6 +246,78 @@ static std::string json_escape(const std::string& s) {
     return out;
 }
 
+static void load_config(const std::string& path, WorldKernel& kernel) {
+    std::ifstream f(path);
+    if (!f.is_open()) {
+        std::cerr << "warn: could not open config file: " << path << "\n";
+        return;
+    }
+    njson cfg;
+    try {
+        cfg = njson::parse(f);
+    } catch (const std::exception& e) {
+        std::cerr << "warn: failed to parse config JSON: " << e.what() << "\n";
+        return;
+    }
+
+    // Influence dynamics → apply to all agents
+    if (cfg.contains("influence_dynamics")) {
+        auto& id = cfg["influence_dynamics"];
+        for (auto& [_, agent] : kernel.agents.agents) {
+            auto& c = agent.belief_engine.config;
+            if (id.contains("inertia_rho")) c.inertia_rho = id["inertia_rho"].get<double>();
+            if (id.contains("learning_rate_base")) c.learning_rate_base = id["learning_rate_base"].get<double>();
+            if (id.contains("rebound_k")) c.rebound_k = id["rebound_k"].get<double>();
+            if (id.contains("critical_velocity_threshold")) c.critical_velocity_threshold = id["critical_velocity_threshold"].get<double>();
+            if (id.contains("critical_kappa")) c.critical_kappa = id["critical_kappa"].get<double>();
+            if (id.contains("evidence_decay_lambda")) c.evidence_decay_lambda = id["evidence_decay_lambda"].get<double>();
+            if (id.contains("evidence_threshold")) c.evidence_threshold = id["evidence_threshold"].get<double>();
+            if (id.contains("trust_exponent_gamma")) c.trust_exponent_gamma = id["trust_exponent_gamma"].get<double>();
+            if (id.contains("habituation_alpha")) c.habituation_alpha = id["habituation_alpha"].get<double>();
+            if (id.contains("bounded_confidence_tau")) c.bounded_confidence_tau = id["bounded_confidence_tau"].get<double>();
+        }
+    }
+
+    // Kernel params
+    if (cfg.contains("kernel")) {
+        auto& k = cfg["kernel"];
+        if (k.contains("mutual_trust_weight")) kernel.mutual_trust_weight = k["mutual_trust_weight"].get<double>();
+        if (k.contains("offline_contacts_per_tick")) kernel.offline_contacts_per_tick = k["offline_contacts_per_tick"].get<int>();
+        if (k.contains("offline_base_prob")) kernel.offline_base_prob = k["offline_base_prob"].get<double>();
+        if (k.contains("discovery_min_per_tick")) kernel.discovery_min_per_tick = k["discovery_min_per_tick"].get<int>();
+        if (k.contains("discovery_max_per_tick")) kernel.discovery_max_per_tick = k["discovery_max_per_tick"].get<int>();
+        if (k.contains("discovery_pool_size")) kernel.discovery_pool_size = k["discovery_pool_size"].get<size_t>();
+    }
+
+    // Feed queue params → apply to all agents
+    if (cfg.contains("feed_queue")) {
+        auto& fq = cfg["feed_queue"];
+        double rw = fq.value("recency_weight", 0.4);
+        double ew = fq.value("engagement_weight", 0.45);
+        double pw = fq.value("proximity_weight", 0.1);
+        double mw = fq.value("mutual_weight", 0.05);
+        for (auto& [_, agent] : kernel.agents.agents) {
+            agent.feed_queue = FeedPriorityQueue(rw, ew, pw, mw);
+        }
+    }
+
+    // Broadcast feed network params
+    if (cfg.contains("broadcast_feed") && kernel.network_manager) {
+        auto* layer = kernel.network_manager->get_layer("broadcast_feed");
+        if (layer) {
+            auto* bf = dynamic_cast<BroadcastFeedNetwork*>(layer);
+            if (bf) {
+                auto& b = cfg["broadcast_feed"];
+                if (b.contains("candidate_window_ticks")) bf->candidate_window_ticks = b["candidate_window_ticks"].get<int>();
+                if (b.contains("max_candidates")) bf->max_candidates = b["max_candidates"].get<size_t>();
+                if (b.contains("max_shown")) bf->max_shown = b["max_shown"].get<size_t>();
+            }
+        }
+    }
+
+    std::cout << "loaded config from " << path << "\n";
+}
+
 static void export_state_json(const WorldKernel& kernel, const std::string& dir) {
     if (dir.empty()) return;
     ensure_dir(dir);
@@ -248,22 +325,121 @@ static void export_state_json(const WorldKernel& kernel, const std::string& dir)
     std::ofstream out(out_path);
     if (!out.is_open()) return;
 
+    out << std::fixed << std::setprecision(4);
     out << "{\n";
 
-    // Agents
+    // Agents — enriched with demographics, beliefs, personality, psychographics
     out << "  \"agents\": [\n";
     bool first_agent = true;
     for (const auto& kv : kernel.agents.agents) {
         if (!first_agent) out << ",\n";
         first_agent = false;
         const auto& agent = kv.second;
+        const auto& d = agent.demographics;
+        const auto& p = agent.psychographics;
+
         out << "    {\"id\":\"" << json_escape(kv.first)
             << "\",\"political_lean\":" << agent.identity.political_lean
-            << ",\"partisanship\":" << agent.identity.partisanship
+            << ",\"partisanship\":" << agent.identity.partisanship;
+
+        // Demographics
+        out << ",\"demographics\":{"
+            << "\"age\":" << d.age
+            << ",\"age_cohort\":\"" << json_escape(d.age_cohort) << "\""
+            << ",\"race_ethnicity\":\"" << json_escape(d.race_ethnicity) << "\""
+            << ",\"gender\":\"" << json_escape(d.gender) << "\""
+            << ",\"geography_type\":\"" << json_escape(d.geography_type) << "\""
+            << ",\"education_level\":\"" << json_escape(d.education_level) << "\""
+            << ",\"income_bracket\":\"" << json_escape(d.income_bracket) << "\""
+            << ",\"religion\":\"" << json_escape(d.religion) << "\""
+            << ",\"religiosity\":" << d.religiosity
+            << ",\"political_ideology\":" << d.political_ideology
+            << ",\"political_label\":\"" << json_escape(d.political_label) << "\""
             << "}";
+
+        // Big 5 personality
+        out << ",\"personality\":{"
+            << "\"openness\":" << p.openness
+            << ",\"conscientiousness\":" << p.conscientiousness
+            << ",\"extraversion\":" << p.extraversion
+            << ",\"agreeableness\":" << p.agreeableness
+            << ",\"neuroticism\":" << p.neuroticism
+            << "}";
+
+        // Psychographic scores
+        out << ",\"psychographics\":{"
+            << "\"susceptibility\":" << p.susceptibility
+            << ",\"identity_rigidity\":" << p.identity_rigidity
+            << ",\"bounded_confidence_tau\":" << p.bounded_confidence_tau
+            << ",\"trust_in_sources_base\":" << p.trust_in_sources_base
+            << ",\"engagement_propensity\":" << p.engagement_propensity
+            << ",\"outrage_susceptibility\":" << p.outrage_susceptibility
+            << "}";
+
+        // Belief stances (all topics)
+        out << ",\"beliefs\":{";
+        bool first_belief = true;
+        for (const auto& bkv : agent.beliefs) {
+            if (!first_belief) out << ",";
+            first_belief = false;
+            out << "\"" << json_escape(bkv.first) << "\":{"
+                << "\"stance\":" << bkv.second.stance
+                << ",\"confidence\":" << bkv.second.confidence
+                << ",\"salience\":" << bkv.second.salience
+                << ",\"momentum\":" << bkv.second.momentum
+                << "}";
+        }
+        out << "}";
+
+        out << "}";
     }
     if (!first_agent) out << "\n";
     out << "  ],\n";
+
+    // Metrics section — aggregate stats
+    {
+        double lean_sum = 0.0;
+        double lean_sq_sum = 0.0;
+        int agent_count = 0;
+        size_t total_edges = 0;
+        size_t mutual_count = 0;
+
+        for (const auto& kv : kernel.agents.agents) {
+            double lean = kv.second.identity.political_lean;
+            lean_sum += lean;
+            lean_sq_sum += lean * lean;
+            agent_count++;
+            total_edges += kernel.network.graph.get_following_ref(kv.first).size();
+        }
+
+        double lean_mean = (agent_count > 0) ? lean_sum / agent_count : 0.0;
+        double lean_var = (agent_count > 0) ? (lean_sq_sum / agent_count) - (lean_mean * lean_mean) : 0.0;
+        double possible = static_cast<double>(agent_count) * static_cast<double>(agent_count - 1);
+        double density = (possible > 0) ? static_cast<double>(total_edges) / possible : 0.0;
+
+        for (const auto& kv : kernel.agents.agents) {
+            const auto& following = kernel.network.graph.get_following_ref(kv.first);
+            for (const auto& followed : following) {
+                const auto& back = kernel.network.graph.get_following_ref(followed);
+                if (back.find(kv.first) != back.end()) {
+                    mutual_count++;
+                }
+            }
+        }
+        double reciprocity = (total_edges > 0) ? static_cast<double>(mutual_count) / static_cast<double>(total_edges) : 0.0;
+
+        out << "  \"metrics\": {"
+            << "\"agent_count\":" << agent_count
+            << ",\"total_edges\":" << total_edges
+            << ",\"lean_mean\":" << lean_mean
+            << ",\"lean_variance\":" << lean_var
+            << ",\"network_density\":" << density
+            << ",\"network_reciprocity\":" << reciprocity
+            << ",\"total_impressions\":" << kernel.analytics_summary.impressions
+            << ",\"total_consumed\":" << kernel.analytics_summary.consumed
+            << ",\"total_belief_deltas\":" << kernel.analytics_summary.belief_deltas
+            << "},\n";
+    }
 
     // Following edges
     out << "  \"following\": [\n";
@@ -354,6 +530,8 @@ int main(int argc, char** argv) {
     bool export_state = false;
     std::string export_dir = "reports";
     bool print_network_stats = false;
+    bool stream_json = false;
+    std::string config_path;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -420,6 +598,10 @@ int main(int argc, char** argv) {
             export_state = true;
         } else if (arg == "--export-dir" && i + 1 < argc) {
             export_dir = argv[++i];
+        } else if (arg == "--stream-json") {
+            stream_json = true;
+        } else if (arg == "--config" && i + 1 < argc) {
+            config_path = argv[++i];
         } else if (arg == "--help" || arg == "-h") {
             usage();
             return 0;
@@ -764,6 +946,17 @@ int main(int argc, char** argv) {
     }
     std::cout << "Created " << subscription_count << " creator subscriptions\n";
 
+    // Load JSON config overrides (after agents created, before start)
+    if (!config_path.empty()) {
+        load_config(config_path, kernel);
+    }
+
+    // When streaming JSON, force analytics summary mode so counters are populated
+    if (stream_json) {
+        kernel.enable_analytics = true;
+        kernel.analytics_mode = WorldKernel::AnalyticsMode::Summary;
+    }
+
     kernel.start();
     auto setup_end = std::chrono::steady_clock::now();
     double setup_elapsed = std::chrono::duration<double>(setup_end - setup_start).count();
@@ -772,7 +965,22 @@ int main(int argc, char** argv) {
     auto sim_start = std::chrono::steady_clock::now();
     for (int t = 0; t < ticks; ++t) {
         kernel.step(1);
-        if ((t + 1) % log_every == 0 || t == 0) {
+        if (stream_json) {
+            std::cout << "{\"tick\":" << (t + 1)
+                      << ",\"total\":" << ticks
+                      << ",\"impressions\":" << kernel.analytics_summary.impressions
+                      << ",\"consumed\":" << kernel.analytics_summary.consumed
+                      << ",\"belief_deltas\":" << kernel.analytics_summary.belief_deltas;
+            // Agent political lean snapshot
+            std::cout << ",\"leans\":[";
+            bool first = true;
+            for (const auto& [id, agent] : kernel.agents.agents) {
+                if (!first) std::cout << ",";
+                first = false;
+                std::cout << std::fixed << std::setprecision(3) << agent.identity.political_lean;
+            }
+            std::cout << "]}" << std::endl;
+        } else if ((t + 1) % log_every == 0 || t == 0) {
             std::cout << "tick " << (t + 1) << "/" << ticks << "\n";
         }
     }
