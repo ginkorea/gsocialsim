@@ -295,6 +295,74 @@ You get belief **ecosystems**, not snapshots.
 
 ---
 
+## Web GUI — Control Panel & Hypertuning Dashboard
+
+gsocialsim includes a full-stack web GUI for interactive simulation control, live visualization, and automated hyperparameter optimization.
+
+```
+┌─────────────────────────┐     WebSocket      ┌──────────────────────┐
+│   React + Vite (5173)   │ ◄──────────────── │   FastAPI (8000)     │
+│   Tailwind + Recharts   │ ──── REST API ──► │   Uvicorn + Optuna   │
+└─────────────────────────┘                    └──────────┬───────────┘
+                                                          │ subprocess
+                                                          ▼
+                                               ┌──────────────────────┐
+                                               │  gsocialsim_cpp      │
+                                               │  --stream-json       │
+                                               └──────────────────────┘
+```
+
+### Features
+
+- **Dashboard** — overview of recent runs, active simulations, quick-launch
+- **Configuration** — visual parameter editor with sliders for 30+ params across 7 groups (Belief Dynamics, Kernel, Feed Algorithm, Broadcast Feed, Media Diet, Simulation), raw JSON editor, save/load presets
+- **Live Simulation** — animated tick counter with radial progress, real-time belief distribution chart (stacked area histogram), live metrics panel (impressions, consumed, belief deltas, polarization)
+- **Hyperparameter Tuning** — Optuna-powered optimization (TPE, CMA-ES, Random), search space editor, 5 objective functions (polarization, crossing rate, consumption rate, mean belief shift, influence Gini), live progress charts, trial table with "apply best" button
+- **Results Explorer** — multi-run comparison, parameter diff highlighting, CSV/JSON export
+
+### Built-in Presets
+
+| Preset | Key changes | Purpose |
+|---|---|---|
+| Default | All C++ defaults | Baseline |
+| High Polarization | rebound_k=0.15, bounded_confidence_tau=0.5 | Study echo chambers |
+| Echo Chamber | inertia_rho=0.95, mutual_weight=0.3, discovery_min=0 | Isolated groups |
+| Open Discourse | inertia_rho=0.5, bounded_confidence_tau=3.0, discovery_max=10 | Free information flow |
+| Rapid Dynamics | evidence_threshold=0.1, learning_rate_base=0.3 | Fast belief change |
+| Large Scale | agents=5000, ticks=960 (10 days) | Scale test |
+
+### Running the GUI
+
+```bash
+# Terminal 1: Backend
+source .gsocialsim/bin/activate  # or your venv
+pip install -r gui/backend/requirements.txt
+uvicorn gui.backend.app.main:app --reload --port 8000
+
+# Terminal 2: Frontend
+cd gui/frontend
+npm install
+npm run dev   # → http://localhost:5173
+```
+
+Open http://localhost:5173 in a browser.
+
+### C++ Streaming Flags
+
+The C++ engine supports two new flags for GUI integration:
+
+```bash
+# Stream JSON Lines to stdout (one per tick)
+./cpp/build/gsocialsim_cpp --stimuli data/stimuli.csv --ticks 96 --agents 100 --stream-json
+
+# Load parameter overrides from a JSON config file
+./cpp/build/gsocialsim_cpp --stimuli data/stimuli.csv --ticks 96 --agents 100 --config params.json
+```
+
+Each `--stream-json` line contains: `tick`, `total`, `impressions`, `consumed`, `belief_deltas`, `leans[]`.
+
+---
+
 ## Visualization
 
 Multiple HTML exporters are included:
@@ -417,8 +485,10 @@ cpp/                        # C++ engine (primary)
 │   ├── scenario_harness.h  # Deterministic scenario test framework
 │   ├── population_layer.h  # Hex-grid population dynamics
 │   ├── kernel.h            # World kernel and event scheduling
+│   ├── json.hpp            # nlohmann/json (single-header, MIT)
 │   └── ...
 ├── src/
+│   ├── main.cpp            # CLI entry: --stream-json, --config, --export-state
 │   ├── identity_space.cpp  # Country factory defaults (USA/IND/BRA/GBR/FRA)
 │   ├── belief_dynamics.cpp # Physics-inspired belief update pipeline
 │   ├── agent_demographics.cpp  # Similarity and influence weight
@@ -431,6 +501,40 @@ cpp/                        # C++ engine (primary)
 └── test/
     ├── test_agent_demographics.cpp  # 14 tests for dimensional system
     └── test_global_architecture.cpp # 16 tests for global architecture
+
+gui/                        # Web GUI (React + FastAPI)
+├── backend/
+│   ├── requirements.txt    # FastAPI, Uvicorn, Optuna, etc.
+│   └── app/
+│       ├── main.py         # FastAPI app, CORS, lifespan, preset seeding
+│       ├── config.py       # App settings (binary path, limits)
+│       ├── api/            # REST + WebSocket endpoints
+│       │   ├── runs.py     # POST/GET/DELETE /api/runs
+│       │   ├── params.py   # GET /api/params/schema, presets CRUD
+│       │   ├── tuning.py   # POST/GET /api/studies
+│       │   └── ws.py       # WebSocket /ws/run/{id}, /ws/study/{id}
+│       ├── core/           # Business logic
+│       │   ├── runner.py   # Async subprocess runner for C++ binary
+│       │   ├── schemas.py  # Pydantic models, 30+ param definitions
+│       │   ├── store.py    # SQLite storage (runs, presets, studies)
+│       │   └── parser.py   # Output parsing, metrics computation
+│       └── tuning/         # Optuna hyperparameter optimization
+│           ├── engine.py   # Study management, trial loop
+│           ├── objectives.py # 5 objective functions
+│           └── spaces.py   # Search space → trial.suggest_* mapping
+└── frontend/
+    ├── vite.config.ts      # Vite + Tailwind + API proxy
+    └── src/
+        ├── components/     # UI components
+        │   ├── config/     # ParamSlider, ParamGroup, ConfigPanel, PresetBar
+        │   ├── simulation/ # TickCounter, BeliefChart, MetricsPanel, LiveView
+        │   ├── tuning/     # SearchSpaceEditor, OptProgress, TrialTable
+        │   ├── results/    # RunComparison, ParamDiff, ExportDialog
+        │   └── layout/     # Sidebar, Header, Layout
+        ├── pages/          # Dashboard, Config, Simulation, Tuning, Results
+        ├── hooks/          # useWebSocket, useSimulation, useTuning, useParams
+        ├── stores/         # Zustand: configStore, runStore, tuningStore
+        └── lib/            # API client, types, utilities
 
 python/src/gsocialsim/      # Python visualization bridge
 ├── agents/          # agent state, beliefs, attention, personality
