@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
@@ -46,12 +47,29 @@ async def ws_run(websocket: WebSocket, run_id: str):
     await _ws_send(websocket, {"type": "log", "message": "Launching C++ process (setup may take 30-60s)..."})
 
     tick_history = []
+    heartbeat_active = True
+
+    async def heartbeat():
+        """Send periodic keepalive pings while the C++ process is running."""
+        count = 0
+        while heartbeat_active:
+            await asyncio.sleep(5)
+            if not heartbeat_active:
+                break
+            count += 1
+            await _ws_send(websocket, {
+                "type": "log",
+                "message": f"[heartbeat] Process running... ({count * 5}s elapsed)",
+            })
+
+    heartbeat_task = asyncio.create_task(heartbeat())
+
     try:
         async for item in runner.stream_output(run_id):
             item_type = item.pop("_type", "tick")
 
             if item_type == "status":
-                # Non-JSON line from C++ stdout (setup messages, etc.)
+                # Non-JSON line from C++ (setup messages, errors, etc.)
                 ok = await _ws_send(websocket, {"type": "log", "message": f"[cpp] {item['message']}"})
                 if not ok:
                     log.info("[ws %s] client gone during status send, continuing process", run_id)
@@ -64,6 +82,9 @@ async def ws_run(websocket: WebSocket, run_id: str):
                 if not ok:
                     log.info("[ws %s] client gone during tick send", run_id)
 
+        heartbeat_active = False
+        heartbeat_task.cancel()
+
         metrics = compute_metrics_from_tick_data(tick_history)
         run = runner.get_run(run_id)
         status = run.status.value if run else "completed"
@@ -75,6 +96,9 @@ async def ws_run(websocket: WebSocket, run_id: str):
     except Exception as e:
         log.error("[ws %s] error: %s", run_id, e, exc_info=True)
         await _ws_send(websocket, {"type": "error", "message": str(e)})
+    finally:
+        heartbeat_active = False
+        heartbeat_task.cancel()
 
 
 @router.websocket("/ws/study/{study_id}")

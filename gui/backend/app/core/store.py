@@ -80,12 +80,12 @@ class Store:
 
     async def list_runs(self) -> list[dict]:
         runs = []
-        async with self._db.execute("SELECT id, status, created_at, ticks_completed, total_ticks, metrics FROM runs ORDER BY created_at DESC") as cur:
+        async with self._db.execute("SELECT id, config, status, created_at, ticks_completed, total_ticks, metrics FROM runs ORDER BY created_at DESC") as cur:
             async for row in cur:
                 runs.append({
-                    "id": row[0], "status": row[1], "created_at": row[2],
-                    "ticks_completed": row[3], "total_ticks": row[4],
-                    "metrics": json.loads(row[5]),
+                    "id": row[0], "config": json.loads(row[1]), "status": row[2],
+                    "created_at": row[3], "ticks_completed": row[4],
+                    "total_ticks": row[5], "metrics": json.loads(row[6]),
                 })
         return runs
 

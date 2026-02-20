@@ -91,7 +91,7 @@ class SimulationRunner:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,  # merge stderr into stdout
             )
             self._processes[run_id] = proc
             run.status = RunStatus.RUNNING
@@ -141,11 +141,9 @@ class SimulationRunner:
                 run.status = RunStatus.COMPLETED
                 log.info("[run %s] process exited ok", run_id)
             else:
-                stderr = await proc.stderr.read()
-                err_text = stderr.decode("utf-8", errors="replace")[:500]
                 run.status = RunStatus.FAILED
-                run.metrics["error"] = err_text
-                log.error("[run %s] process exited %d: %s", run_id, proc.returncode, err_text)
+                run.metrics["error"] = f"Process exited with code {proc.returncode}"
+                log.error("[run %s] process exited %d (stderr merged into stdout above)", run_id, proc.returncode)
         except asyncio.CancelledError:
             proc.terminate()
             run.status = RunStatus.CANCELLED
