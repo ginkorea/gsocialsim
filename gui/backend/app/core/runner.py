@@ -103,6 +103,11 @@ class SimulationRunner:
             raise
 
     async def stream_output(self, run_id: str) -> AsyncIterator[dict]:
+        """Yield dicts from C++ stdout.
+
+        Tick lines (JSON):  {"_type": "tick", "tick": ..., ...}
+        Status lines (non-JSON): {"_type": "status", "message": "..."}
+        """
         proc = await self._launch(run_id)
         run = self._runs[run_id]
         line_count = 0
@@ -114,16 +119,21 @@ class SimulationRunner:
                     break
                 line_count += 1
                 text = line.decode("utf-8", errors="replace").strip()
-                if not text or not text.startswith("{"):
-                    log.info("[run %s] non-json line %d: %s", run_id, line_count, text[:200])
+                if not text:
+                    continue
+                if not text.startswith("{"):
+                    log.info("[run %s] status: %s", run_id, text[:200])
+                    yield {"_type": "status", "message": text}
                     continue
                 try:
                     data = json.loads(text)
+                    data["_type"] = "tick"
                     run.ticks_completed = data.get("tick", 0)
                     log.info("[run %s] tick %s/%s", run_id, data.get("tick"), data.get("total"))
                     yield data
                 except json.JSONDecodeError as e:
                     log.warning("[run %s] bad json line %d: %s", run_id, line_count, e)
+                    yield {"_type": "status", "message": f"[parse error] {text[:100]}"}
                     continue
 
             await proc.wait()

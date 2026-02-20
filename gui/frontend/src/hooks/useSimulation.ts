@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import type { SimulationConfig, WsMessage } from '@/lib/types'
 import { api } from '@/lib/api'
 import { useRunStore } from '@/stores/runStore'
@@ -7,6 +7,7 @@ import { useWebSocket } from './useWebSocket'
 export function useSimulation() {
   const { activeRunId, startRun, addTick, addLog, complete } = useRunStore()
   const [wsUrl, setWsUrl] = useState<string | null>(null)
+  const doneRef = useRef(false)
 
   const onMessage = useCallback(
     (data: unknown) => {
@@ -16,8 +17,10 @@ export function useSimulation() {
       } else if (msg.type === 'log' && msg.message) {
         addLog(msg.message)
       } else if (msg.type === 'complete' && msg.metrics) {
-        addLog(`Simulation complete`)
+        addLog('Simulation complete')
+        doneRef.current = true
         complete(msg.metrics)
+        setWsUrl(null)  // stop reconnecting
       } else if (msg.type === 'error' && msg.message) {
         addLog(`ERROR: ${msg.message}`)
       }
@@ -30,17 +33,27 @@ export function useSimulation() {
   }, [addLog])
 
   const onClose = useCallback(() => {
-    addLog('WebSocket disconnected')
+    if (!doneRef.current) {
+      addLog('WebSocket disconnected — will reconnect...')
+    }
   }, [addLog])
 
   const onError = useCallback(() => {
     addLog('WebSocket error')
   }, [addLog])
 
-  const { connected } = useWebSocket(wsUrl, { onMessage, onOpen, onClose, onError })
+  const { connected } = useWebSocket(wsUrl, {
+    onMessage,
+    onOpen,
+    onClose,
+    onError,
+    reconnect: true,
+    reconnectInterval: 3000,
+  })
 
   const launch = useCallback(
     async (config: SimulationConfig) => {
+      doneRef.current = false
       const run = await api.createRun(config)
       startRun(run.id)
       addLog(`Run created: ${run.id} (${config.ticks} ticks, ${config.agents} agents)`)
@@ -55,6 +68,7 @@ export function useSimulation() {
     if (activeRunId) {
       addLog('Cancelling simulation...')
       await api.cancelRun(activeRunId)
+      setWsUrl(null)
     }
   }, [activeRunId, addLog])
 
