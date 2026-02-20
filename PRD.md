@@ -234,6 +234,23 @@ The LLM serves two roles per tick, both in batch:
 
 **Batch sizing**: The perceive batch is bounded by `Σ(agents × consumed_items_per_agent)`, typically far smaller than `agents × delivered_items` due to attention filtering. The act batch is bounded by the fraction of agents above their personality-specific action threshold (typically 5-15% per tick).
 
+### 5.5 LLM Backend: Local or Cloud
+
+The LLM integration layer is backend-agnostic. The system must support:
+
+| Backend | Use Case | Trade-offs |
+|---------|----------|------------|
+| **Local** (e.g., llama.cpp, vLLM, Ollama) | Air-gapped research, full data sovereignty, persistent GPU utilization | Limited by local hardware; smaller models; no per-call cost |
+| **Cloud** (e.g., Anthropic, OpenAI, Azure) | Larger models, higher throughput burst capacity, no GPU requirement | Per-call cost; latency; data leaves machine |
+
+The interface is a single async batch endpoint: `perceive_batch(items) → impressions[]` and `generate_batch(intents) → content[]`. The backend (local vs cloud) is a configuration choice, not a code path. Implementations:
+
+- **Local**: HTTP to a local inference server (vLLM, Ollama, llama.cpp server) on localhost
+- **Cloud**: HTTP to provider API with rate limiting and retry
+- **Hybrid**: Local for perceive (high volume, smaller model sufficient), cloud for generate (lower volume, benefits from larger model)
+
+Cached LLM outputs enable a fourth mode: **replay-only**, where no LLM backend is needed at all — the system runs entirely from cached impression vectors and generated content from a previous run.
+
 ---
 
 ## 6. Belief Update & Conversion

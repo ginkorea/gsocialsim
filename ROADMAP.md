@@ -473,7 +473,7 @@ Optimization comes last.
 # Guardrails
 
 1. **LLM produces inputs, math produces updates**: LLM handles perception (content → impression vectors) and generation (agent state → content). The 14-step belief dynamics pipeline is pure deterministic math. LLM never computes belief changes.
-2. **Batch LLM, never per-agent loop**: LLM calls are batched per tick (perceive batch + act batch), bounded by attention filtering and personality thresholds respectively. No synchronous per-agent LLM calls in the hot loop.
+2. **Batch LLM, never per-agent loop**: LLM calls are batched per tick (perceive batch + act batch), bounded by attention filtering and personality thresholds respectively. No synchronous per-agent LLM calls in the hot loop. LLM backend is configurable: local (vLLM, Ollama, llama.cpp), cloud (Anthropic, OpenAI), hybrid, or replay-only from cache.
 3. **Deterministic replay under fixed seed**: Cache all LLM outputs (impression vectors + generated content). Re-runs use cached perceptions — no LLM required for replay. Same cache + same seed = identical dynamics.
 4. **Numeric bounded content only**: All content that enters the dynamics pipeline is numeric and bounded. Text is optional metadata for display, not an input to belief updates.
 5. **Schema validation mandatory**: All scenario configs, content objects, and event definitions validated against strict JSON schemas.
