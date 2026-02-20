@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface UseWebSocketOptions {
   onMessage: (data: unknown) => void
+  onOpen?: () => void
   onClose?: () => void
+  onError?: () => void
 }
 
 export function useWebSocket(url: string | null, options: UseWebSocketOptions) {
@@ -15,7 +17,10 @@ export function useWebSocket(url: string | null, options: UseWebSocketOptions) {
     const wsUrl = `${protocol}//${window.location.host}${url}`
     const ws = new WebSocket(wsUrl)
 
-    ws.onopen = () => setConnected(true)
+    ws.onopen = () => {
+      setConnected(true)
+      options.onOpen?.()
+    }
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
@@ -30,9 +35,10 @@ export function useWebSocket(url: string | null, options: UseWebSocketOptions) {
     }
     ws.onerror = () => {
       setConnected(false)
+      options.onError?.()
     }
     wsRef.current = ws
-  }, [url, options.onMessage, options.onClose])
+  }, [url, options.onMessage, options.onOpen, options.onClose, options.onError])
 
   useEffect(() => {
     connect()

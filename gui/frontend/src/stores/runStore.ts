@@ -8,10 +8,12 @@ interface RunState {
   tickHistory: TickData[]
   currentTick: TickData | null
   status: 'idle' | 'running' | 'completed' | 'failed'
+  logs: string[]
 
   fetchRuns: () => Promise<void>
   startRun: (runId: string) => void
   addTick: (data: TickData) => void
+  addLog: (message: string) => void
   complete: (metrics: Record<string, number>) => void
   reset: () => void
 }
@@ -22,6 +24,7 @@ export const useRunStore = create<RunState>((set, get) => ({
   tickHistory: [],
   currentTick: null,
   status: 'idle',
+  logs: [],
 
   fetchRuns: async () => {
     try {
@@ -38,6 +41,7 @@ export const useRunStore = create<RunState>((set, get) => ({
       tickHistory: [],
       currentTick: null,
       status: 'running',
+      logs: [`[${new Date().toLocaleTimeString()}] Starting run ${runId}...`],
     })
   },
 
@@ -45,6 +49,12 @@ export const useRunStore = create<RunState>((set, get) => ({
     set((state) => ({
       tickHistory: [...state.tickHistory, data],
       currentTick: data,
+    }))
+  },
+
+  addLog: (message) => {
+    set((state) => ({
+      logs: [...state.logs, `[${new Date().toLocaleTimeString()}] ${message}`],
     }))
   },
 

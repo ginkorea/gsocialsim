@@ -67,7 +67,7 @@ export interface TickData {
 }
 
 export interface WsMessage {
-  type: 'tick' | 'complete' | 'error'
+  type: 'tick' | 'complete' | 'error' | 'log'
   data?: TickData
   metrics?: Record<string, number>
   status?: string

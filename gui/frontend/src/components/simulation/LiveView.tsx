@@ -1,6 +1,7 @@
 import { TickCounter } from './TickCounter'
 import { BeliefChart } from './BeliefChart'
 import { MetricsPanel } from './MetricsPanel'
+import { LogPanel } from './LogPanel'
 
 export function LiveView() {
   return (
@@ -14,6 +15,7 @@ export function LiveView() {
         </div>
       </div>
       <BeliefChart />
+      <LogPanel />
     </div>
   )
 }

@@ -1,11 +1,14 @@
 import asyncio
 import json
+import logging
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, AsyncIterator, Optional
 
 from .schemas import SimulationConfig, RunInfo, RunStatus
+
+log = logging.getLogger("gsocialsim.runner")
 
 
 class SimulationRunner:
@@ -63,6 +66,7 @@ class SimulationRunner:
         self._write_config_json(config, config_path)
 
         cmd = self._build_command(config, config_path, run_dir)
+        log.info("[run %s] created  cmd=%s", run_id, " ".join(cmd))
 
         run = RunInfo(
             id=run_id,
@@ -80,7 +84,9 @@ class SimulationRunner:
         config_path = str(Path(run_dir) / "config.json")
         cmd = self._build_command(run.config, config_path, run_dir)
 
+        log.info("[run %s] acquiring semaphore (available=%s)...", run_id, self._semaphore._value)
         await self._semaphore.acquire()
+        log.info("[run %s] semaphore acquired, launching process", run_id)
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
@@ -89,39 +95,51 @@ class SimulationRunner:
             )
             self._processes[run_id] = proc
             run.status = RunStatus.RUNNING
+            log.info("[run %s] process launched pid=%s", run_id, proc.pid)
             return proc
-        except Exception:
+        except Exception as exc:
+            log.error("[run %s] failed to launch: %s", run_id, exc)
             self._semaphore.release()
             raise
 
     async def stream_output(self, run_id: str) -> AsyncIterator[dict]:
         proc = await self._launch(run_id)
         run = self._runs[run_id]
+        line_count = 0
         try:
             while True:
                 line = await proc.stdout.readline()
                 if not line:
+                    log.info("[run %s] stdout EOF after %d lines", run_id, line_count)
                     break
+                line_count += 1
                 text = line.decode("utf-8", errors="replace").strip()
                 if not text or not text.startswith("{"):
+                    log.info("[run %s] non-json line %d: %s", run_id, line_count, text[:200])
                     continue
                 try:
                     data = json.loads(text)
                     run.ticks_completed = data.get("tick", 0)
+                    log.info("[run %s] tick %s/%s", run_id, data.get("tick"), data.get("total"))
                     yield data
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as e:
+                    log.warning("[run %s] bad json line %d: %s", run_id, line_count, e)
                     continue
 
             await proc.wait()
             if proc.returncode == 0:
                 run.status = RunStatus.COMPLETED
+                log.info("[run %s] process exited ok", run_id)
             else:
                 stderr = await proc.stderr.read()
+                err_text = stderr.decode("utf-8", errors="replace")[:500]
                 run.status = RunStatus.FAILED
-                run.metrics["error"] = stderr.decode("utf-8", errors="replace")[:500]
+                run.metrics["error"] = err_text
+                log.error("[run %s] process exited %d: %s", run_id, proc.returncode, err_text)
         except asyncio.CancelledError:
             proc.terminate()
             run.status = RunStatus.CANCELLED
+            log.info("[run %s] cancelled", run_id)
         finally:
             self._processes.pop(run_id, None)
             self._semaphore.release()
