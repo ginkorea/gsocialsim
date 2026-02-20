@@ -6,3 +6,4 @@ pydantic-settings>=2.5.0
 optuna>=4.0.0
 numpy>=1.26.0
 aiosqlite>=0.20.0
+python-multipart>=0.0.9

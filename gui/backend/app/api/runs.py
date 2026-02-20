@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 
 from ..core.schemas import SimulationConfig, RunInfo
 from ..core.parser import compute_metrics_from_tick_data
+from ..core.datasources import resolve_source_path
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
 
@@ -12,6 +13,13 @@ store = None
 
 @router.post("", response_model=RunInfo)
 async def create_run(config: SimulationConfig):
+    # Resolve data source filename to absolute path
+    if config.data_source and config.data_source.filename:
+        resolved = resolve_source_path(config.data_source.filename)
+        if not resolved:
+            raise HTTPException(422, f"Data source file not found: {config.data_source.filename}")
+        config.data_source.path = str(resolved)
+
     run = await runner.start_run(config)
     await store.create_run(run.id, config.model_dump(), run.created_at, config.ticks)
     return run

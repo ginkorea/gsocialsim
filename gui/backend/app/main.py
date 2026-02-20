@@ -7,7 +7,7 @@ from .config import settings
 from .core.runner import SimulationRunner
 from .core.store import Store
 from .tuning.engine import OptunaEngine
-from .api import runs, params, tuning, ws
+from .api import runs, params, tuning, ws, datasources
 
 
 @asynccontextmanager
@@ -70,6 +70,7 @@ app.include_router(runs.router)
 app.include_router(params.router)
 app.include_router(tuning.router)
 app.include_router(ws.router)
+app.include_router(datasources.router)
 
 
 @app.get("/api/health")

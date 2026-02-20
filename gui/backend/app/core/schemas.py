@@ -83,6 +83,12 @@ def get_defaults() -> dict[str, Any]:
 
 # --- Request/Response Models ---
 
+class DataSourceConfig(BaseModel):
+    source_type: str = "csv"
+    filename: Optional[str] = None
+    path: Optional[str] = None  # resolved by backend before run
+
+
 class SimulationConfig(BaseModel):
     ticks: int = 96
     agents: int = 100
@@ -100,6 +106,8 @@ class SimulationConfig(BaseModel):
     broadcast_feed: dict[str, Any] = Field(default_factory=dict)
     # Media Diet
     media_diet: dict[str, float] = Field(default_factory=dict)
+    # Data Source
+    data_source: Optional[DataSourceConfig] = None
 
 
 class RunStatus(str, Enum):

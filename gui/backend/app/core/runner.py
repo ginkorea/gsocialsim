@@ -31,8 +31,15 @@ class SimulationRunner:
             "--export-dir", run_dir,
             "--config", config_path,
         ]
-        if self.stimuli_csv:
-            cmd.extend(["--stimuli", self.stimuli_csv])
+        # Per-run data source takes priority, then global default
+        stimuli_path = ""
+        if config.data_source and config.data_source.path:
+            stimuli_path = config.data_source.path
+        elif self.stimuli_csv:
+            stimuli_path = self.stimuli_csv
+
+        if stimuli_path:
+            cmd.extend(["--stimuli", stimuli_path])
         return cmd
 
     def _write_config_json(self, config: SimulationConfig, path: str):

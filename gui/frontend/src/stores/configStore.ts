@@ -1,16 +1,19 @@
 import { create } from 'zustand'
-import type { ParamSchema, SimulationConfig } from '@/lib/types'
+import type { ParamSchema, SimulationConfig, DataSourceConfig, DataSourceInfo } from '@/lib/types'
 import { api } from '@/lib/api'
 
 interface ConfigState {
   schema: ParamSchema | null
   config: SimulationConfig
+  dataSource: DataSourceConfig | null
+  dataSourceInfo: DataSourceInfo | null
   dirty: boolean
   loading: boolean
 
   fetchSchema: () => Promise<void>
   updateParam: (name: string, value: number | string | boolean) => void
   setConfig: (config: SimulationConfig) => void
+  setDataSource: (ds: DataSourceConfig | null, info: DataSourceInfo | null) => void
   resetToDefaults: () => void
 }
 
@@ -59,6 +62,8 @@ const PARAM_GROUP: Record<string, keyof SimulationConfig> = {
 export const useConfigStore = create<ConfigState>((set, get) => ({
   schema: null,
   config: { ...DEFAULT_CONFIG },
+  dataSource: null,
+  dataSourceInfo: null,
   dirty: false,
   loading: false,
 
@@ -89,7 +94,9 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
   setConfig: (config) => set({ config, dirty: false }),
 
+  setDataSource: (ds, info) => set({ dataSource: ds, dataSourceInfo: info, dirty: true }),
+
   resetToDefaults: () => {
-    set({ config: { ...DEFAULT_CONFIG }, dirty: true })
+    set({ config: { ...DEFAULT_CONFIG }, dataSource: null, dataSourceInfo: null, dirty: true })
   },
 }))

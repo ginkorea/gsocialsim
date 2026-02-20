@@ -6,17 +6,26 @@ import { Header } from '@/components/layout/Header'
 import { ConfigPanel } from '@/components/config/ConfigPanel'
 import { PresetBar } from '@/components/config/PresetBar'
 import { JsonEditor } from '@/components/config/JsonEditor'
+import { DataSourcePanel } from '@/components/config/DataSourcePanel'
 import { useConfigStore } from '@/stores/configStore'
 import { useSimulation } from '@/hooks/useSimulation'
 
 export function ConfigPage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<'visual' | 'json'>('visual')
-  const { config, dirty, resetToDefaults } = useConfigStore()
+  const { config, dataSource, dirty, resetToDefaults } = useConfigStore()
   const { launch } = useSimulation()
 
   const handleStart = async () => {
-    await launch(config)
+    if (!dataSource?.filename) {
+      const proceed = window.confirm(
+        'No data source is configured. The simulation will run without external stimuli, ' +
+        'which may produce limited results. Continue anyway?'
+      )
+      if (!proceed) return
+    }
+    const fullConfig = { ...config, data_source: dataSource }
+    await launch(fullConfig)
     navigate('/simulate')
   }
 
@@ -50,6 +59,9 @@ export function ConfigPage() {
               </button>
             </div>
           </div>
+
+          {/* Data Source */}
+          <DataSourcePanel />
 
           {/* Tab switcher */}
           <div className="flex items-center gap-1 p-1 bg-zinc-800/50 rounded-lg w-fit">

@@ -1,4 +1,4 @@
-import type { ParamSchema, RunInfo, SimulationConfig, Preset, StudyConfig, StudyInfo } from './types'
+import type { ParamSchema, RunInfo, SimulationConfig, Preset, StudyConfig, StudyInfo, DataSourceInfo } from './types'
 
 const BASE = ''
 
@@ -49,4 +49,26 @@ export const api = {
     }),
   listStudies: () => fetchJson<StudyInfo[]>('/api/studies'),
   getStudy: (id: string) => fetchJson<StudyInfo>(`/api/studies/${id}`),
+
+  // Data Sources
+  listDataSources: () => fetchJson<DataSourceInfo[]>('/api/datasources'),
+  getDataSource: (filename: string) =>
+    fetchJson<DataSourceInfo>(`/api/datasources/${encodeURIComponent(filename)}`),
+  previewDataSource: (filename: string, rows = 5) =>
+    fetchJson<Record<string, string>[]>(
+      `/api/datasources/${encodeURIComponent(filename)}/preview?rows=${rows}`
+    ),
+  uploadDataSource: async (file: File): Promise<DataSourceInfo> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch('/api/datasources/upload', {
+      method: 'POST',
+      body: formData,
+    })
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(`${res.status}: ${text}`)
+    }
+    return res.json()
+  },
 }

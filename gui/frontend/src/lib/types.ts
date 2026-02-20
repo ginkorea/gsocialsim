@@ -16,6 +16,22 @@ export interface ParamSchema {
   defaults: Record<string, number | string | boolean>
 }
 
+export interface DataSourceConfig {
+  source_type: 'csv' | 'gdelt'
+  filename: string | null
+}
+
+export interface DataSourceInfo {
+  filename: string
+  path: string
+  size_bytes: number
+  row_count: number
+  tick_min: number
+  tick_max: number
+  columns: string[]
+  source_type: string
+}
+
 export interface SimulationConfig {
   ticks: number
   agents: number
@@ -28,6 +44,7 @@ export interface SimulationConfig {
   feed_queue: Record<string, number>
   broadcast_feed: Record<string, number>
   media_diet: Record<string, number>
+  data_source?: DataSourceConfig | null
 }
 
 export interface RunInfo {
