@@ -1,5 +1,47 @@
 # TODO
 
+# LLM Integration Layer (Cross-Cutting Infrastructure)
+
+Agent per-tick loop: DELIVER → ATTEND → PERCEIVE (LLM) → UPDATE (math) → DECIDE (rules) → ACT (LLM) → CONSOLIDATE (math)
+
+## Attention Priority Queue (ATTEND phase)
+
+* [ ] Implement priority queue ranking: source trust, topic salience, primal cues, intake mode, recency
+* [ ] Per-tick time budget enforcement (consume in priority order, discard when exhausted)
+* [ ] Intake mode cost multipliers (scroll=1.0, seek=1.25, physical=1.5, deep_focus=3.0)
+* [ ] Only consumed content proceeds to LLM perception batch
+
+## LLM Perception Batch (PERCEIVE phase)
+
+* [ ] Define async batch interface: `perceive_batch(items) → impressions[]`
+* [ ] Agent-specific perception: (content, agent_context) → numeric impression vector
+* [ ] Impression includes content fingerprint for novelty/entropy system
+* [ ] Deep focus tier: re-perceive with richer context when scroll-layer impression exceeds salience/threat threshold
+
+## Personality-Driven Action (DECIDE + ACT phases)
+
+* [ ] Personality-weighted reward evaluation for action threshold
+* [ ] Personality archetypes: troll (low threshold, provocative), lurker (high threshold, rare), influencer (moderate, audience-aligned), activist (salient topics), casual (sporadic)
+* [ ] Intent parameter generation: topic (salience × reward), stance (belief-driven), frame (personality-driven), desired effect (reward-optimizing)
+* [ ] Define async batch interface: `generate_batch(intents) → content[]`
+
+## LLM Backend Abstraction
+
+* [ ] Backend-agnostic interface (single config choice, not separate code paths)
+* [ ] Local backend: HTTP to vLLM / Ollama / llama.cpp server on localhost
+* [ ] Cloud backend: HTTP to provider API (Anthropic, OpenAI, Azure) with rate limiting and retry
+* [ ] Hybrid mode: local for perceive (high volume, smaller model), cloud for generate (lower volume, larger model)
+* [ ] Replay-only mode: run entirely from cached impression vectors + generated content (no LLM needed)
+
+## Deterministic Replay Cache
+
+* [ ] Cache all LLM outputs (impression vectors + generated content) per tick per run
+* [ ] Cache keyed by (run_id, tick, content_id, agent_id) for perceive; (run_id, tick, agent_id) for generate
+* [ ] Same cache + same seed = identical dynamics on replay
+* [ ] Cache storage format (JSON lines or binary)
+
+---
+
 # Phase 12 — Persistent C++ Server Mode
 
 * [ ] Add `--server-mode` flag to main.cpp argument parser
@@ -153,9 +195,11 @@ Invariant tests:
 
 # Architectural Guardrails
 
-* [ ] LLM never in belief hot loop
-* [ ] All runtime content numeric + bounded
-* [ ] Deterministic replay under fixed seed
+* [ ] LLM produces inputs (impressions) and outputs (content); math computes all belief updates
+* [ ] Batch LLM only — no synchronous per-agent LLM calls in hot loop
+* [ ] LLM backend configurable: local, cloud, hybrid, or replay-only from cache
+* [ ] All runtime content numeric + bounded (text is optional metadata, not a dynamics input)
+* [ ] Deterministic replay under fixed seed (cached LLM outputs, no LLM needed for replay)
 * [ ] ScenarioBundle required for reproducible runs
 * [ ] Event engine isolated from belief dynamics
 * [ ] No hidden mutable global state
