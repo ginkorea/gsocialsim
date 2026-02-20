@@ -80,7 +80,8 @@ The platform is intended for **research, experimentation, and counterfactual ana
 - 7 international actor capability profiles (international media, state media, multilateral org, regional org, global NGO, multinational corp, global celebrity)
 - Actor credibility bounded by floor/ceiling with per-country overrides
 - 16 deterministic scenario tests covering cross-border, media diet, actor capabilities, and end-to-end invariants
-- Full mathematical specification for all new systems in [INFLUENCE_MATH.md](INFLUENCE_MATH.md)
+- Content novelty and message entropy extension designed (steps 3b-3d): Cacioppo-Petty repetition curve, stream entropy penalty, psychological reactance/boomerang effect
+- Full mathematical specification for all systems in [INFLUENCE_MATH.md](INFLUENCE_MATH.md)
 
 ### Infrastructure
 - C++ analytics: summary/detailed modes, CSV export
@@ -199,14 +200,17 @@ Impressions decay rapidly.
 
 ## 6. Belief Update & Conversion
 
-### 6.1 Belief Update Rules (11-Step Pipeline)
+### 6.1 Belief Update Rules (11-Step Pipeline + Novelty/Entropy Extension)
 
-Belief updates pass through an 11-step physics-inspired pipeline (see [INFLUENCE_MATH.md](INFLUENCE_MATH.md) for formal notation):
+Belief updates pass through an 11-step physics-inspired pipeline with 3 sub-steps for content novelty and message entropy (see [INFLUENCE_MATH.md](INFLUENCE_MATH.md) for formal notation):
 
 1. **Trust gate**: `trust^gamma` (superlinear, gamma=2.0) -- low trust yields near-zero influence
 2. **Bounded confidence**: reject if `|signal - stance| > tau` (tau=1.5)
-3. **Habituation**: `1/(1 + alpha*n)` -- diminishing returns from repeated exposure
-4. **Base influence**: trust x credibility x primal activation x proximity x scroll penalty
+3. **Habituation**: `1/(1 + alpha*n)` -- diminishing returns from repeated exposure to same source
+   - 3b. **Content novelty** (Cacioppo-Petty curve): `w_n = n·exp(-beta*(n-1))` -- inverted-U over effective repetition count; identical messages wear out, partially similar messages contribute fractionally
+   - 3c. **Stream entropy**: `w_d = 0.3 + 0.7*(H/H_max)` -- Shannon entropy over actor's topic distribution; single-topic actors operate at 30% effectiveness
+   - 3d. **Reactance check**: if n_eff > threshold (default 8), stance signal flips sign -- spam becomes actively counterproductive (boomerang effect)
+4. **Base influence**: trust x credibility x primal activation x proximity x scroll penalty x novelty x diversity
 5. **Identity defense**: backfire (reverse influence under identity threat), confirmation boost (1.1x), openness gating
 6. **Evidence accumulation**: `E_t = lambda*E_{t-1} + w*signal`, gate at threshold (theta=0.5) -- single exposures rarely move beliefs
 7. **Inertia and momentum**: `v = rho*v + eta*E` -- persistent velocity with decay (rho=0.85)
@@ -214,6 +218,8 @@ Belief updates pass through an 11-step physics-inspired pipeline (see [INFLUENCE
 9. **Rebound force**: `-k*(stance - core_value)` -- damped spring to baseline (k=0.05)
 10. **Stance update**: `stance += eta_eff*momentum + rebound`
 11. **Confidence update**: +0.04 (confirming) / -0.02 (opposing)
+
+**Anti-spam properties**: The novelty/entropy extension ensures that (a) verbatim message repetition suffers severe wear-out (10 identical messages produce < 10% of a single novel message's impact), (b) diverse multi-topic campaigns outperform single-message spam, and (c) excessive repetition triggers psychological reactance that reverses the intended influence direction. This is grounded in Cacioppo-Petty (1979) repetition curves, Brehm (1966) reactance theory, and Shannon information theory.
 
 ### 6.1.1 Politics & Polarization
 

@@ -13,14 +13,15 @@ This document provides the complete mathematical specification for gsocialsim's 
 3. [Homophily-Based Influence Weight](#3-homophily-based-influence-weight)
 4. [Attention and Impression Evaluation](#4-attention-and-impression-evaluation)
 5. [Belief Dynamics Engine (11-Step Pipeline)](#5-belief-dynamics-engine-11-step-pipeline)
-6. [Legacy Belief Update Engine](#6-legacy-belief-update-engine)
-7. [Identity Consolidation](#7-identity-consolidation)
-8. [Dream Consolidation](#8-dream-consolidation)
-9. [Population-Level Dynamics](#9-population-level-dynamics)
-10. [Cross-Border Factors](#10-cross-border-factors)
-11. [Media Diet and Saturation](#11-media-diet-and-saturation)
-12. [Actor Capabilities](#12-actor-capabilities)
-13. [Parameter Reference](#13-parameter-reference)
+6. [Content Novelty and Message Entropy](#6-content-novelty-and-message-entropy)
+7. [Legacy Belief Update Engine](#7-legacy-belief-update-engine)
+8. [Identity Consolidation](#8-identity-consolidation)
+9. [Dream Consolidation](#9-dream-consolidation)
+10. [Population-Level Dynamics](#10-population-level-dynamics)
+11. [Cross-Border Factors](#11-cross-border-factors)
+12. [Media Diet and Saturation](#12-media-diet-and-saturation)
+13. [Actor Capabilities](#13-actor-capabilities)
+14. [Parameter Reference](#14-parameter-reference)
 
 ---
 
@@ -34,19 +35,24 @@ graph TD
   B["ATTENTION SYSTEM<br/>Impression"]
   C["IDENTITY SPACE<br/>Similarity"]
   D["INFLUENCE WEIGHT<br/>Trust Gate"]
-  E["BELIEF DYNAMICS ENGINE<br/>11 steps"]
+  E["BELIEF DYNAMICS ENGINE<br/>Steps 1-3: Gate + Habituation"]
+  E2["NOVELTY & ENTROPY<br/>Steps 3b-3d: Repetition + Diversity + Reactance"]
+  E3["BELIEF DYNAMICS ENGINE<br/>Steps 4-11: Update + Momentum"]
   F["DAILY CONSOLIDATE<br/>Dream + Identity"]
 
   A --> B
   B --> C
   C --> D
   D --> E
-  E --> F
+  E --> E2
+  E2 --> E3
+  E3 --> F
 
   B -.-> Bm["Outputs<br/>consume prob<br/>interact prob<br/>attention cost"]
   C -.-> Cm["Output<br/>S(a,b)"]
   D -.-> Dm["Output<br/>W = base trust * h(S) * status"]
-  E -.-> Em["Outputs<br/>stance, confidence<br/>evidence, momentum"]
+  E2 -.-> E2m["Outputs<br/>novelty_mult, diversity_mult<br/>possible stance sign flip"]
+  E3 -.-> Em["Outputs<br/>stance, confidence<br/>evidence, momentum"]
 
 ```
 
@@ -352,7 +358,9 @@ Trigger weights w(t):
 
 **Source**: `belief_dynamics.h`, `belief_dynamics.cpp`
 
-This is the core influence engine. Each exposure to content passes through all 11 steps. Most exposures produce no belief change (evidence gate at step 6).
+This is the core influence engine. Each exposure to content passes through all 11 steps (plus 3 sub-steps inserted at 3b–3d for content novelty and message entropy). Most exposures produce no belief change (evidence gate at step 6).
+
+The novelty and entropy sub-steps (3b, 3c, 3d) are specified fully in [Section 6](#6-content-novelty-and-message-entropy). They slot between habituation (step 3) and the base influence multiplier (step 4), modifying the effective stance signal and adding two new multipliers to M_base.
 
 ### Step 1: Trust Gate (Superlinear)
 
@@ -377,12 +385,24 @@ w_h = \frac{1}{1 + \alpha \cdot n_{\text{exposures}}}
 \qquad \alpha = 0.05
 ```
 
+### Step 3b–3d: Content Novelty, Stream Entropy, Reactance
+
+See [Section 6](#6-content-novelty-and-message-entropy) for full specification. Summary:
+
+- **Step 3b** computes `w_n = repetition_mult(n_eff)` — the Cacioppo-Petty inverted-U over effective repetition count
+- **Step 3c** computes `w_d = 0.3 + 0.7 · (H / H_max)` — stream entropy penalty per actor
+- **Step 3d** checks reactance: if `n_eff > n_reactance`, flips sign of `s_signal` with magnitude proportional to overshoot
+
+These three values feed into the base influence multiplier below.
+
 ### Step 4: Base Influence Multiplier
 
 ```math
 M_{\text{base}} =
-t_e \cdot M_{\text{cred}} \cdot M_{\text{primal}} \cdot M_{\text{prox}} \cdot M_{\text{scroll}} \cdot w_h
+t_e \cdot M_{\text{cred}} \cdot M_{\text{primal}} \cdot M_{\text{prox}} \cdot M_{\text{scroll}} \cdot w_h \cdot w_n \cdot w_d
 ```
+
+where `w_n` is the novelty multiplier (step 3b) and `w_d` is the diversity multiplier (step 3c). Note: if step 3d triggered a reactance sign flip, `s_signal` has already been modified before reaching this point.
 
 where:
 
@@ -508,7 +528,152 @@ E_t \leftarrow 0.5 \cdot E_t
 
 ---
 
-## 6. Legacy Belief Update Engine
+## 6. Content Novelty and Message Entropy
+
+**Source**: `belief_dynamics.h`, `belief_dynamics.cpp`, `agent.h` (ContentExposureHistory)
+
+This section extends the habituation mechanism (step 3) with content-level novelty tracking, actor-level stream entropy, and a reactance mechanism that makes spam actively counterproductive. These are grounded in established persuasion and information theory literature.
+
+### Literature Basis
+
+| Theory | Key Prediction | Citation |
+|--------|---------------|----------|
+| Cacioppo-Petty Repetition | Inverted-U: persuasion peaks at 2-3 exposures, declines after 5, wear-out after 10 | Cacioppo & Petty (1979) |
+| Berlyne Arousal | Hedonic response peaks at intermediate novelty; very familiar stimuli produce aversion | Berlyne (1970) |
+| Zajonc Mere Exposure | Familiarity breeds liking up to 10-20 exposures; sustained repetition reverses the effect | Zajonc (1968) |
+| Psychological Reactance | Perceived manipulation triggers resistance and possible boomerang (opposite adoption) | Brehm (1966) |
+| Shannon Information | Identical messages carry zero information; diverse streams carry high information | Shannon (1948) |
+
+### 6.1 Content Fingerprint
+
+Each content item is represented as a low-dimensional feature vector:
+
+```math
+f(c) = (\text{topic}, \text{stance\_signal}, \text{frame}, \text{media\_type}, \text{source\_id})
+```
+
+Two items are "content-similar" when their feature distance is small:
+
+```math
+\text{content\_sim}(c_1, c_2) = \exp\!\left(-\frac{\|f(c_1) - f(c_2)\|_2}{\sigma}\right)
+\qquad \sigma = 0.3 \text{ (default)}
+```
+
+Agents maintain a ring buffer of the last W content fingerprints (default W = 50), updated during the PERCEIVE phase in `kernel.cpp`.
+
+### 6.2 Effective Repetition Count
+
+For each incoming content item c, compute the soft repetition count against the agent's exposure history:
+
+```math
+n_{\text{eff}}(c, \text{history}) = \sum_{h \in \text{history}} \text{content\_sim}(c, h)
+```
+
+This is a soft count: identical messages contribute 1.0 each; partially similar messages contribute fractionally. A truly novel message against a diverse history has n_eff ≈ 0, while a verbatim repeat of the last 10 exposures has n_eff ≈ 10.
+
+### 6.3 Repetition-Adjusted Impact (Cacioppo-Petty Curve)
+
+The impact multiplier follows the inverted-U:
+
+```math
+w_n(n) = n \cdot \exp(-\beta \cdot (n - 1))
+\qquad \beta = 0.3 \text{ (default)}
+```
+
+| n_eff | w_n | Interpretation |
+|------:|----:|----------------|
+| 1.0 | 1.00 | Novel — full impact |
+| 2.0 | 1.35 | Mere exposure boost |
+| 3.0 | 1.22 | Near peak |
+| 5.0 | 0.68 | Wear-out begins |
+| 10.0 | 0.07 | Severe wear-out |
+| 15.0 | 0.002 | Near-zero (spam) |
+
+Properties:
+- Peak at n = 1/β + 1 ≈ 4.3 for β = 0.3
+- w_n(1) = 1.0 (first exposure is the baseline)
+- w_n → 0 as n → ∞ (spam has no impact)
+
+### 6.4 Reactance Check (Boomerang Effect)
+
+When effective repetition exceeds a reactance threshold, the agent perceives manipulation. This triggers a **sign flip** on the stance signal with magnitude proportional to overshoot:
+
+```math
+\text{if } n_{\text{eff}} > n_{\text{reactance}}:
+```
+
+```math
+r_{\text{strength}} = \min\!\left(1.0,\; \frac{n_{\text{eff}} - n_{\text{reactance}}}{n_{\text{reactance}}}\right)
+```
+
+```math
+s_{\text{signal}} \leftarrow -s_{\text{signal}} \cdot r_{\text{strength}} \cdot 0.3
+```
+
+Default: n_reactance = 8. This makes spam actively counterproductive — the content pushes the agent **away** from the intended direction, consistent with Brehm's reactance theory.
+
+### 6.5 Stream Entropy Penalty (Actor-Level)
+
+For an actor's observed content stream (as seen by a given agent), compute Shannon entropy over the topic distribution of the last W exposures from that actor:
+
+```math
+H_{\text{actor}} = -\sum_i p(\text{topic}_i) \cdot \log_2 p(\text{topic}_i)
+```
+
+```math
+H_{\text{max}} = \log_2 |\text{observed\_topics}|
+```
+
+```math
+\text{diversity\_score} = \frac{H_{\text{actor}}}{H_{\text{max}}} \in [0, 1]
+```
+
+Low diversity penalizes all content from that actor:
+
+```math
+w_d = d_{\text{floor}} + (1 - d_{\text{floor}}) \cdot \text{diversity\_score}
+\qquad d_{\text{floor}} = 0.3 \text{ (default)}
+```
+
+An actor with a single-topic stream (H = 0) operates at 30% effectiveness. A maximally diverse actor operates at 100%.
+
+### 6.6 Pipeline Integration
+
+These three sub-steps slot between step 3 (habituation) and step 4 (base influence):
+
+```text
+Step 3:  habituation_mult  = 1/(1 + α · exposure_count)        [existing, per-source]
+Step 3b: novelty_mult      = w_n(n_eff)                         [NEW, per-content]
+Step 3c: diversity_mult    = w_d                                 [NEW, per-actor stream]
+Step 3d: reactance check   → possible sign flip on s_signal     [NEW]
+Step 4:  M_base = t_e · M_cred · M_primal · M_prox · M_scroll · w_h · w_n · w_d
+```
+
+### 6.7 Integration Points
+
+| File | Change |
+|------|--------|
+| `belief_dynamics.h` | Add `novelty_decay_beta`, `reactance_threshold`, `content_sim_sigma`, `diversity_floor` to `InfluenceDynamicsConfig` |
+| `belief_dynamics.cpp` | Add `apply_content_novelty()`, `apply_stream_entropy()`, `check_reactance()` methods |
+| `agent.h` | Add `ContentExposureHistory` ring buffer (last W content fingerprints per agent) |
+| `types.h` | Add content fingerprint fields to `Impression` struct |
+| `kernel.cpp` | Populate content fingerprints during PERCEIVE phase |
+
+### 6.8 Invariant Tests
+
+| Test | Expected Result |
+|------|-----------------|
+| Identical message × 10 | Total influence < 10% of single novel message |
+| Diverse 5-message campaign | Total influence > same message × 5 |
+| Spam past reactance threshold (n_eff > 8) | Net influence reverses sign |
+| Single-topic actor (H = 0) | w_d = 0.3 |
+| Maximally diverse actor (H = H_max) | w_d = 1.0 |
+| Content similarity with σ → ∞ | All messages appear identical (n_eff → |history|) |
+| Content similarity with σ → 0 | All messages appear novel (n_eff → 0) |
+
+---
+
+## 7. Legacy Belief Update Engine
 
 **Source**: `agent.cpp` (BeliefUpdateEngine::update)
 
@@ -531,13 +696,13 @@ With confirmation boost (1.1x) and backfire reversal.
 
 ---
 
-## 7. Identity Consolidation
+## 8. Identity Consolidation
 
 **Source**: `agent.cpp` (consolidate_identity)
 
 Runs once per simulated day. Updates the agent's identity vector and rigidity based on the day's consumed impressions.
 
-### 7.1 Impression Weighting
+### 8.1 Impression Weighting
 
 ```math
 w(I) = 0.2 + 0.5 \cdot I_{\text{threat}} + 0.3 \cdot I_{\text{arousal}} + 0.2 \cdot I_{\text{social\_proof}}
@@ -545,7 +710,7 @@ w(I) = 0.2 + 0.5 \cdot I_{\text{threat}} + 0.3 \cdot I_{\text{arousal}} + 0.2 \c
 
 Up to 30 impressions are sampled proportional to w(I).
 
-### 7.2 Rigidity Update
+### 8.2 Rigidity Update
 
 ```math
 \bar{T} = \frac{\sum_i w_i \cdot I_{\text{threat},i}}{\sum_i w_i}
@@ -556,7 +721,7 @@ r_{t+1} =
 \text{clamp}_{[0.05, 0.95]}\!\big(r_t + 0.05 \cdot (\bar{T} - 0.25)\big)
 ```
 
-### 7.3 Identity Vector Drift
+### 8.3 Identity Vector Drift
 
 For each identity dimension j:
 
@@ -572,19 +737,19 @@ For each identity dimension j:
 
 where h(t_i) maps topic to dimension via hash.
 
-### 7.4 Ingroup Label Formation
+### 8.4 Ingroup Label Formation
 
 If |I_j| > 0.75: add `ingroup_dim_j` to labels with 10% probability per tick. Once formed, ingroup labels are persistent.
 
 ---
 
-## 8. Dream Consolidation
+## 9. Dream Consolidation
 
 **Source**: `agent.cpp` (dream)
 
 Also runs daily. Processes all consumed impressions to drift beliefs, salience, and knowledge.
 
-### 8.1 Salience and Knowledge Nudge
+### 9.1 Salience and Knowledge Nudge
 
 For each topic t with c exposures:
 
@@ -596,7 +761,7 @@ For each topic t with c exposures:
 \Delta \text{knowledge}_t = 0.01 \cdot \min(10, c)
 ```
 
-### 8.2 Belief Drift
+### 9.2 Belief Drift
 
 ```math
 \bar{s}_t = \frac{\sum_i s_i}{c}
@@ -615,13 +780,13 @@ This creates a slow overnight drift toward the day's aggregate signal, modulated
 
 ---
 
-## 9. Population-Level Dynamics
+## 10. Population-Level Dynamics
 
 **Source**: `population_layer.cpp`
 
 For large-scale simulation, populations are modeled as belief distributions in hex-grid cells rather than individual agents.
 
-### 9.1 Population Belief State
+### 10.1 Population Belief State
 
 Each cell-topic pair has:
 
@@ -630,7 +795,7 @@ Each cell-topic pair has:
 * v: momentum
 * b0: core value
 
-### 9.2 Exposure Aggregation
+### 10.2 Exposure Aggregation
 
 For N exposures to topic t in cell c:
 
@@ -638,7 +803,7 @@ For N exposures to topic t in cell c:
 \bar{I} = \frac{\sum_i (s_i - \mu) \cdot w_i}{\sum_i w_i}
 ```
 
-### 9.3 Segment-Weighted Parameters
+### 10.3 Segment-Weighted Parameters
 
 ```math
 \bar{\chi} = \sum_k \omega_k \cdot \chi_k
@@ -648,7 +813,7 @@ For N exposures to topic t in cell c:
 
 where ω_k are segment mix weights, χ_k is susceptibility, r_k is identity rigidity.
 
-### 9.4 Population Belief Update
+### 10.4 Population Belief Update
 
 ```math
 v_{t+1} = 0.85 \cdot v_t + 0.10 \cdot \bar{I} \cdot \bar{\chi}
@@ -667,7 +832,7 @@ F = -0.05 \cdot (\mu_t - b_0)
 \sigma^2_{t+1} = \max\!\big(0.05, \;\sigma^2_t - 0.01 \cdot W_{\text{total}}\big)
 ```
 
-### 9.5 Reach Estimation
+### 10.5 Reach Estimation
 
 ```math
 N_{\text{exposed}} = P_{\text{cell}} \cdot (0.1 + 0.5 \cdot \text{social\_proof})
@@ -683,13 +848,13 @@ N_{\text{engaged}} = N_{\text{consumed}} \cdot 0.2
 
 ---
 
-## 10. Cross-Border Factors
+## 11. Cross-Border Factors
 
 **Source**: `cross_border.h`, `cross_border.cpp`
 
 Cross-border content delivery decomposes into two independent multipliers: **reach** (who sees it) and **credibility** (who believes it).
 
-### 10.1 Reach Multiplier
+### 11.1 Reach Multiplier
 
 ```math
 R = \text{clamp}_{[0,1]}\!\left(R_{\text{cultural}} \cdot R_{\text{lang}} \cdot R_{\text{amp}} \cdot R_{\text{inauth}}\right)
@@ -720,7 +885,7 @@ R_{\text{amp}} = 1.0 + 0.3 \cdot (1 - e^{-\text{budget}})
 
 **Inauthentic accounts**: R_inauth = 1.2 if used, else 1.0.
 
-### 10.2 Credibility Multiplier
+### 11.2 Credibility Multiplier
 
 ```math
 C = \text{clamp}_{[0,1]}\!\left(C_{\text{base}} \cdot C_{\text{trust}} \cdot C_{\text{target}}\right)
@@ -751,13 +916,13 @@ C_{\text{base}}^{\text{state}} = C_{\text{base}} \cdot (1 - 0.5 \cdot d_{\text{s
 | MULTILATERAL_ORG | 0.5 + 0.5 * trust |
 | Default | 0.8 + 0.2 * trust |
 
-### 10.3 Effective Influence
+### 11.3 Effective Influence
 
 ```math
 I_{\text{eff}} = I_{\text{base}} \cdot R \cdot C
 ```
 
-### 10.4 Invariants
+### 11.4 Invariants
 
 | Condition | Constraint |
 |-----------|-----------|
@@ -768,11 +933,11 @@ I_{\text{eff}} = I_{\text{base}} \cdot R \cdot C
 
 ---
 
-## 11. Media Diet and Saturation
+## 12. Media Diet and Saturation
 
 **Source**: `media_diet.h`, `media_diet.cpp`
 
-### 11.1 Budget Conservation
+### 12.1 Budget Conservation
 
 Every agent's media attention is allocated across sources with a hard budget constraint:
 
@@ -784,7 +949,7 @@ For diaspora agents: `s_origin + s_residence + s_international = 1.0`
 
 For domestic agents: `s_residence + s_international = 1.0`
 
-### 11.2 Saturation Curve
+### 12.2 Saturation Curve
 
 Raw attention share does not equal effective information intake. Consuming 80% of media from one source yields less than 80% of available information due to diminishing returns:
 
@@ -803,7 +968,7 @@ Share     Effective (k=3)
 1.00      0.95
 ```
 
-### 11.3 Split Advantage
+### 12.3 Split Advantage
 
 A diversified media diet yields more total effective intake:
 
@@ -813,7 +978,7 @@ A diversified media diet yields more total effective intake:
 
 Example: 50/50 split gives 2 * 0.78 = 1.55 total effective, vs single-source 0.95.
 
-### 11.4 Event-Driven Rebalancing
+### 12.4 Event-Driven Rebalancing
 
 `shift_toward(country, delta)` adjusts attention allocation while preserving budget conservation:
 
@@ -823,11 +988,11 @@ s'_i = \frac{s_i + \delta_i}{\sum_j (s_j + \delta_j)}
 
 ---
 
-## 12. Actor Capabilities
+## 13. Actor Capabilities
 
 **Source**: `actor_capabilities.h`, `actor_capabilities.cpp`
 
-### 12.1 Capability Bounds
+### 13.1 Capability Bounds
 
 Each international actor type has bounded capabilities that prevent unrealistic simulation outcomes:
 
@@ -843,7 +1008,7 @@ Each international actor type has bounded capabilities that prevent unrealistic 
 \text{credibility\_floor} \le \text{credibility}(\text{country}) \le \text{credibility\_ceiling}
 ```
 
-### 12.2 Credibility Function
+### 13.2 Credibility Function
 
 ```math
 \text{cred}(\text{country}) = \text{clamp}\!\left(
@@ -855,7 +1020,7 @@ Each international actor type has bounded capabilities that prevent unrealistic 
 \right)
 ```
 
-### 12.3 Factory Profile Comparison
+### 13.3 Factory Profile Comparison
 
 | Property | Int'l Media | State Media | Multilateral | NGO | Corp | Celebrity |
 |----------|----------:|----------:|----------:|----------:|----------:|----------:|
@@ -867,7 +1032,7 @@ Each international actor type has bounded capabilities that prevent unrealistic 
 | reach_base | 0.15 | 0.08 | 0.10 | 0.08 | 0.12 | 0.30 |
 | inauthentic | No | Yes | No | No | No | No |
 
-### 12.4 Targeting Effectiveness
+### 13.4 Targeting Effectiveness
 
 ```math
 T_{\text{eff}} = T_{\text{precision}} \cdot p_{\text{internet}} \cdot p_{\text{social}} \cdot
@@ -879,9 +1044,9 @@ T_{\text{eff}} = T_{\text{precision}} \cdot p_{\text{internet}} \cdot p_{\text{s
 
 ---
 
-## 13. Parameter Reference
+## 14. Parameter Reference
 
-### 13.1 Belief Dynamics Parameters
+### 14.1 Belief Dynamics Parameters
 
 > GitHub note: symbols are Unicode here to avoid raw LaTeX in tables. The full math definitions are above.
 
@@ -896,9 +1061,14 @@ T_{\text{eff}} = T_{\text{precision}} \cdot p_{\text{internet}} \cdot p_{\text{s
 | `evidence_threshold`          | θ      |    0.50 | [0, 2]  | Multi-hit gate (higher = harder to move) |
 | `trust_exponent_gamma`        | γ      |     2.0 | [1, 4]  | Trust superlinearity (1 = linear)        |
 | `habituation_alpha`           | α      |    0.05 | [0, 1]  | Diminishing returns per exposure         |
+| `novelty_decay_beta`          | β      |    0.30 | [0, 1]  | Cacioppo-Petty wear-out rate             |
+| `reactance_threshold`         | n_r    |     8.0 | [3, 20] | Repetition count triggering boomerang    |
+| `content_sim_sigma`           | σ      |    0.30 | [0, 2]  | Content similarity radius                |
+| `diversity_floor`             | d_f    |    0.30 | [0, 1]  | Min effectiveness for single-topic actor |
+| `exposure_history_window`     | W      |      50 | [10, 200] | Ring buffer size for content fingerprints |
 | `bounded_confidence_tau`      | τ      |    1.50 | [0, 2]  | Max stance gap for acceptance            |
 
-### 13.2 Identity Dimension Weights (USA Default)
+### 14.2 Identity Dimension Weights (USA Default)
 
 | Dimension          | Weight | Decay | Dims |
 | ------------------ | -----: | ----: | ---: |
@@ -912,7 +1082,7 @@ T_{\text{eff}} = T_{\text{precision}} \cdot p_{\text{internet}} \cdot p_{\text{s
 | income             |      3 |  0.50 |   1D |
 | class_culture      |      0 |  0.50 |   1D |
 
-### 13.3 Country Weight Variations
+### 14.3 Country Weight Variations
 
 | Dimension          | USA | India | Brazil | UK | France |
 | ------------------ | --: | ----: | -----: | -: | -----: |
@@ -922,7 +1092,7 @@ T_{\text{eff}} = T_{\text{precision}} \cdot p_{\text{internet}} \cdot p_{\text{s
 | language           |   0 |    10 |      0 |  0 |      0 |
 | class_culture      |   0 |     0 |      0 |  8 |      0 |
 
-### 13.4 Influence Modulation Constants
+### 14.4 Influence Modulation Constants
 
 | Constant                   | Value | Where Used                      |
 | -------------------------- | ----: | ------------------------------- |
@@ -947,8 +1117,8 @@ T_{\text{eff}} = T_{\text{precision}} \cdot p_{\text{internet}} \cdot p_{\text{s
 | ----------------------------------- | -------------------------------------------------------------------- |
 | `cpp/include/identity_space.h`      | DimensionalPosition, IdentityDimensionConfig, IdentitySpace          |
 | `cpp/src/identity_space.cpp`        | Country factory defaults, resolve(), compute_similarity()            |
-| `cpp/include/belief_dynamics.h`     | InfluenceDynamicsConfig, BeliefDynamicsEngine                        |
-| `cpp/src/belief_dynamics.cpp`       | 11-step belief update pipeline                                       |
+| `cpp/include/belief_dynamics.h`     | InfluenceDynamicsConfig, BeliefDynamicsEngine, novelty/entropy params |
+| `cpp/src/belief_dynamics.cpp`       | 11-step belief update pipeline + steps 3b-3d (novelty, entropy, reactance) |
 | `cpp/src/agent_demographics.cpp`    | compute_similarity(), compute_influence_weight()                     |
 | `cpp/src/agent.cpp`                 | AttentionSystem, BeliefUpdateEngine, dream(), consolidate_identity() |
 | `cpp/src/population_layer.cpp`      | Population-level belief dynamics                                     |
