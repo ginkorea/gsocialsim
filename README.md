@@ -316,7 +316,8 @@ gsocialsim includes a full-stack web GUI for interactive simulation control, liv
 
 - **Dashboard** — overview of recent runs, active simulations, quick-launch
 - **Configuration** — visual parameter editor with sliders for 30+ params across 7 groups (Belief Dynamics, Kernel, Feed Algorithm, Broadcast Feed, Media Diet, Simulation), raw JSON editor, save/load presets
-- **Live Simulation** — animated tick counter with radial progress, real-time belief distribution chart (stacked area histogram), live metrics panel (impressions, consumed, belief deltas, polarization)
+- **Data Source Management** — browse, inspect, and upload CSV stimuli files; preview first N rows; file metadata (row count, tick range, columns); per-run data source selection; extensible for future GDELT integration
+- **Live Simulation** — real-time WebSocket streaming from C++ process, animated tick counter with radial progress, belief distribution chart (stacked area histogram), live metrics panel (impressions, consumed, belief deltas, polarization), collapsible simulation log with timestamped entries
 - **Hyperparameter Tuning** — Optuna-powered optimization (TPE, CMA-ES, Random), search space editor, 5 objective functions (polarization, crossing rate, consumption rate, mean belief shift, influence Gini), live progress charts, trial table with "apply best" button
 - **Results Explorer** — multi-run comparison, parameter diff highlighting, CSV/JSON export
 
@@ -523,12 +524,14 @@ gui/                        # Web GUI (React + FastAPI)
 │       │   ├── runs.py     # POST/GET/DELETE /api/runs
 │       │   ├── params.py   # GET /api/params/schema, presets CRUD
 │       │   ├── tuning.py   # POST/GET /api/studies
-│       │   └── ws.py       # WebSocket /ws/run/{id}, /ws/study/{id}
+│       │   ├── ws.py       # WebSocket /ws/run/{id}, /ws/study/{id}
+│       │   └── datasources.py # GET/POST /api/datasources (browse, upload CSV)
 │       ├── core/           # Business logic
 │       │   ├── runner.py   # Async subprocess runner for C++ binary
 │       │   ├── schemas.py  # Pydantic models, 30+ param definitions
 │       │   ├── store.py    # SQLite storage (runs, presets, studies)
-│       │   └── parser.py   # Output parsing, metrics computation
+│       │   ├── parser.py   # Output parsing, metrics computation
+│       │   └── datasources.py # CSV scanning, inspection, validation
 │       └── tuning/         # Optuna hyperparameter optimization
 │           ├── engine.py   # Study management, trial loop
 │           ├── objectives.py # 5 objective functions
@@ -543,6 +546,7 @@ gui/                        # Web GUI (React + FastAPI)
         │   ├── results/    # RunComparison, ParamDiff, ExportDialog
         │   └── layout/     # Sidebar, Header, Layout
         ├── pages/          # Dashboard, Config, Simulation, Tuning, Results
+        ├── providers/      # SimulationProvider (app-level WebSocket context)
         ├── hooks/          # useWebSocket, useSimulation, useTuning, useParams
         ├── stores/         # Zustand: configStore, runStore, tuningStore
         └── lib/            # API client, types, utilities

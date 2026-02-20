@@ -34,6 +34,8 @@ This roadmap tracks the implementation of missing features in the Synthetic Soci
 - Phase 5: CUDA Backend (Optional, deferred)
 - Phase 12: JSON-loaded identity profiles (country configs from file, replaces factory defaults)
 - Phase 13: Event-driven media diet adaptation (media shifts triggered by crisis events, exposure patterns)
+- Phase 14: C++ Server Mode (persistent process, pre-loaded data, fast per-run execution)
+- Phase 15: GDELT data source integration (real-world event ingestion for stimuli pipeline)
 
 ---
 
@@ -518,6 +520,105 @@ Full formal notation with coordinate maps, diagrams, and parameter tables in [IN
 - [x] All 16 scenarios pass
 - [x] No regressions in existing 14 demographic tests
 - [x] Deterministic under fixed parameters
+
+---
+
+## Phase 14: C++ Server Mode (TODO)
+
+**Priority**: HIGH
+**Status**: 📋 Planned
+**Goal**: Eliminate the ~45s per-run setup overhead by keeping a persistent C++ process with pre-loaded static data.
+
+### Problem
+
+Each simulation run currently spawns a new C++ process that repeats the full initialization:
+
+| Phase | Time | Notes |
+|-------|------|-------|
+| Stimulus CSV loading | 5-15s | Reads entire CSV, builds tick index |
+| Agent creation + demographics | 3-5s | RNG-sampled per agent |
+| **Network generation** | **15-25s** | **Primary bottleneck** — edge creation, mutual computation |
+| Geo population loading | 3-5s | 725MB H3 CSV (if geo mode enabled) |
+| Subscription setup | 2-3s | N * avg_following subscription objects |
+| **Total setup** | **~45s** | Actual simulation is <1s for typical runs |
+
+### Proposed Approach: Stdin-Based Server Mode
+
+Add a `--server-mode` flag to the C++ binary:
+
+1. **Startup**: Load static data once (stimulus CSV, geo population CSV, population segments)
+2. **Loop**: Read JSON run configs from stdin, one per line
+3. **Per run**: Create agents, build network, run simulation, stream JSON output to stdout
+4. **Shutdown**: Clean exit on stdin EOF or SIGTERM
+
+```
+Python Backend (FastAPI)
+    │
+    ├─ On startup: spawn gsocialsim_cpp --server-mode --stimuli data/stimuli.csv
+    │              └─ C++ loads stimulus data once (~10s)
+    │
+    ├─ Per run: write JSON config to C++ stdin
+    │           └─ C++ creates agents, builds network, runs ticks (~20s)
+    │              └─ Streams tick JSON to stdout
+    │
+    └─ On shutdown: close stdin → C++ exits
+```
+
+### What Can Be Pre-loaded (Immutable Across Runs)
+
+- Stimulus CSV data (`StimulusIngestionEngine.stimuli_by_tick_`)
+- H3 geographic population data (725MB)
+- Population segment templates
+- Country configuration defaults
+
+### What Must Be Per-Run (Seed-Dependent)
+
+- Agent instances and demographics
+- Social network graph topology
+- Belief states, psychographics, subscriptions
+
+### Expected Performance Gains
+
+| Scenario | Current | With Server Mode |
+|----------|---------|-----------------|
+| First run | ~45s | ~35s (skip re-parse of stimulus CSV) |
+| Subsequent runs | ~45s | ~20-25s (skip all static data loading) |
+| With parallel network gen (OpenMP) | ~45s | ~10-15s |
+
+### Implementation Steps
+
+1. Add `--server-mode` flag to `main.cpp` argument parser
+2. Extract initialization into reusable functions (separate static data loading from per-run setup)
+3. Add stdin JSON reader loop (read line → parse config → run simulation → output results)
+4. Add proper cleanup/reset between runs (clear agent map, network graph, subscriptions)
+5. Modify `gui/backend/app/core/runner.py` to manage persistent process instead of spawning per run
+6. Add health check protocol (backend sends `{"cmd": "ping"}`, C++ responds `{"status": "ready"}`)
+
+### Future: Parallel Network Generation
+
+The network edge creation loop is embarrassingly parallel. Adding OpenMP pragmas to the follower assignment loop in `main.cpp` could reduce the 15-25s network generation to 5-8s on multi-core machines.
+
+---
+
+## Phase 15: GDELT Data Source Integration (TODO)
+
+**Priority**: MEDIUM
+**Status**: 📋 Planned
+**Goal**: Ingest real-world events from the GDELT Project as simulation stimuli, replacing or augmenting synthetic CSV data.
+
+### Approach
+
+- Add `GdeltDataSource` alongside existing `CsvDataSource`
+- Query GDELT 2.0 GKG (Global Knowledge Graph) API for events by date range, country, topic
+- Transform GDELT events into the existing `Stimulus` format (tick, source, content_text, topic, media_type)
+- Cache downloaded GDELT data locally as CSV for reproducibility
+- UI: Add "GDELT" option to data source type selector (currently shows "CSV" active, "GDELT (coming soon)" disabled)
+
+### Integration Points
+
+- `cpp/include/data_source.h`: Add `GdeltDataSource` class
+- `gui/backend/app/core/datasources.py`: Add GDELT fetch/cache/inspect functions
+- `gui/frontend/src/components/config/DataSourcePanel.tsx`: Enable GDELT selector with date range picker
 
 ---
 

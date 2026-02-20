@@ -11,6 +11,26 @@ This list is intentionally persistent. Update as items are implemented.
 - Context-dependent backfire (more nuanced triggers than a threshold).
 - Optimize for massive simulations (define targets and thresholds).
 
+## C++ Server Mode (Phase 14) — HIGH PRIORITY
+
+Currently each GUI simulation run spawns a new C++ process with ~45s setup overhead (network generation is the bottleneck at 15-25s). The actual simulation runs in <1s for typical configs.
+
+- [ ] Add `--server-mode` flag to C++ binary (persistent process, reads configs from stdin)
+- [ ] Pre-load static data once at startup (stimulus CSV, geo population, segment templates)
+- [ ] Stdin JSON protocol: `{"cmd": "run", ...params}` → stream tick JSON to stdout
+- [ ] Per-run reset: clear agents, network graph, subscriptions between runs
+- [ ] Update `runner.py` to manage persistent C++ process instead of spawn-per-run
+- [ ] Add health check / ready protocol between Python backend and C++ process
+- [ ] Parallel network generation with OpenMP (15-25s → 5-8s)
+
+## GDELT Integration (Phase 15)
+
+- [ ] Add `GdeltDataSource` to C++ alongside `CsvDataSource`
+- [ ] GDELT 2.0 GKG API client (fetch events by date/country/topic)
+- [ ] Transform GDELT events into `Stimulus` format
+- [ ] Local cache for reproducibility
+- [ ] Enable GDELT selector in GUI DataSourcePanel
+
 ## Optimize Targets (Massive Sim)
 
 - Perception + belief update hot loop -> C first, CUDA later if batched arrays.
