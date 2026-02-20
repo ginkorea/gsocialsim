@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,6 +9,8 @@ from .core.runner import SimulationRunner
 from .core.store import Store
 from .tuning.engine import OptunaEngine
 from .api import runs, params, tuning, ws, datasources
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(name)s: %(message)s")
 
 
 @asynccontextmanager
