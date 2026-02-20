@@ -27,8 +27,10 @@ export function useWebSocket(url: string | null, options: UseWebSocketOptions) {
       wsRef.current.close()
     }
 
+    // Connect directly to backend (bypass Vite proxy which breaks WS upgrades)
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//${window.location.host}${urlRef.current}`
+    const backendPort = import.meta.env.VITE_BACKEND_PORT || '8000'
+    const wsUrl = `${protocol}//${window.location.hostname}:${backendPort}${urlRef.current}`
     const ws = new WebSocket(wsUrl)
 
     ws.onopen = () => {
