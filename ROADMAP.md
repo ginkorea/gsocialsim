@@ -472,12 +472,13 @@ Optimization comes last.
 
 # Guardrails
 
-1. LLM never in belief hot loop
-2. Numeric bounded content only
-3. Determinism under fixed seed
-4. Schema validation mandatory
-5. Event engine isolated from belief dynamics
-6. No hidden mutable global state
+1. **LLM produces inputs, math produces updates**: LLM handles perception (content → impression vectors) and generation (agent state → content). The 14-step belief dynamics pipeline is pure deterministic math. LLM never computes belief changes.
+2. **Batch LLM, never per-agent loop**: LLM calls are batched per tick (perceive batch + act batch), bounded by attention filtering and personality thresholds respectively. No synchronous per-agent LLM calls in the hot loop.
+3. **Deterministic replay under fixed seed**: Cache all LLM outputs (impression vectors + generated content). Re-runs use cached perceptions — no LLM required for replay. Same cache + same seed = identical dynamics.
+4. **Numeric bounded content only**: All content that enters the dynamics pipeline is numeric and bounded. Text is optional metadata for display, not an input to belief updates.
+5. **Schema validation mandatory**: All scenario configs, content objects, and event definitions validated against strict JSON schemas.
+6. **Event engine isolated from belief dynamics**: Events modify parameters and trigger content, but never directly alter agent beliefs.
+7. **No hidden mutable global state**: All state is owned by agents, the network, or the event scheduler. No singletons, no ambient mutation.
 
 ---
 
@@ -485,8 +486,9 @@ Optimization comes last.
 
 A scalable, event-reactive, scenario-generated influence ecosystem that:
 
-* Evolves endogenously
+* Evolves endogenously (agents perceive, decide, and produce content)
+* Uses LLM for cognition (perception + generation) and math for dynamics (belief updates)
 * Detects regime shifts
-* Supports interaction
-* Remains mathematically grounded
+* Supports human-in-the-loop interaction
+* Remains mathematically grounded and deterministically replayable
 * Punishes spam and rewards diverse, novel argumentation

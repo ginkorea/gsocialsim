@@ -98,15 +98,17 @@ The platform is intended for **research, experimentation, and counterfactual ana
 
 Agents are **long-lived processes**, not request/response bots.
 
-Each agent runs a continuous loop:
-- Perceive environment
-- Update internal state
-- Allocate attention
-- Select intent
-- Possibly act
-- Consolidate memory
+Each agent runs a continuous per-tick loop:
 
-Most cycles result in **no visible action**, mirroring real human behavior.
+1. **DELIVER**: Feed algorithm pushes content to agent's queue
+2. **ATTEND** (rules, cheap): Priority queue ranks content by salience, source trust, primal cues. Agent consumes in priority order within time budget. Most content dies here.
+3. **PERCEIVE** (LLM batch): Only consumed content is interpreted. LLM takes (content, agent_context) → numeric impression vector. Agent-specific: same article produces different impressions for different agents based on their demographics, beliefs, and identity.
+4. **UPDATE** (math): 14-step belief dynamics pipeline processes impression vectors deterministically. No LLM involvement.
+5. **DECIDE** (rules): Personality-weighted reward evaluation against action threshold. Threshold varies by personality — trolls act frequently (high dominance/status weights), lurkers almost never (high safety/coherence weights).
+6. **ACT** (LLM batch): Agents above threshold generate content. LLM takes (agent_state, intent_parameters) → content with numeric fields. Intent includes topic selection (salience-driven), stance (belief-driven), frame (personality-driven), and desired effect (reward-optimizing).
+7. **CONSOLIDATE** (math): Daily identity and dream consolidation.
+
+Most cycles result in **no visible action**, mirroring real human behavior. The LLM is called twice per tick in batch (steps 3 and 6), bounded by attention filtering and personality thresholds respectively.
 
 ---
 
@@ -161,30 +163,50 @@ Agents maximize a **personality-weighted reward vector**:
 6. Safety
 7. Effort Cost (negative)
 
-Weights differ per agent.
-Some weights may invert (e.g., trolls reward backlash).
+Weights differ per agent and drive both **action thresholds** and **action intent**:
+
+- **Trolls** (high dominance, inverted affiliation): low threshold to act, produce provocative content targeting high-engagement topics, optimize for backlash
+- **Lurkers** (high safety, high coherence): rarely act, consume heavily, act only when identity-salient content exceeds a high arousal threshold
+- **Influencers** (high status, high affiliation): moderate threshold, produce content aligned with audience expectations, optimize for follower retention
+- **Activists** (high coherence, high dominance): act on politically salient topics, optimize for persuasion toward their stance
+- **Casual users** (balanced weights): act sporadically, content reflects emotional state more than strategy
+
+When an agent decides to act, personality weights also determine **what** they create: which topic (salience × reward potential), which frame (personality-driven), what stance (belief-driven), and to what desired effect (reward-optimizing). The LLM generates content that reflects this intent.
 
 ---
 
-## 5. Cognition & Attention
+## 5. Cognition, Attention & LLM Integration
 
-### 5.1 Two-Tier Attention System
+### 5.1 Attention Priority Queue
+
+Delivered content enters a **priority queue** ranked by cheap rule-based signals:
+
+- Source trust (relationship strength, verified/influencer status)
+- Topic salience (agent's current salience for that topic)
+- Primal cue indicators (media type base rates, trigger keywords)
+- Intake mode (scroll = low-cost skimming, seek = active search, physical = high-cost)
+- Recency (newer content preferred)
+
+The agent consumes content in priority order within their **per-tick time budget**. Each item costs attention (varies by media type and intake mode). When the budget is exhausted, remaining content is discarded unread.
+
+This is the primary filter: most delivered content is never perceived. Only consumed content proceeds to LLM perception.
+
+### 5.2 Two-Tier Perception
 
 **Scroll + Seek Intake Layer**
-- Extremely cheap, frequent perception
-- Skims content and produces impression vectors
-- No reasoning or text generation
+- Batched LLM call: (content, agent_context) → numeric impression vector
+- Agent-specific: the same article produces different impression vectors for agents with different demographics, beliefs, and identity
+- Cheap per-item within the batch (GPU-parallel)
 
 **Deep Focus Layer**
-- Rare, expensive
-- Triggered by salience thresholds
-- Used for long posts, arguments, coordination
+- Rare, expensive (3x–6x attention cost)
+- Triggered when scroll-layer impression exceeds salience or identity threat thresholds
+- Produces richer impression vectors with deeper stance analysis
+- Used for long-form content, arguments, coordination decisions
 
----
+### 5.3 Impression Object
 
-### 5.2 Impression Object
-
-Each exposure produces:
+Each perception produces:
 - emotional valence
 - arousal
 - stance signal
@@ -192,9 +214,25 @@ Each exposure produces:
 - identity threat
 - social proof
 - relationship strength of source
-- primal activation (optional)
+- primal activation
+- content fingerprint (topic, stance, frame, media_type, source_id — feeds novelty/entropy system)
 
-Impressions decay rapidly.
+Impressions decay rapidly. Content fingerprints persist in the agent's exposure history ring buffer (last W items).
+
+### 5.4 LLM Architecture Boundary
+
+The LLM serves two roles per tick, both in batch:
+
+| Phase | Input | Output | Bounded By |
+|-------|-------|--------|------------|
+| **PERCEIVE** | (content, agent_context) | Numeric impression vector | Attention queue — only consumed content |
+| **ACT** | (agent_state, intent_params) | Content with numeric fields | Personality threshold — most agents don't act |
+
+**The LLM never computes belief updates.** It produces the inputs (impression vectors) and consumes the outputs (agent state → generated content). The 14-step belief dynamics pipeline between perception and action is pure deterministic math.
+
+**Deterministic replay**: Cache all LLM outputs (impression vectors + generated content) per tick. Re-runs with the same seed use cached perceptions — no LLM required for replay. This separates the stochastic LLM layer from the deterministic dynamics layer.
+
+**Batch sizing**: The perceive batch is bounded by `Σ(agents × consumed_items_per_agent)`, typically far smaller than `agents × delivered_items` due to attention filtering. The act batch is bounded by the fraction of agents above their personality-specific action threshold (typically 5-15% per tick).
 
 ---
 
