@@ -333,6 +333,17 @@ gsocialsim includes a full-stack web GUI for interactive simulation control, liv
 
 ### Running the GUI
 
+**Quick start** (single command):
+
+```bash
+./gsocialsim-gui.sh               # start backend + frontend
+./gsocialsim-gui.sh --install     # install deps first, then start
+./gsocialsim-gui.sh --build       # rebuild C++ binary, then start
+./gsocialsim-gui.sh --port 9000   # custom backend port
+```
+
+**Manual start** (two terminals):
+
 ```bash
 # Terminal 1: Backend
 source .gsocialsim/bin/activate  # or your venv
