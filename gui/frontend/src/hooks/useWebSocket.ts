@@ -16,7 +16,22 @@ export function useWebSocket(url: string | null, options: UseWebSocketOptions) {
   const urlRef = useRef(url)
   urlRef.current = url
 
-  const { reconnect = true, reconnectInterval = 3000 } = options
+  // Store callbacks in refs so `connect` never changes identity
+  const onMessageRef = useRef(options.onMessage)
+  onMessageRef.current = options.onMessage
+  const onOpenRef = useRef(options.onOpen)
+  onOpenRef.current = options.onOpen
+  const onCloseRef = useRef(options.onClose)
+  onCloseRef.current = options.onClose
+  const onErrorRef = useRef(options.onError)
+  onErrorRef.current = options.onError
+
+  const reconnect = options.reconnect ?? true
+  const reconnectInterval = options.reconnectInterval ?? 3000
+  const reconnectRef = useRef(reconnect)
+  reconnectRef.current = reconnect
+  const reconnectIntervalRef = useRef(reconnectInterval)
+  reconnectIntervalRef.current = reconnectInterval
 
   const connect = useCallback(() => {
     if (!urlRef.current) return
@@ -35,34 +50,34 @@ export function useWebSocket(url: string | null, options: UseWebSocketOptions) {
 
     ws.onopen = () => {
       setConnected(true)
-      options.onOpen?.()
+      onOpenRef.current?.()
     }
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        options.onMessage(data)
+        onMessageRef.current(data)
       } catch {
         // ignore
       }
     }
     ws.onclose = () => {
       setConnected(false)
-      options.onClose?.()
+      onCloseRef.current?.()
       // Auto-reconnect if enabled and URL is still set
-      if (reconnect && urlRef.current) {
+      if (reconnectRef.current && urlRef.current) {
         reconnectTimer.current = setTimeout(() => {
           if (urlRef.current) {
             connect()
           }
-        }, reconnectInterval)
+        }, reconnectIntervalRef.current)
       }
     }
     ws.onerror = () => {
       setConnected(false)
-      options.onError?.()
+      onErrorRef.current?.()
     }
     wsRef.current = ws
-  }, [options.onMessage, options.onOpen, options.onClose, options.onError, reconnect, reconnectInterval])
+  }, []) // stable — no dependencies, all values read from refs
 
   useEffect(() => {
     if (url) {
