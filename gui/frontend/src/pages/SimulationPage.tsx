@@ -4,12 +4,12 @@ import { Square, Settings2 } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
 import { LiveView } from '@/components/simulation/LiveView'
 import { useRunStore } from '@/stores/runStore'
-import { useSimulation } from '@/hooks/useSimulation'
+import { useSimulationContext } from '@/providers/SimulationProvider'
 
 export function SimulationPage() {
   const navigate = useNavigate()
   const { status, activeRunId } = useRunStore()
-  const { cancel, connected } = useSimulation()
+  const { cancel, connected } = useSimulationContext()
 
   return (
     <div className="flex flex-col h-full">

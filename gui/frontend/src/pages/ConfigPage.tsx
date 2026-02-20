@@ -8,13 +8,13 @@ import { PresetBar } from '@/components/config/PresetBar'
 import { JsonEditor } from '@/components/config/JsonEditor'
 import { DataSourcePanel } from '@/components/config/DataSourcePanel'
 import { useConfigStore } from '@/stores/configStore'
-import { useSimulation } from '@/hooks/useSimulation'
+import { useSimulationContext } from '@/providers/SimulationProvider'
 
 export function ConfigPage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<'visual' | 'json'>('visual')
   const { config, dataSource, dirty, resetToDefaults } = useConfigStore()
-  const { launch } = useSimulation()
+  const { launch } = useSimulationContext()
 
   const handleStart = async () => {
     if (!dataSource?.filename) {
